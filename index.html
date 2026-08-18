@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabic Ṣarf Generator</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="app__header">
+        <p class="eyebrow">Version 1</p>
+        <h1>Arabic Ṣarf Generator</h1>
+        <p>Enter an Arabic root and choose a Bāb to preview your selection.</p>
+      </header>
+
+      <!-- The form is right-to-left so Arabic is entered and read naturally. -->
+      <form id="sarf-form" class="generator" dir="rtl">
+        <fieldset>
+          <legend>Arabic root letters</legend>
+          <div class="root-inputs">
+            <div class="field">
+              <label for="root-one">First letter</label>
+              <input id="root-one" name="root-one" type="text" placeholder="ف" required>
+            </div>
+            <div class="field">
+              <label for="root-two">Second letter</label>
+              <input id="root-two" name="root-two" type="text" placeholder="ع" required>
+            </div>
+            <div class="field">
+              <label for="root-three">Third letter</label>
+              <input id="root-three" name="root-three" type="text" placeholder="ل" required>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="field bab-field">
+          <label for="bab">Bāb</label>
+          <select id="bab" name="bab">
+            <option value="Bāb Naṣara (faʿala – yafʿulu)">بَابُ نَصَرَ — فَعَلَ / يَفْعُلُ</option>
+            <option value="Bāb Ḍaraba (faʿala – yafʿilu)">بَابُ ضَرَبَ — فَعَلَ / يَفْعِلُ</option>
+            <option value="Bāb Fataḥa (faʿala – yafʿalu)">بَابُ فَتَحَ — فَعَلَ / يَفْعَلُ</option>
+            <option value="Bāb Samiʿa (faʿila – yafʿalu)">بَابُ سَمِعَ — فَعِلَ / يَفْعَلُ</option>
+            <option value="Bāb Karuma (faʿula – yafʿulu)">بَابُ كَرُمَ — فَعُلَ / يَفْعُلُ</option>
+            <option value="Bāb Ḥasiba (faʿila – yafʿilu)">بَابُ حَسِبَ — فَعِلَ / يَفْعِلُ</option>
+          </select>
+        </div>
+
+        <button type="submit">Generate</button>
+      </form>
+
+      <!-- JavaScript adds a summary here after the form is submitted. -->
+      <section id="results" class="results" aria-live="polite" aria-atomic="true"></section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
