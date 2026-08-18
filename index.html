@@ -9,9 +9,9 @@
   <body>
     <main class="app">
       <header class="app__header">
-        <p class="eyebrow">Version 1</p>
+        <p class="eyebrow">Version 2</p>
         <h1>Arabic Ṣarf Generator</h1>
-        <p>Enter an Arabic root and choose a Bāb to preview your selection.</p>
+        <p>Enter an Arabic root and choose a Bāb to generate its basic active forms.</p>
       </header>
 
       <!-- The form is right-to-left so Arabic is entered and read naturally. -->
@@ -37,19 +37,19 @@
         <div class="field bab-field">
           <label for="bab">Bāb</label>
           <select id="bab" name="bab">
-            <option value="Bāb Naṣara (faʿala – yafʿulu)">بَابُ نَصَرَ — فَعَلَ / يَفْعُلُ</option>
-            <option value="Bāb Ḍaraba (faʿala – yafʿilu)">بَابُ ضَرَبَ — فَعَلَ / يَفْعِلُ</option>
-            <option value="Bāb Fataḥa (faʿala – yafʿalu)">بَابُ فَتَحَ — فَعَلَ / يَفْعَلُ</option>
-            <option value="Bāb Samiʿa (faʿila – yafʿalu)">بَابُ سَمِعَ — فَعِلَ / يَفْعَلُ</option>
-            <option value="Bāb Karuma (faʿula – yafʿulu)">بَابُ كَرُمَ — فَعُلَ / يَفْعُلُ</option>
-            <option value="Bāb Ḥasiba (faʿila – yafʿilu)">بَابُ حَسِبَ — فَعِلَ / يَفْعِلُ</option>
+            <option value="نَصَرَ-يَنْصُرُ">بَابُ نَصَرَ — فَعَلَ / يَفْعُلُ</option>
+            <option value="ضَرَبَ-يَضْرِبُ">بَابُ ضَرَبَ — فَعَلَ / يَفْعِلُ</option>
+            <option value="فَتَحَ-يَفْتَحُ">بَابُ فَتَحَ — فَعَلَ / يَفْعَلُ</option>
+            <option value="سَمِعَ-يَسْمَعُ">بَابُ سَمِعَ — فَعِلَ / يَفْعَلُ</option>
+            <option value="كَرُمَ-يَكْرُمُ">بَابُ كَرُمَ — فَعُلَ / يَفْعُلُ</option>
+            <option value="حَسِبَ-يَحْسِبُ">بَابُ حَسِبَ — فَعِلَ / يَفْعِلُ</option>
           </select>
         </div>
 
         <button type="submit">Generate</button>
       </form>
 
-      <!-- JavaScript adds a summary here after the form is submitted. -->
+      <!-- JavaScript adds the generated active forms here after submission. -->
       <section id="results" class="results" aria-live="polite" aria-atomic="true"></section>
     </main>
 
