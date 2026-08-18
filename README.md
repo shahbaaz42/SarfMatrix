@@ -1,12 +1,19 @@
 # Arabic Ṣarf Generator
 
-Version 2 is a small, browser-based generator for entering a three-letter Arabic
+Version 3 is a small, browser-based generator for entering a three-letter Arabic
 root and selecting one of the six Thulāthī Mujarrad Bābs defined in the reference
-workbook. It generates the fully vocalized third-person masculine singular active
-past and active present forms using the selected Bāb's middle-radical vowels.
+workbook. It generates all 14 fully vocalized Ṣīghahs of the active past and active
+present using the selected Bāb's middle-radical vowels.
 
-Version 2 intentionally does not yet generate the other 13 Ṣīghahs, passive or
-derived forms, moods, imperatives, emphatic forms, or Thulāthī Mazīd Fīh forms.
+Version 3 intentionally does not generate passive or derived forms, majzūm,
+manṣūb, imperatives, emphatic forms, or Thulāthī Mazīd Fīh forms.
+
+## Known workbook inconsistency
+
+`Base - Template!A18` contains an inconsistent helper formula and cached value
+(`كْرَمُا`). It is not an output dependency: `E18` depends on `B18`, whose formula
+produces the workbook's active-present output `تَكْرُمَانِ`. Version 3 therefore
+follows the actual `B18` → `E18` dependency and leaves the workbook unchanged.
 
 ## Run locally
 
@@ -28,6 +35,6 @@ Then visit <http://localhost:8000> in your browser.
 
 - `index.html` contains the page structure and form.
 - `style.css` provides the responsive layout and visual design.
-- `script.js` contains the workbook-derived Bāb configuration and builds the two
-  supported active forms when **Generate** is clicked.
+- `script.js` contains the workbook-derived Bāb and 14-Ṣīghah configurations and
+  builds the active past and present table when **Generate** is clicked.
 - `Arabic Sarf Template.xlsx` is the authoritative reference workbook.
