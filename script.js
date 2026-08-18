@@ -17,6 +17,10 @@ const LETTERS = Object.freeze({
   HAMZA: "أ",
 });
 
+// H3's validation list supplies these particles. A separating space is part of
+// the H-column concatenation in the workbook's selected validation values.
+const MAJZUM_PARTICLES = Object.freeze(["لَمْ", "لَمَّا", "لَا"]);
+
 // The Bāb-dependent vowels are transcribed from the workbook's hidden Q1:U7 table.
 const BAB_CONFIG = Object.freeze({
   "فَتَحَ-يَفْتَحُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.FATHA }),
@@ -30,23 +34,23 @@ const BAB_CONFIG = Object.freeze({
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA } = HARAKAT;
 const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA } = LETTERS;
 
-// One ordered configuration drives both columns. Endings are literal workbook
-// concatenations, including its explicit sukūn on long wāw and yāʾ.
+// One ordered configuration drives every 14-form family. Endings are literal
+// workbook concatenations, including its explicit sukūn on long wāw and yāʾ.
 const SIGHAS = Object.freeze([
-  { id: "3ms", pronoun: "هُوَ", person: 3, gender: "masculine", number: "singular", presentPrefix: YA, pastEnding: FATHA, presentEnding: DAMMA },
-  { id: "3md", pronoun: "هُمَا", person: 3, gender: "masculine", number: "dual", presentPrefix: YA, pastEnding: FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA },
-  { id: "3mp", pronoun: "هُمْ", person: 3, gender: "masculine", number: "plural", presentPrefix: YA, pastEnding: DAMMA + WAW + SUKUN + ALIF, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA },
-  { id: "3fs", pronoun: "هِيَ", person: 3, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: FATHA + TA + SUKUN, presentEnding: DAMMA },
-  { id: "3fd", pronoun: "هُمَا", person: 3, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: FATHA + TA + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA },
-  { id: "3fp", pronoun: "هُنَّ", person: 3, gender: "feminine", number: "plural", presentPrefix: YA, pastEnding: SUKUN + NUN + FATHA, presentEnding: SUKUN + NUN + FATHA },
-  { id: "2ms", pronoun: "أَنْتَ", person: 2, gender: "masculine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + FATHA, presentEnding: DAMMA },
-  { id: "2md", pronoun: "أَنْتُمَا", person: 2, gender: "masculine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA },
-  { id: "2mp", pronoun: "أَنْتُمْ", person: 2, gender: "masculine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + SUKUN, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA },
-  { id: "2fs", pronoun: "أَنْتِ", person: 2, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + KASRA, presentEnding: KASRA + YA + SUKUN + NUN + FATHA },
-  { id: "2fd", pronoun: "أَنْتُمَا", person: 2, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA },
-  { id: "2fp", pronoun: "أَنْتُنَّ", person: 2, gender: "feminine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + NUN + SHADDA + FATHA, presentEnding: SUKUN + NUN + FATHA },
-  { id: "1s", pronoun: "أَنَا", person: 1, gender: "common", number: "singular", presentPrefix: HAMZA, pastEnding: SUKUN + TA + DAMMA, presentEnding: DAMMA },
-  { id: "1p", pronoun: "نَحْنُ", person: 1, gender: "common", number: "plural", presentPrefix: NUN, pastEnding: SUKUN + NUN + FATHA + ALIF, presentEnding: DAMMA },
+  { id: "3ms", pronoun: "هُوَ", person: 3, gender: "masculine", number: "singular", presentPrefix: YA, pastEnding: FATHA, presentEnding: DAMMA, majzumEnding: SUKUN },
+  { id: "3md", pronoun: "هُمَا", person: 3, gender: "masculine", number: "dual", presentPrefix: YA, pastEnding: FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF },
+  { id: "3mp", pronoun: "هُمْ", person: 3, gender: "masculine", number: "plural", presentPrefix: YA, pastEnding: DAMMA + WAW + SUKUN + ALIF, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA, majzumEnding: DAMMA + WAW + SUKUN + ALIF },
+  { id: "3fs", pronoun: "هِيَ", person: 3, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: FATHA + TA + SUKUN, presentEnding: DAMMA, majzumEnding: SUKUN },
+  { id: "3fd", pronoun: "هُمَا", person: 3, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: FATHA + TA + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF },
+  { id: "3fp", pronoun: "هُنَّ", person: 3, gender: "feminine", number: "plural", presentPrefix: YA, pastEnding: SUKUN + NUN + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA },
+  { id: "2ms", pronoun: "أَنْتَ", person: 2, gender: "masculine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + FATHA, presentEnding: DAMMA, majzumEnding: SUKUN },
+  { id: "2md", pronoun: "أَنْتُمَا", person: 2, gender: "masculine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF },
+  { id: "2mp", pronoun: "أَنْتُمْ", person: 2, gender: "masculine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + SUKUN, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA, majzumEnding: DAMMA + WAW + SUKUN + ALIF },
+  { id: "2fs", pronoun: "أَنْتِ", person: 2, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + KASRA, presentEnding: KASRA + YA + SUKUN + NUN + FATHA, majzumEnding: KASRA + YA + SUKUN },
+  { id: "2fd", pronoun: "أَنْتُمَا", person: 2, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF },
+  { id: "2fp", pronoun: "أَنْتُنَّ", person: 2, gender: "feminine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + NUN + SHADDA + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA },
+  { id: "1s", pronoun: "أَنَا", person: 1, gender: "common", number: "singular", presentPrefix: HAMZA, pastEnding: SUKUN + TA + DAMMA, presentEnding: DAMMA, majzumEnding: SUKUN },
+  { id: "1p", pronoun: "نَحْنُ", person: 1, gender: "common", number: "plural", presentPrefix: NUN, pastEnding: SUKUN + NUN + FATHA + ALIF, presentEnding: DAMMA, majzumEnding: SUKUN },
 ].map(Object.freeze));
 
 function getBabConfig(bab) {
@@ -63,6 +67,20 @@ function buildActivePresent([first, second, third], config, sighah = SIGHAS[0]) 
   return `${sighah.presentPrefix}${FATHA}${first}${SUKUN}${second}${config.presentMiddleVowel}${third}${sighah.presentEnding}`;
 }
 
+function buildPassivePast([first, second, third], sighah = SIGHAS[0]) {
+  return `${first}${DAMMA}${second}${KASRA}${third}${sighah.pastEnding}`;
+}
+
+function buildPassivePresent([first, second, third], sighah = SIGHAS[0]) {
+  return `${sighah.presentPrefix}${DAMMA}${first}${SUKUN}${second}${FATHA}${third}${sighah.presentEnding}`;
+}
+
+function buildMajzumPresent([first, second, third], config, particle, sighah = SIGHAS[0]) {
+  if (!MAJZUM_PARTICLES.includes(particle)) throw new Error(`Unknown majzūm particle: ${particle}`);
+  const verb = `${sighah.presentPrefix}${FATHA}${first}${SUKUN}${second}${config.presentMiddleVowel}${third}${sighah.majzumEnding}`;
+  return `${particle} ${verb}`;
+}
+
 function generateActiveForms(root, bab) {
   const config = getBabConfig(bab);
   return SIGHAS.map((sighah) => ({
@@ -72,45 +90,84 @@ function generateActiveForms(root, bab) {
   }));
 }
 
+function generateVersion4Forms(root, bab, particle) {
+  const config = getBabConfig(bab);
+  return SIGHAS.map((sighah) => ({
+    ...sighah,
+    passivePast: buildPassivePast(root, sighah),
+    passivePresent: buildPassivePresent(root, sighah),
+    majzumPresent: buildMajzumPresent(root, config, particle, sighah),
+  }));
+}
+
+function createResultsTable(headers, rows) {
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "table-wrap";
+  const table = document.createElement("table");
+  table.dir = "rtl";
+  const head = document.createElement("thead");
+  const headingRow = document.createElement("tr");
+  for (const header of headers) {
+    const cell = document.createElement("th");
+    cell.scope = "col";
+    cell.textContent = header;
+    headingRow.append(cell);
+  }
+  head.append(headingRow);
+  const body = document.createElement("tbody");
+  for (const values of rows) {
+    const row = document.createElement("tr");
+    for (const value of values) {
+      const cell = document.createElement("td");
+      cell.lang = "ar";
+      cell.dir = "rtl";
+      cell.textContent = value;
+      row.append(cell);
+    }
+    body.append(row);
+  }
+  table.append(head, body);
+  tableWrap.append(table);
+  return tableWrap;
+}
+
 if (typeof document !== "undefined") {
   const form = document.querySelector("#sarf-form");
   const rootInputs = ["#root-one", "#root-two", "#root-three"].map((selector) => document.querySelector(selector));
   const babSelect = document.querySelector("#bab");
+  const particleSelect = document.querySelector("#majzum-particle");
   const results = document.querySelector("#results");
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const root = rootInputs.map((input) => input.value.trim());
-    const forms = generateActiveForms(root, babSelect.value);
-    const rows = forms.map(({ pronoun, past, present }) => {
-      const row = document.createElement("tr");
-      for (const value of [pronoun, past, present]) {
-        const cell = document.createElement("td");
-        cell.lang = "ar";
-        cell.dir = "rtl";
-        cell.textContent = value;
-        row.append(cell);
-      }
-      return row;
-    });
+    const activeForms = generateActiveForms(root, babSelect.value);
+    const version4Forms = generateVersion4Forms(root, babSelect.value, particleSelect.value);
 
     const heading = document.createElement("h2");
     heading.textContent = "التَّصْرِيفُ";
     heading.lang = "ar";
     heading.dir = "rtl";
-    const tableWrap = document.createElement("div");
-    tableWrap.className = "table-wrap";
-    const table = document.createElement("table");
-    table.dir = "rtl";
-    table.innerHTML = "<thead><tr><th scope=\"col\">الضَّمِيرُ</th><th scope=\"col\">الْمَاضِي</th><th scope=\"col\">الْمُضَارِعُ</th></tr></thead>";
-    const body = document.createElement("tbody");
-    body.append(...rows);
-    table.append(body);
-    tableWrap.append(table);
-    results.replaceChildren(heading, tableWrap);
+    const activeTable = createResultsTable(
+      ["الضَّمِيرُ", "الْمَاضِي", "الْمُضَارِعُ"],
+      activeForms.map(({ pronoun, past, present }) => [pronoun, past, present]),
+    );
+    const additionalHeading = document.createElement("h2");
+    additionalHeading.textContent = "الْمَبْنِيُّ لِلْمَجْهُولِ وَالْمَجْزُومُ";
+    additionalHeading.lang = "ar";
+    additionalHeading.dir = "rtl";
+    const additionalTable = createResultsTable(
+      ["الضَّمِيرُ", "الْمَاضِي الْمَجْهُولُ", "الْمُضَارِعُ الْمَجْهُولُ", "الْمُضَارِعُ الْمَجْزُومُ"],
+      version4Forms.map(({ pronoun, passivePast, passivePresent, majzumPresent }) => [pronoun, passivePast, passivePresent, majzumPresent]),
+    );
+    results.replaceChildren(heading, activeTable, additionalHeading, additionalTable);
   });
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { BAB_CONFIG, HARAKAT, LETTERS, SIGHAS, buildActivePast, buildActivePresent, generateActiveForms, getBabConfig };
+  module.exports = {
+    BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, SIGHAS,
+    buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
+    buildMajzumPresent, generateActiveForms, generateVersion4Forms, getBabConfig,
+  };
 }

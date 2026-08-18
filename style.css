@@ -167,6 +167,14 @@ button:focus-visible {
   font-size: 1.1rem;
 }
 
+.results .table-wrap + h2 {
+  margin-top: 1.5rem;
+}
+
+.particle-field select {
+  font-size: 1.2rem;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -181,6 +189,10 @@ table {
   text-align: center;
   background: var(--surface);
   font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
+}
+
+.results .table-wrap:nth-of-type(2) table {
+  min-width: 48rem;
 }
 
 th,
