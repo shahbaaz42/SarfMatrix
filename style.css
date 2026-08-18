@@ -224,11 +224,29 @@ tbody tr:nth-child(even) {
 
 @media (max-width: 32rem) {
   body {
+    display: block;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 1rem;
   }
 
   .app {
+    min-width: 0;
+    margin-inline: auto;
     border-radius: 1rem;
+  }
+
+  .results {
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .table-wrap {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
   }
 
   .root-inputs {
