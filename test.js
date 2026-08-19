@@ -1,8 +1,8 @@
 const assert = require("node:assert/strict");
 const {
-  BAB_CONFIG, MAJZUM_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
+  BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
-  generateActiveForms, generateVersion4Forms,
+  buildMansubPresent, generateActiveForms, generateVersion4Forms, generateMansubForms,
 } = require("./script.js");
 
 const activeCases = [
@@ -75,4 +75,32 @@ assert.throws(() => buildMajzumPresent(["ف", "ع", "ل"], BAB_CONFIG[basicCases
 assert.equal(buildPassivePast(["ف", "ع", "ل"]), "فُعِلَ");
 assert.equal(buildPassivePresent(["ف", "ع", "ل"]), "يُفْعَلُ");
 
-console.log("Verified workbook-derived Version 4 families for two roots/two particles and all Version 3 forms across six Bābs.");
+// Exact expected verb strings transcribed from the authoritative I-column
+// formulas at rows 5, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 19, 21, and 22.
+const mansubCases = [
+  {
+    root: ["ك", "ر", "م"], bab: "كَرُمَ-يَكْرُمُ",
+    verbs: ["يَكْرُمَ", "يَكْرُمَا", "يَكْرُمُوْا", "تَكْرُمَ", "تَكْرُمَا", "يَكْرُمْنَ", "تَكْرُمَ", "تَكْرُمَا", "تَكْرُمُوْا", "تَكْرُمِيْ", "تَكْرُمَا", "تَكْرُمْنَ", "أَكْرُمَ", "نَكْرُمَ"],
+  },
+  {
+    root: ["ن", "ص", "ر"], bab: "نَصَرَ-يَنْصُرُ",
+    verbs: ["يَنْصُرَ", "يَنْصُرَا", "يَنْصُرُوْا", "تَنْصُرَ", "تَنْصُرَا", "يَنْصُرْنَ", "تَنْصُرَ", "تَنْصُرَا", "تَنْصُرُوْا", "تَنْصُرِيْ", "تَنْصُرَا", "تَنْصُرْنَ", "أَنْصُرَ", "نَنْصُرَ"],
+  },
+];
+
+assert.deepEqual(MANSUB_PARTICLES, ["أَنْ", "لَنْ", "كَيْ", "إِذَنْ"]);
+for (const testCase of mansubCases) {
+  for (const particle of MANSUB_PARTICLES) {
+    const actual = generateMansubForms(testCase.root, testCase.bab, particle);
+    const expected = testCase.verbs.map((verb) => `${particle} ${verb}`);
+    assert.deepEqual(actual.map(({ mansubPresent }) => mansubPresent), expected);
+    for (const [index, form] of actual.entries()) {
+      assert.equal(form.mansubPresent, buildMansubPresent(testCase.root, BAB_CONFIG[testCase.bab], particle, SIGHAS[index]));
+      assert.equal(form.mansubPresent.slice(particle.length, particle.length + 1), " ");
+      assert.notEqual(form.mansubPresent.slice(particle.length + 1, particle.length + 2), " ");
+    }
+  }
+}
+assert.throws(() => buildMansubPresent(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "لِـ"), /Unknown manṣūb particle/);
+
+console.log("Verified workbook-derived Version 5 manṣūb forms for two roots/all four particles and all prior regressions.");

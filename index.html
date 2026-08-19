@@ -9,9 +9,9 @@
   <body>
     <main class="app">
       <header class="app__header">
-        <p class="eyebrow">Version 4</p>
+        <p class="eyebrow">Version 5</p>
         <h1>Arabic Ṣarf Generator</h1>
-        <p>Enter an Arabic root and choose a Bāb to generate all 14 active, passive, and majzūm forms.</p>
+        <p>Enter an Arabic root and choose a Bāb to generate all 14 active, passive, majzūm, and manṣūb forms.</p>
       </header>
 
       <!-- The form is right-to-left so Arabic is entered and read naturally. -->
@@ -55,10 +55,20 @@
           </select>
         </div>
 
+        <div class="field particle-field">
+          <label for="mansub-particle">Manṣūb particle</label>
+          <select id="mansub-particle" name="mansub-particle" lang="ar" dir="rtl">
+            <option value="أَنْ">أَنْ</option>
+            <option value="لَنْ">لَنْ</option>
+            <option value="كَيْ">كَيْ</option>
+            <option value="إِذَنْ">إِذَنْ</option>
+          </select>
+        </div>
+
         <button type="submit">Generate</button>
       </form>
 
-      <!-- JavaScript adds the active and Version 4 result tables here. -->
+      <!-- JavaScript adds the active, Version 4, and Version 5 result tables here. -->
       <section id="results" class="results" aria-live="polite" aria-atomic="true"></section>
     </main>
 
