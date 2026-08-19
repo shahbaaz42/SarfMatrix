@@ -3,6 +3,7 @@ const {
   BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
   buildMansubPresent, generateActiveForms, generateVersion4Forms, generateMansubForms,
+  buildEmphaticPresent, generateEmphaticForms,
 } = require("./script.js");
 
 const activeCases = [
@@ -103,4 +104,70 @@ for (const testCase of mansubCases) {
 }
 assert.throws(() => buildMansubPresent(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "لِـ"), /Unknown manṣūb particle/);
 
-console.log("Verified workbook-derived Version 5 manṣūb forms for two roots/all four particles and all prior regressions.");
+// Columns J and K build the same present stem with لَ directly prefixed, then
+// use row-specific endings. Nulls preserve the six genuinely blank K cells.
+function expectedEmphaticForms(middleVowel) {
+  const stem = `فْع${middleVowel}ل`;
+  return {
+    heavy: [
+      `لَيَ${stem}َنَّ`, `لَيَ${stem}َانِّ`, `لَيَ${stem}ُنَّ`,
+      `لَتَ${stem}َنَّ`, `لَتَ${stem}َانِّ`, `لَيَ${stem}ْنَانِّ`,
+      `لَتَ${stem}َنَّ`, `لَتَ${stem}َانِّ`, `لَتَ${stem}ُنَّ`,
+      `لَتَ${stem}ِنَّ`, `لَتَ${stem}َانِّ`, `لَتَ${stem}ْنَانِّ`,
+      `لَأَ${stem}َنَّ`, `لَنَ${stem}َنَّ`,
+    ],
+    light: [
+      `لَيَ${stem}َنْ`, null, `لَيَ${stem}ُنْ`,
+      `لَتَ${stem}َنْ`, null, null,
+      `لَتَ${stem}َنْ`, null, `لَتَ${stem}ُنْ`,
+      `لَتَ${stem}ِنْ`, null, null,
+      `لَأَ${stem}َنْ`, `لَنَ${stem}َنْ`,
+    ],
+  };
+}
+
+const emphaticBabCases = [
+  ["فَتَحَ-يَفْتَحُ", "َ"],
+  ["ضَرَبَ-يَضْرِبُ", "ِ"],
+  ["نَصَرَ-يَنْصُرُ", "ُ"],
+  ["سَمِعَ-يَسْمَعُ", "َ"],
+  ["كَرُمَ-يَكْرُمُ", "ُ"],
+  ["حَسِبَ-يَحْسِبُ", "ِ"],
+];
+const blankLightIndexes = [1, 4, 5, 7, 10, 11];
+for (const [bab, middleVowel] of emphaticBabCases) {
+  const expected = expectedEmphaticForms(middleVowel);
+  const actual = generateEmphaticForms(["ف", "ع", "ل"], bab);
+  assert.deepEqual(actual.map(({ heavyEmphatic }) => heavyEmphatic), expected.heavy);
+  assert.deepEqual(actual.map(({ lightEmphatic }) => lightEmphatic), expected.light);
+  assert.equal(actual.filter(({ heavyEmphatic }) => heavyEmphatic !== null).length, 14);
+  assert.equal(actual.filter(({ lightEmphatic }) => lightEmphatic !== null).length, 8);
+  assert.deepEqual(actual.flatMap(({ lightEmphatic }, index) => lightEmphatic === null ? [index] : []), blankLightIndexes);
+
+  for (const [index, sighah] of SIGHAS.entries()) {
+    assert.equal(actual[index].heavyEmphatic, buildEmphaticPresent(["ف", "ع", "ل"], BAB_CONFIG[bab], "heavy", sighah));
+    assert.equal(actual[index].lightEmphatic, buildEmphaticPresent(["ف", "ع", "ل"], BAB_CONFIG[bab], "light", sighah));
+    assert.equal(actual[index].heavyEmphatic.startsWith("لَ "), false);
+    assert.equal(actual[index].heavyEmphatic.slice(0, 3), `لَ${sighah.presentPrefix}`);
+    if (actual[index].lightEmphatic !== null) {
+      assert.equal(actual[index].lightEmphatic.startsWith("لَ "), false);
+      assert.equal(actual[index].lightEmphatic.slice(0, 3), `لَ${sighah.presentPrefix}`);
+    }
+  }
+
+  // Exact workbook sequences: heavy shaddah versus light sukūn, and the
+  // workbook-specific dual and feminine-plural heavy endings.
+  assert.equal(actual[0].heavyEmphatic.endsWith("نَّ"), true);
+  assert.equal(actual[0].lightEmphatic.endsWith("نْ"), true);
+  assert.deepEqual([...actual[0].heavyEmphatic.slice(-3)].map((character) => character.codePointAt(0)), [0x646, 0x651, 0x64e]);
+  assert.deepEqual([...actual[0].lightEmphatic.slice(-2)].map((character) => character.codePointAt(0)), [0x646, 0x652]);
+  assert.equal(actual[1].heavyEmphatic.endsWith("َانِّ"), true);
+  assert.equal(actual[5].heavyEmphatic.endsWith("ْنَانِّ"), true);
+  assert.equal(actual[2].heavyEmphatic.includes("و"), false);
+  assert.equal(actual[2].lightEmphatic.includes("و"), false);
+  assert.equal(actual[9].heavyEmphatic.includes("ي"), false);
+  assert.equal(actual[9].lightEmphatic.includes("ي"), false);
+}
+assert.throws(() => buildEmphaticPresent(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "medium"), /Unknown emphatic weight/);
+
+console.log("Verified workbook-derived Version 6 emphatic forms for all six Bābs and all prior regressions.");

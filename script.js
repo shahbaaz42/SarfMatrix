@@ -15,6 +15,7 @@ const LETTERS = Object.freeze({
   MIM: "م",
   YA: "ي",
   HAMZA: "أ",
+  LAM: "ل",
 });
 
 // H3's validation list supplies these particles. A separating space is part of
@@ -36,25 +37,28 @@ const BAB_CONFIG = Object.freeze({
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA } = HARAKAT;
-const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA } = LETTERS;
+const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA, LAM } = LETTERS;
+
+const HEAVY_NUN = NUN + SHADDA;
+const LIGHT_NUN = NUN + SUKUN;
 
 // One ordered configuration drives every 14-form family. Endings are literal
 // workbook concatenations, including its explicit sukūn on long wāw and yāʾ.
 const SIGHAS = Object.freeze([
-  { id: "3ms", pronoun: "هُوَ", person: 3, gender: "masculine", number: "singular", presentPrefix: YA, pastEnding: FATHA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA },
-  { id: "3md", pronoun: "هُمَا", person: 3, gender: "masculine", number: "dual", presentPrefix: YA, pastEnding: FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF },
-  { id: "3mp", pronoun: "هُمْ", person: 3, gender: "masculine", number: "plural", presentPrefix: YA, pastEnding: DAMMA + WAW + SUKUN + ALIF, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA, majzumEnding: DAMMA + WAW + SUKUN + ALIF, mansubEnding: DAMMA + WAW + SUKUN + ALIF },
-  { id: "3fs", pronoun: "هِيَ", person: 3, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: FATHA + TA + SUKUN, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA },
-  { id: "3fd", pronoun: "هُمَا", person: 3, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: FATHA + TA + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF },
-  { id: "3fp", pronoun: "هُنَّ", person: 3, gender: "feminine", number: "plural", presentPrefix: YA, pastEnding: SUKUN + NUN + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA, mansubEnding: SUKUN + NUN + FATHA },
-  { id: "2ms", pronoun: "أَنْتَ", person: 2, gender: "masculine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + FATHA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA },
-  { id: "2md", pronoun: "أَنْتُمَا", person: 2, gender: "masculine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF },
-  { id: "2mp", pronoun: "أَنْتُمْ", person: 2, gender: "masculine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + SUKUN, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA, majzumEnding: DAMMA + WAW + SUKUN + ALIF, mansubEnding: DAMMA + WAW + SUKUN + ALIF },
-  { id: "2fs", pronoun: "أَنْتِ", person: 2, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + KASRA, presentEnding: KASRA + YA + SUKUN + NUN + FATHA, majzumEnding: KASRA + YA + SUKUN, mansubEnding: KASRA + YA + SUKUN },
-  { id: "2fd", pronoun: "أَنْتُمَا", person: 2, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF },
-  { id: "2fp", pronoun: "أَنْتُنَّ", person: 2, gender: "feminine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + NUN + SHADDA + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA, mansubEnding: SUKUN + NUN + FATHA },
-  { id: "1s", pronoun: "أَنَا", person: 1, gender: "common", number: "singular", presentPrefix: HAMZA, pastEnding: SUKUN + TA + DAMMA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA },
-  { id: "1p", pronoun: "نَحْنُ", person: 1, gender: "common", number: "plural", presentPrefix: NUN, pastEnding: SUKUN + NUN + FATHA + ALIF, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA },
+  { id: "3ms", pronoun: "هُوَ", person: 3, gender: "masculine", number: "singular", presentPrefix: YA, pastEnding: FATHA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
+  { id: "3md", pronoun: "هُمَا", person: 3, gender: "masculine", number: "dual", presentPrefix: YA, pastEnding: FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF, heavyEmphaticEnding: FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
+  { id: "3mp", pronoun: "هُمْ", person: 3, gender: "masculine", number: "plural", presentPrefix: YA, pastEnding: DAMMA + WAW + SUKUN + ALIF, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA, majzumEnding: DAMMA + WAW + SUKUN + ALIF, mansubEnding: DAMMA + WAW + SUKUN + ALIF, heavyEmphaticEnding: DAMMA + HEAVY_NUN + FATHA, lightEmphaticEnding: DAMMA + LIGHT_NUN },
+  { id: "3fs", pronoun: "هِيَ", person: 3, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: FATHA + TA + SUKUN, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
+  { id: "3fd", pronoun: "هُمَا", person: 3, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: FATHA + TA + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF, heavyEmphaticEnding: FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
+  { id: "3fp", pronoun: "هُنَّ", person: 3, gender: "feminine", number: "plural", presentPrefix: YA, pastEnding: SUKUN + NUN + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA, mansubEnding: SUKUN + NUN + FATHA, heavyEmphaticEnding: SUKUN + NUN + FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
+  { id: "2ms", pronoun: "أَنْتَ", person: 2, gender: "masculine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + FATHA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
+  { id: "2md", pronoun: "أَنْتُمَا", person: 2, gender: "masculine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF, heavyEmphaticEnding: FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
+  { id: "2mp", pronoun: "أَنْتُمْ", person: 2, gender: "masculine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + SUKUN, presentEnding: DAMMA + WAW + SUKUN + NUN + FATHA, majzumEnding: DAMMA + WAW + SUKUN + ALIF, mansubEnding: DAMMA + WAW + SUKUN + ALIF, heavyEmphaticEnding: DAMMA + HEAVY_NUN + FATHA, lightEmphaticEnding: DAMMA + LIGHT_NUN },
+  { id: "2fs", pronoun: "أَنْتِ", person: 2, gender: "feminine", number: "singular", presentPrefix: TA, pastEnding: SUKUN + TA + KASRA, presentEnding: KASRA + YA + SUKUN + NUN + FATHA, majzumEnding: KASRA + YA + SUKUN, mansubEnding: KASRA + YA + SUKUN, heavyEmphaticEnding: KASRA + HEAVY_NUN + FATHA, lightEmphaticEnding: KASRA + LIGHT_NUN },
+  { id: "2fd", pronoun: "أَنْتُمَا", person: 2, gender: "feminine", number: "dual", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + MIM + FATHA + ALIF, presentEnding: FATHA + ALIF + NUN + KASRA, majzumEnding: FATHA + ALIF, mansubEnding: FATHA + ALIF, heavyEmphaticEnding: FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
+  { id: "2fp", pronoun: "أَنْتُنَّ", person: 2, gender: "feminine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + NUN + SHADDA + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA, mansubEnding: SUKUN + NUN + FATHA, heavyEmphaticEnding: SUKUN + NUN + FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
+  { id: "1s", pronoun: "أَنَا", person: 1, gender: "common", number: "singular", presentPrefix: HAMZA, pastEnding: SUKUN + TA + DAMMA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
+  { id: "1p", pronoun: "نَحْنُ", person: 1, gender: "common", number: "plural", presentPrefix: NUN, pastEnding: SUKUN + NUN + FATHA + ALIF, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
 ].map(Object.freeze));
 
 function getBabConfig(bab) {
@@ -95,6 +99,14 @@ function buildMansubPresent(root, config, particle, sighah = SIGHAS[0]) {
   return `${particle} ${verb}`;
 }
 
+function buildEmphaticPresent(root, config, weight, sighah = SIGHAS[0]) {
+  const endingKey = weight === "heavy" ? "heavyEmphaticEnding" : weight === "light" ? "lightEmphaticEnding" : null;
+  if (!endingKey) throw new Error(`Unknown emphatic weight: ${weight}`);
+  const ending = sighah[endingKey];
+  if (ending === null) return null;
+  return `${LAM}${FATHA}${buildPresentStem(root, config, sighah)}${ending}`;
+}
+
 function generateActiveForms(root, bab) {
   const config = getBabConfig(bab);
   return SIGHAS.map((sighah) => ({
@@ -119,6 +131,15 @@ function generateMansubForms(root, bab, particle) {
   return SIGHAS.map((sighah) => ({
     ...sighah,
     mansubPresent: buildMansubPresent(root, config, particle, sighah),
+  }));
+}
+
+function generateEmphaticForms(root, bab) {
+  const config = getBabConfig(bab);
+  return SIGHAS.map((sighah) => ({
+    ...sighah,
+    heavyEmphatic: buildEmphaticPresent(root, config, "heavy", sighah),
+    lightEmphatic: buildEmphaticPresent(root, config, "light", sighah),
   }));
 }
 
@@ -166,6 +187,7 @@ if (typeof document !== "undefined") {
     const activeForms = generateActiveForms(root, babSelect.value);
     const version4Forms = generateVersion4Forms(root, babSelect.value, particleSelect.value);
     const mansubForms = generateMansubForms(root, babSelect.value, mansubParticleSelect.value);
+    const emphaticForms = generateEmphaticForms(root, babSelect.value);
 
     const heading = document.createElement("h2");
     heading.textContent = "التَّصْرِيفُ";
@@ -191,7 +213,15 @@ if (typeof document !== "undefined") {
       ["الضَّمِيرُ", "الْمُضَارِعُ الْمَنْصُوبُ"],
       mansubForms.map(({ pronoun, mansubPresent }) => [pronoun, mansubPresent]),
     );
-    results.replaceChildren(heading, activeTable, additionalHeading, additionalTable, mansubHeading, mansubTable);
+    const emphaticHeading = document.createElement("h2");
+    emphaticHeading.textContent = "لَامُ التَّأْكِيدِ مَعَ نُونِ التَّأْكِيدِ";
+    emphaticHeading.lang = "ar";
+    emphaticHeading.dir = "rtl";
+    const emphaticTable = createResultsTable(
+      ["الضمير", "نون التأكيد الثقيلة", "نون التأكيد الخفيفة"],
+      emphaticForms.map(({ pronoun, heavyEmphatic, lightEmphatic }) => [pronoun, heavyEmphatic, lightEmphatic ?? ""]),
+    );
+    results.replaceChildren(heading, activeTable, additionalHeading, additionalTable, mansubHeading, mansubTable, emphaticHeading, emphaticTable);
   }
 
   form.addEventListener("submit", (event) => {
@@ -208,7 +238,7 @@ if (typeof module !== "undefined") {
   module.exports = {
     BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
-    buildPresentStem, buildMajzumPresent, buildMansubPresent,
-    generateActiveForms, generateVersion4Forms, generateMansubForms, getBabConfig,
+    buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent,
+    generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, getBabConfig,
   };
 }

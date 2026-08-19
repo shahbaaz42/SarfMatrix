@@ -199,6 +199,10 @@ table {
   min-width: 24rem;
 }
 
+.results .table-wrap:nth-of-type(4) table {
+  min-width: 36rem;
+}
+
 th,
 td {
   padding: 0.7rem 0.85rem;
