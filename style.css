@@ -23,11 +23,11 @@ body {
   padding: 2rem 1rem;
   color: var(--text);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
 }
 
 .app {
-  width: min(100%, 54rem);
+  width: min(94vw, 100rem);
   padding: clamp(1.25rem, 4vw, 2.5rem);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -165,17 +165,44 @@ button:focus-visible {
 .result-section h2 {
   margin: 0 0 0.85rem;
   font-size: 1.1rem;
+  text-align: right;
 }
 
 .result-section + .result-section {
   margin-top: 1.75rem;
 }
 
+.derived-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.derived-card {
+  min-width: 0;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+}
+
+.derived-card h3 {
+  margin: 0 0 0.75rem;
+  text-align: right;
+}
+
+.derived-card table {
+  min-width: 52rem;
+}
+
+.derived-card:last-child table {
+  min-width: 34rem;
+}
+
 .particle-row label {
   display: block;
   margin-bottom: 0.35rem;
   color: var(--muted);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
   font-size: 0.75rem;
   white-space: normal;
 }
@@ -199,7 +226,7 @@ table {
   border-collapse: collapse;
   text-align: center;
   background: var(--surface);
-  font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
 }
 
 .result-section:last-child table {
@@ -217,13 +244,60 @@ th {
   color: var(--muted);
   background: #f7fbf9;
   font-size: 1rem;
+  text-align: center;
 }
 
 td {
   font-size: clamp(1.25rem, 4vw, 1.65rem);
   font-weight: 700;
   line-height: 1.6;
+  text-align: center;
 }
+
+.derived-card tbody td:first-child {
+  text-align: right;
+}
+
+.colour-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+}
+
+.colour-control input,
+.export-options input {
+  width: 1.1rem;
+  min-height: 1.1rem;
+  accent-color: var(--accent);
+}
+
+.root-radical--1 { color: #a12622; }
+.root-radical--2 { color: #075ea8; }
+.root-radical--3 { color: #4f6f12; }
+
+.export-panel,
+.developer-footer {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+}
+
+.export-panel h2 { margin-top: 0; text-align: right; }
+.export-options { display: flex; align-items: end; gap: 2rem; flex-wrap: wrap; }
+.export-options fieldset { display: flex; gap: 1rem; }
+.export-options legend { margin-bottom: 0.45rem; }
+.export-options label { display: flex; align-items: center; gap: 0.35rem; }
+.export-options button { width: auto; min-width: 9rem; }
+
+.developer-footer {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
+}
+.developer-footer p { margin: 0.25rem; }
+.developer-footer a { color: var(--accent-dark); }
 
 tbody tr:last-child td {
   border-bottom: 0;
@@ -247,6 +321,7 @@ tbody tr:nth-child(even) {
   }
 
   .app {
+    width: 100%;
     min-width: 0;
     margin-inline: auto;
     border-radius: 1rem;

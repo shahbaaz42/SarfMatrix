@@ -9,7 +9,7 @@
   <body>
     <main class="app">
       <header class="app__header">
-        <p class="eyebrow">Version 7</p>
+        <p class="eyebrow">Version 8</p>
         <h1>Arabic Ṣarf Generator</h1>
         <p>Enter an Arabic root and choose a Bāb to generate the full workbook-derived conjugation.</p>
       </header>
@@ -36,39 +36,45 @@
 
         <div class="field bab-field">
           <label for="bab">Bāb</label>
-          <select id="bab" name="bab">
-            <option value="نَصَرَ-يَنْصُرُ">بَابُ نَصَرَ — فَعَلَ / يَفْعُلُ</option>
-            <option value="ضَرَبَ-يَضْرِبُ">بَابُ ضَرَبَ — فَعَلَ / يَفْعِلُ</option>
-            <option value="فَتَحَ-يَفْتَحُ">بَابُ فَتَحَ — فَعَلَ / يَفْعَلُ</option>
-            <option value="سَمِعَ-يَسْمَعُ">بَابُ سَمِعَ — فَعِلَ / يَفْعَلُ</option>
-            <option value="كَرُمَ-يَكْرُمُ">بَابُ كَرُمَ — فَعُلَ / يَفْعُلُ</option>
-            <option value="حَسِبَ-يَحْسِبُ">بَابُ حَسِبَ — فَعِلَ / يَفْعِلُ</option>
+          <select id="bab" name="bab" required>
+            <option value="" selected disabled>اختر الباب</option>
+            <option value="فَتَحَ-يَفْتَحُ">فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ</option>
+            <option value="ضَرَبَ-يَضْرِبُ">ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ</option>
+            <option value="نَصَرَ-يَنْصُرُ">نَصَرَ / يَنْصُرُ — فَعَلَ / يَفْعُلُ</option>
+            <option value="سَمِعَ-يَسْمَعُ">سَمِعَ / يَسْمَعُ — فَعِلَ / يَفْعَلُ</option>
+            <option value="كَرُمَ-يَكْرُمُ">كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ</option>
+            <option value="حَسِبَ-يَحْسِبُ">حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ</option>
           </select>
         </div>
+
+        <label class="colour-control" for="colour-roots">
+          <input id="colour-roots" name="colour-roots" type="checkbox">
+          <span>Colour root letters</span>
+        </label>
 
         <button type="submit">Generate</button>
       </form>
 
       <section id="results" class="results" aria-live="polite">
         <section class="result-section" aria-labelledby="section-01-heading">
-          <h2 id="section-01-heading">Section 01</h2>
+          <h2 id="section-01-heading">القسم 01 — المرفوع والمجهول</h2>
           <div class="table-wrap">
             <table dir="rtl">
-              <thead><tr><th>الضمير</th><th>فعل الماضي مرفوع</th><th>فعل المضارع مرفوع</th><th>فعل الماضي مجهول</th><th>فعل المضارع مجهول</th></tr></thead>
+              <thead><tr><th>الضمير</th><th>الفعل الماضي المرفوع</th><th>الفعل المضارع المرفوع</th><th>الفعل الماضي المجهول</th><th>الفعل المضارع المجهول</th></tr></thead>
               <tbody id="section-01-body"></tbody>
             </table>
           </div>
         </section>
 
         <section class="result-section" aria-labelledby="section-02-heading">
-          <h2 id="section-02-heading">Section 02</h2>
+          <h2 id="section-02-heading">القسم 02 — المجزوم والمنصوب والتوكيد</h2>
           <div class="table-wrap">
             <table dir="rtl">
               <thead>
                 <tr class="particle-row">
                   <th></th>
-                  <th><label for="majzum-particle">Majzūm particle</label><select id="majzum-particle" name="majzum-particle" lang="ar" dir="rtl"><option value="لَمْ">لَمْ</option><option value="لَمَّا">لَمَّا</option><option value="لَا">لَا</option></select></th>
-                  <th><label for="mansub-particle">Manṣūb particle</label><select id="mansub-particle" name="mansub-particle" lang="ar" dir="rtl"><option value="لَنْ" selected>لَنْ</option><option value="أَنْ">أَنْ</option><option value="كَيْ">كَيْ</option><option value="إِذَنْ">إِذَنْ</option></select></th>
+                  <th><label for="majzum-particle">حرف الجزم</label><select id="majzum-particle" name="majzum-particle" lang="ar" dir="rtl"><option value="لَمْ">لَمْ</option><option value="لَمَّا">لَمَّا</option><option value="لَا">لَا</option></select></th>
+                  <th><label for="mansub-particle">حرف النصب</label><select id="mansub-particle" name="mansub-particle" lang="ar" dir="rtl"><option value="لَنْ" selected>لَنْ</option><option value="أَنْ">أَنْ</option><option value="كَيْ">كَيْ</option><option value="إِذَنْ">إِذَنْ</option></select></th>
                   <th></th><th></th>
                 </tr>
                 <tr><th>الضمير</th><th>مجزوم المضارع</th><th>منصوب المضارع</th><th>لام تأكيد با نون تأكيد ثقيلة</th><th>لام تأكيد با نون تأكيد خفيفة</th></tr>
@@ -79,7 +85,7 @@
         </section>
 
         <section class="result-section" aria-labelledby="section-03-heading">
-          <h2 id="section-03-heading">Section 03</h2>
+          <h2 id="section-03-heading">القسم 03 — فعل الأمر</h2>
           <div class="table-wrap">
             <table dir="rtl">
               <thead><tr><th>الضمير</th><th>فعل الامر</th><th>فعل الامر با نون تأكيد ثقيلة</th><th>فعل الامر با نون تأكيد خفيفة</th></tr></thead>
@@ -87,9 +93,47 @@
             </table>
           </div>
         </section>
+
+        <section class="result-section derived-section" aria-labelledby="section-04-heading">
+          <h2 id="section-04-heading">القسم 04 — المشتقات</h2>
+          <div class="derived-grid">
+            <article class="derived-card">
+              <h3>اسم الفاعل</h3>
+              <div class="table-wrap"><table dir="rtl"><thead><tr><th>الحالة</th><th>مذكر مفرد</th><th>مذكر مثنى</th><th>مذكر جمع</th><th>مؤنث مفرد</th><th>مؤنث مثنى</th><th>مؤنث جمع</th></tr></thead><tbody id="active-participle-body"></tbody></table></div>
+            </article>
+            <article class="derived-card">
+              <h3>اسم المفعول</h3>
+              <div class="table-wrap"><table dir="rtl"><thead><tr><th>الحالة</th><th>مذكر مفرد</th><th>مذكر مثنى</th><th>مذكر جمع</th><th>مؤنث مفرد</th><th>مؤنث مثنى</th><th>مؤنث جمع</th></tr></thead><tbody id="passive-participle-body"></tbody></table></div>
+            </article>
+            <article class="derived-card">
+              <h3>اسم التفضيل</h3>
+              <div class="table-wrap"><table dir="rtl"><thead><tr><th>الخيار</th><th>مذكر مفرد</th><th>مذكر مثنى</th><th>مذكر جمع</th><th>مؤنث مفرد</th><th>مؤنث مثنى</th><th>مؤنث جمع</th></tr></thead><tbody id="elative-body"></tbody></table></div>
+            </article>
+            <article class="derived-card">
+              <h3>اسم الظرف</h3>
+              <div class="table-wrap"><table dir="rtl"><thead><tr><th>الصيغة</th><th>مفرد</th><th>مثنى</th><th>جمع</th></tr></thead><tbody id="zarf-body"></tbody></table></div>
+            </article>
+          </div>
+        </section>
       </section>
+
+      <section id="export-panel" class="export-panel" dir="rtl" hidden aria-labelledby="export-heading">
+        <h2 id="export-heading">تصدير النتائج</h2>
+        <div class="export-options">
+          <fieldset><legend>Format</legend><label><input type="radio" name="export-format" value="pdf" checked> PDF</label><label><input type="radio" name="export-format" value="docx"> Word</label></fieldset>
+          <fieldset><legend>Layout</legend><label><input type="radio" name="export-layout" value="portrait" checked> Portrait</label><label><input type="radio" name="export-layout" value="landscape"> Landscape</label></fieldset>
+          <button id="download-results" type="button">Download</button>
+        </div>
+      </section>
+
+      <footer class="developer-footer">
+        <p>Developed by Shahbaaz Ahmed</p>
+        <p><a href="mailto:shahbaaz.education@gmail.com">shahbaaz.education@gmail.com</a></p>
+        <p>© Shahbaaz Ahmed. All Rights Reserved.</p>
+      </footer>
     </main>
 
     <script src="script.js"></script>
+    <script src="export.js"></script>
   </body>
 </html>

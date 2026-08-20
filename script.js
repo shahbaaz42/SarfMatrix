@@ -5,6 +5,8 @@ const HARAKAT = Object.freeze({
   KASRA: "ِ",
   SUKUN: "ْ",
   SHADDA: "ّ",
+  KASRATAN: "ٍ",
+  DAMMATAN: "ٌ",
 });
 
 const LETTERS = Object.freeze({
@@ -16,6 +18,8 @@ const LETTERS = Object.freeze({
   YA: "ي",
   HAMZA: "أ",
   LAM: "ل",
+  TA_MARBUTA: "ة",
+  ALIF_MAQSURA: "ى",
 });
 
 // H3's validation list supplies these particles. A separating space is part of
@@ -28,16 +32,16 @@ const MANSUB_PARTICLES = Object.freeze(["لَنْ", "أَنْ", "كَيْ", "إ�
 
 // The Bāb-dependent vowels are transcribed from the workbook's hidden Q1:U7 table.
 const BAB_CONFIG = Object.freeze({
-  "فَتَحَ-يَفْتَحُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA }),
-  "ضَرَبَ-يَضْرِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA }),
-  "نَصَرَ-يَنْصُرُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.DAMMA, imperativeInitialVowel: HARAKAT.DAMMA }),
-  "سَمِعَ-يَسْمَعُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA }),
-  "كَرُمَ-يَكْرُمُ": Object.freeze({ pastMiddleVowel: HARAKAT.DAMMA, presentMiddleVowel: HARAKAT.DAMMA, imperativeInitialVowel: HARAKAT.DAMMA }),
-  "حَسِبَ-يَحْسِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA }),
+  "فَتَحَ-يَفْتَحُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.FATHA }),
+  "ضَرَبَ-يَضْرِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.KASRA }),
+  "نَصَرَ-يَنْصُرُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.DAMMA, imperativeInitialVowel: HARAKAT.DAMMA, zarfMiddleVowel: HARAKAT.FATHA }),
+  "سَمِعَ-يَسْمَعُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.FATHA }),
+  "كَرُمَ-يَكْرُمُ": Object.freeze({ pastMiddleVowel: HARAKAT.DAMMA, presentMiddleVowel: HARAKAT.DAMMA, imperativeInitialVowel: HARAKAT.DAMMA, zarfMiddleVowel: HARAKAT.FATHA }),
+  "حَسِبَ-يَحْسِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.KASRA }),
 });
 
-const { FATHA, DAMMA, KASRA, SUKUN, SHADDA } = HARAKAT;
-const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA, LAM } = LETTERS;
+const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, KASRATAN, DAMMATAN } = HARAKAT;
+const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA, LAM, TA_MARBUTA, ALIF_MAQSURA } = LETTERS;
 
 const HEAVY_NUN = NUN + SHADDA;
 const LIGHT_NUN = NUN + SUKUN;
@@ -59,6 +63,17 @@ const SIGHAS = Object.freeze([
   { id: "2fp", pronoun: "أَنْتُنَّ", person: 2, gender: "feminine", number: "plural", presentPrefix: TA, pastEnding: SUKUN + TA + DAMMA + NUN + SHADDA + FATHA, presentEnding: SUKUN + NUN + FATHA, majzumEnding: SUKUN + NUN + FATHA, mansubEnding: SUKUN + NUN + FATHA, heavyEmphaticEnding: SUKUN + NUN + FATHA + ALIF + HEAVY_NUN + KASRA, lightEmphaticEnding: null },
   { id: "1s", pronoun: "أَنَا", person: 1, gender: "common", number: "singular", presentPrefix: HAMZA, pastEnding: SUKUN + TA + DAMMA, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
   { id: "1p", pronoun: "نَحْنُ", person: 1, gender: "common", number: "plural", presentPrefix: NUN, pastEnding: SUKUN + NUN + FATHA + ALIF, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
+].map(Object.freeze));
+
+// D:I in the two participle sections share one workbook ending matrix. Null
+// entries preserve the genuinely blank singular oblique cells.
+const NOMINAL_INFLECTIONS = Object.freeze([
+  { id: "masculine-singular", gender: "masculine", number: "singular", nominative: DAMMATAN, oblique: null },
+  { id: "masculine-dual", gender: "masculine", number: "dual", nominative: FATHA + ALIF + NUN + KASRA, oblique: FATHA + YA + SUKUN + NUN + KASRA },
+  { id: "masculine-plural", gender: "masculine", number: "plural", nominative: DAMMA + WAW + SUKUN + NUN + FATHA, oblique: KASRA + YA + SUKUN + NUN + FATHA },
+  { id: "feminine-singular", gender: "feminine", number: "singular", nominative: FATHA + TA_MARBUTA + DAMMATAN, oblique: null },
+  { id: "feminine-dual", gender: "feminine", number: "dual", nominative: FATHA + TA + FATHA + ALIF + NUN + KASRA, oblique: FATHA + TA + FATHA + YA + SUKUN + NUN + KASRA },
+  { id: "feminine-plural", gender: "feminine", number: "plural", nominative: FATHA + ALIF + TA + DAMMATAN, oblique: FATHA + ALIF + TA + KASRATAN },
 ].map(Object.freeze));
 
 function getBabConfig(bab) {
@@ -166,23 +181,124 @@ function generateImperativeForms(root, bab) {
   }));
 }
 
+function buildActiveParticipleStem([first, second, third]) {
+  return `${first}${FATHA}${ALIF}${second}${KASRA}${third}`;
+}
+
+function buildPassiveParticipleStem([first, second, third]) {
+  return `${MIM}${FATHA}${first}${SUKUN}${second}${DAMMA}${WAW}${SUKUN}${third}`;
+}
+
+function inflectNominalStem(stem) {
+  return NOMINAL_INFLECTIONS.map((form) => ({
+    ...form,
+    nominative: `${stem}${form.nominative}`,
+    oblique: form.oblique === null ? null : `${stem}${form.oblique}`,
+  }));
+}
+
+function generateActiveParticipleForms(root) {
+  return inflectNominalStem(buildActiveParticipleStem(root));
+}
+
+function generatePassiveParticipleForms(root) {
+  return inflectNominalStem(buildPassiveParticipleStem(root));
+}
+
+function generateElativeForms([first, second, third]) {
+  const forms = {
+    masculineSingular: `${HAMZA}${FATHA}${first}${SUKUN}${second}${FATHA}${third}${DAMMA}`,
+    masculineDual: `${HAMZA}${FATHA}${first}${SUKUN}${second}${FATHA}${third}${FATHA}${ALIF}${NUN}${KASRA}`,
+    masculinePlural: `${HAMZA}${FATHA}${first}${SUKUN}${second}${FATHA}${third}${DAMMA}${WAW}${SUKUN}${NUN}${FATHA}`,
+    feminineSingular: `${first}${DAMMA}${second}${SUKUN}${third}${FATHA}${ALIF_MAQSURA}`,
+    feminineDual: `${first}${DAMMA}${second}${SUKUN}${third}${FATHA}${YA}${FATHA}${ALIF}${NUN}${KASRA}`,
+    femininePlural: `${first}${DAMMA}${second}${SUKUN}${third}${FATHA}${YA}${FATHA}${ALIF}${TA}${DAMMATAN}`,
+    additionalMasculinePlural: `${HAMZA}${FATHA}${first}${FATHA}${ALIF}${second}${KASRA}${third}${DAMMA}`,
+    additionalFemininePlural: `${first}${DAMMA}${second}${FATHA}${third}${DAMMATAN}`,
+  };
+  forms.primary = Object.freeze([forms.masculineSingular, forms.masculineDual, forms.masculinePlural, forms.feminineSingular, forms.feminineDual, forms.femininePlural]);
+  forms.additional = Object.freeze([null, null, forms.additionalMasculinePlural, null, null, forms.additionalFemininePlural]);
+  return Object.freeze(forms);
+}
+
+function generateZarfForms([first, second, third], bab) {
+  const { zarfMiddleVowel } = getBabConfig(bab);
+  const stem = `${MIM}${FATHA}${first}${SUKUN}${second}${zarfMiddleVowel}${third}`;
+  return Object.freeze({
+    ordinarySingular: `${stem}${DAMMA}`,
+    ordinaryDual: `${stem}${FATHA}${ALIF}${NUN}${KASRA}`,
+    ordinaryPlural: `${MIM}${FATHA}${first}${FATHA}${ALIF}${second}${KASRA}${third}${DAMMA}`,
+    taMarbutaSingular: `${stem}${FATHA}${TA_MARBUTA}${DAMMATAN}`,
+    taMarbutaDual: `${stem}${FATHA}${TA}${FATHA}${ALIF}${NUN}${KASRA}`,
+    taMarbutaPlural: null,
+  });
+}
+
+// Finds the tightest ordered radical sequence, so identical grammatical
+// prefixes/suffixes are never coloured by global character replacement.
+function splitRootRuns(value, root) {
+  if (!value) return [];
+  const characters = [...value];
+  const candidates = root.map((radical) => characters.flatMap((character, index) => character === radical ? [index] : []));
+  let best = null;
+  for (const first of candidates[0]) for (const second of candidates[1]) for (const third of candidates[2]) {
+    if (first < second && second < third) {
+      const score = third - first;
+      if (!best || score < best.score) best = { indexes: [first, second, third], score };
+    }
+  }
+  if (!best) return [{ text: value, radical: null }];
+  const runs = [];
+  let cursor = 0;
+  for (const [radical, index] of best.indexes.entries()) {
+    if (index > cursor) runs.push({ text: characters.slice(cursor, index).join(""), radical: null });
+    let end = index + 1;
+    while (end < characters.length && /\p{M}/u.test(characters[end])) end += 1;
+    runs.push({ text: characters.slice(index, end).join(""), radical });
+    cursor = end;
+  }
+  if (cursor < characters.length) runs.push({ text: characters.slice(cursor).join(""), radical: null });
+  return runs;
+}
+
 if (typeof document !== "undefined") {
   const form = document.querySelector("#sarf-form");
   const rootInputs = ["#root-one", "#root-two", "#root-three"].map((selector) => document.querySelector(selector));
   const babSelect = document.querySelector("#bab");
   const particleSelect = document.querySelector("#majzum-particle");
   const mansubParticleSelect = document.querySelector("#mansub-particle");
+  const colourRootsInput = document.querySelector("#colour-roots");
+  const exportPanel = document.querySelector("#export-panel");
   const sectionBodies = ["#section-01-body", "#section-02-body", "#section-03-body"].map((selector) => document.querySelector(selector));
+  const derivedBodies = {
+    activeParticiple: document.querySelector("#active-participle-body"),
+    passiveParticiple: document.querySelector("#passive-participle-body"),
+    elative: document.querySelector("#elative-body"),
+    zarf: document.querySelector("#zarf-body"),
+  };
 
-  function replaceTableRows(body, rows) {
+  function appendResultText(cell, value, root, colourRoots) {
+    if (!colourRoots) {
+      cell.textContent = value ?? "";
+      return;
+    }
+    for (const run of splitRootRuns(value, root)) {
+      const span = document.createElement("span");
+      span.textContent = run.text;
+      if (run.radical !== null) span.className = `root-radical root-radical--${run.radical + 1}`;
+      cell.append(span);
+    }
+  }
+
+  function replaceTableRows(body, rows, root, colourRoots) {
     const fragment = document.createDocumentFragment();
     for (const values of rows) {
       const row = document.createElement("tr");
-      for (const value of values) {
+      for (const [index, value] of values.entries()) {
         const cell = document.createElement("td");
         cell.lang = "ar";
         cell.dir = "rtl";
-        cell.textContent = value ?? "";
+        appendResultText(cell, value, root, colourRoots && index > 0);
         row.append(cell);
       }
       fragment.append(row);
@@ -197,10 +313,32 @@ if (typeof document !== "undefined") {
     const mansubForms = generateMansubForms(root, babSelect.value, mansubParticleSelect.value);
     const emphaticForms = generateEmphaticForms(root, babSelect.value);
     const imperativeForms = generateImperativeForms(root, babSelect.value);
+    const activeParticipleForms = generateActiveParticipleForms(root);
+    const passiveParticipleForms = generatePassiveParticipleForms(root);
+    const elativeForms = generateElativeForms(root);
+    const zarfForms = generateZarfForms(root, babSelect.value);
 
-    replaceTableRows(sectionBodies[0], activeForms.map(({ pronoun, past, present }, index) => [pronoun, past, present, version4Forms[index].passivePast, version4Forms[index].passivePresent]));
-    replaceTableRows(sectionBodies[1], version4Forms.map(({ pronoun, majzumPresent }, index) => [pronoun, majzumPresent, mansubForms[index].mansubPresent, emphaticForms[index].heavyEmphatic, emphaticForms[index].lightEmphatic]));
-    replaceTableRows(sectionBodies[2], imperativeForms.map(({ pronoun, imperative, heavyImperative, lightImperative }) => [pronoun, imperative, heavyImperative, lightImperative]));
+    const colourRoots = colourRootsInput.checked;
+    replaceTableRows(sectionBodies[0], activeForms.map(({ pronoun, past, present }, index) => [pronoun, past, present, version4Forms[index].passivePast, version4Forms[index].passivePresent]), root, colourRoots);
+    replaceTableRows(sectionBodies[1], version4Forms.map(({ pronoun, majzumPresent }, index) => [pronoun, majzumPresent, mansubForms[index].mansubPresent, emphaticForms[index].heavyEmphatic, emphaticForms[index].lightEmphatic]), root, colourRoots);
+    replaceTableRows(sectionBodies[2], imperativeForms.map(({ pronoun, imperative, heavyImperative, lightImperative }) => [pronoun, imperative, heavyImperative, lightImperative]), root, colourRoots);
+    replaceTableRows(derivedBodies.activeParticiple, [
+      ["مرفوع", ...activeParticipleForms.map(({ nominative }) => nominative)],
+      ["منصوب ومجرور", ...activeParticipleForms.map(({ oblique }) => oblique)],
+    ], root, colourRoots);
+    replaceTableRows(derivedBodies.passiveParticiple, [
+      ["مرفوع", ...passiveParticipleForms.map(({ nominative }) => nominative)],
+      ["منصوب ومجرور", ...passiveParticipleForms.map(({ oblique }) => oblique)],
+    ], root, colourRoots);
+    replaceTableRows(derivedBodies.elative, [
+      ["الصيغة الأساسية", ...elativeForms.primary],
+      ["خيار جمع إضافي", ...elativeForms.additional],
+    ], root, colourRoots);
+    replaceTableRows(derivedBodies.zarf, [
+      ["الصيغة العادية", zarfForms.ordinarySingular, zarfForms.ordinaryDual, zarfForms.ordinaryPlural],
+      ["صيغة التاء المربوطة", zarfForms.taMarbutaSingular, zarfForms.taMarbutaDual, zarfForms.taMarbutaPlural],
+    ], root, colourRoots);
+    exportPanel.hidden = false;
   }
 
   form.addEventListener("submit", (event) => {
@@ -213,12 +351,20 @@ if (typeof document !== "undefined") {
       if (sectionBodies[0].hasChildNodes()) renderResults();
     });
   }
+  colourRootsInput.addEventListener("change", () => {
+    if (sectionBodies[0].hasChildNodes()) renderResults();
+  });
+
+  window.SARF_PRESENTATION = Object.freeze({ splitRootRuns });
 }
 if (typeof module !== "undefined") {
   module.exports = {
-    BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS,
+    BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_INFLECTIONS, SIGHAS,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
     buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent, buildImperative,
-    generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms, getBabConfig,
+    buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem,
+    generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
+    generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
+    splitRootRuns,
   };
 }

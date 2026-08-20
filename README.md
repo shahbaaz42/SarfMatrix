@@ -1,6 +1,6 @@
 # Arabic Ṣarf Generator
 
-Version 7 is a small, browser-based generator for entering a three-letter Arabic
+Version 8 is a small, browser-based generator for entering a three-letter Arabic
 root and selecting one of the six Thulāthī Mujarrad Bābs defined in the reference
 workbook. It generates all 14 fully vocalized Ṣīghahs of the active past and active
 present using the selected Bāb's middle-radical vowels. It also generates the
@@ -22,8 +22,43 @@ without a space.
 
 Version 7 adds all 14 workbook-derived imperative rows, including `لام الأمر`
 forms, direct imperatives, and their heavy- and light-Nūn families. Workbook-unavailable
-light-Nūn cells remain blank. Derived nouns, optional derived patterns, and
-Thulāthī Mazīd Fīh forms remain outside the application.
+light-Nūn cells remain blank. Version 8 adds the workbook-derived `اسم الفاعل`,
+`اسم المفعول`, `اسم التفضيل`, and `اسم الظرف` tables while preserving the
+workbook's blank positions and Bāb-dependent ظرف vowel. Optional derived patterns
+and Thulāthī Mazīd Fīh forms remain outside the application.
+
+## Interface and exports
+
+The responsive interface uses most of the available desktop width while keeping
+each result table independently scrollable on narrow screens. An optional
+**Colour root letters** control applies three position-aware colours to فاء
+الكلمة, عين الكلمة, and لام الكلمة without changing the plain Unicode strings
+returned by the morphology generators. The control is off by default and can be
+toggled after results are generated.
+
+Generated results can be downloaded entirely in the browser as PDF or Word in
+Portrait or Landscape layout. Portrait output places the three verb sections on
+separate pages followed by the derived forms. Landscape output consolidates the
+verb sections into one table with a single pronoun column, then keeps Section 04
+as an independent non-pronoun block. Both formats include root/Bāb/particle
+metadata, root colours when enabled, and the developer footer on every page.
+
+No third-party export library is used. PDF pages are rasterized by the browser's
+HTML/SVG text engine before being packaged as a genuine PDF, preserving the
+browser's Arabic shaping and combining marks. Word downloads are genuine DOCX
+ZIP packages containing RTL WordprocessingML, table headers, page breaks,
+coloured text runs, orientation settings, and a repeating footer. This keeps the
+static GitHub Pages application backend-free and avoids direct PDF text drawing,
+which can disconnect Arabic glyphs.
+
+Section 04 remains structurally distinct from the 14-pronoun verb tables: its
+participles retain their gender/number/state matrices, while اسم التفضيل and اسم
+الظرف retain their workbook-specific alternatives and blank positions.
+
+## Developer
+
+Developed by Shahbaaz Ahmed — <shahbaaz.education@gmail.com>
+© Shahbaaz Ahmed. All Rights Reserved.
 
 ## Known workbook inconsistency
 
@@ -52,7 +87,9 @@ Then visit <http://localhost:8000> in your browser.
 
 - `index.html` contains the page structure and form.
 - `style.css` provides the responsive layout and visual design.
-- `script.js` contains the workbook-derived Bāb and reusable 14-Ṣīghah
-  configurations and builds the three Version 7 result tables
+- `script.js` contains the workbook-derived Bāb, reusable 14-Ṣīghah, and nominal
+  configurations and builds the Version 8 result tables
   when **Generate** is clicked.
+- `export.js` builds client-side PDF and genuine DOCX downloads and contains no
+  third-party runtime dependency.
 - `Arabic Sarf Template.xlsx` is the authoritative reference workbook.
