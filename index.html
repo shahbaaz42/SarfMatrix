@@ -9,9 +9,9 @@
   <body>
     <main class="app">
       <header class="app__header">
-        <p class="eyebrow">Version 6</p>
+        <p class="eyebrow">Version 7</p>
         <h1>Arabic Ṣarf Generator</h1>
-        <p>Enter an Arabic root and choose a Bāb to generate the active, passive, majzūm, manṣūb, and emphatic families.</p>
+        <p>Enter an Arabic root and choose a Bāb to generate the full workbook-derived conjugation.</p>
       </header>
 
       <!-- The form is right-to-left so Arabic is entered and read naturally. -->
@@ -46,30 +46,48 @@
           </select>
         </div>
 
-        <div class="field particle-field">
-          <label for="majzum-particle">Majzūm particle</label>
-          <select id="majzum-particle" name="majzum-particle" lang="ar" dir="rtl">
-            <option value="لَمْ">لَمْ</option>
-            <option value="لَمَّا">لَمَّا</option>
-            <option value="لَا">لَا</option>
-          </select>
-        </div>
-
-        <div class="field particle-field">
-          <label for="mansub-particle">Manṣūb particle</label>
-          <select id="mansub-particle" name="mansub-particle" lang="ar" dir="rtl">
-            <option value="أَنْ">أَنْ</option>
-            <option value="لَنْ">لَنْ</option>
-            <option value="كَيْ">كَيْ</option>
-            <option value="إِذَنْ">إِذَنْ</option>
-          </select>
-        </div>
-
         <button type="submit">Generate</button>
       </form>
 
-      <!-- JavaScript adds the active and Version 4–6 result tables here. -->
-      <section id="results" class="results" aria-live="polite" aria-atomic="true"></section>
+      <section id="results" class="results" aria-live="polite">
+        <section class="result-section" aria-labelledby="section-01-heading">
+          <h2 id="section-01-heading">Section 01</h2>
+          <div class="table-wrap">
+            <table dir="rtl">
+              <thead><tr><th>الضمير</th><th>فعل الماضي مرفوع</th><th>فعل المضارع مرفوع</th><th>فعل الماضي مجهول</th><th>فعل المضارع مجهول</th></tr></thead>
+              <tbody id="section-01-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="result-section" aria-labelledby="section-02-heading">
+          <h2 id="section-02-heading">Section 02</h2>
+          <div class="table-wrap">
+            <table dir="rtl">
+              <thead>
+                <tr class="particle-row">
+                  <th></th>
+                  <th><label for="majzum-particle">Majzūm particle</label><select id="majzum-particle" name="majzum-particle" lang="ar" dir="rtl"><option value="لَمْ">لَمْ</option><option value="لَمَّا">لَمَّا</option><option value="لَا">لَا</option></select></th>
+                  <th><label for="mansub-particle">Manṣūb particle</label><select id="mansub-particle" name="mansub-particle" lang="ar" dir="rtl"><option value="لَنْ" selected>لَنْ</option><option value="أَنْ">أَنْ</option><option value="كَيْ">كَيْ</option><option value="إِذَنْ">إِذَنْ</option></select></th>
+                  <th></th><th></th>
+                </tr>
+                <tr><th>الضمير</th><th>مجزوم المضارع</th><th>منصوب المضارع</th><th>لام تأكيد با نون تأكيد ثقيلة</th><th>لام تأكيد با نون تأكيد خفيفة</th></tr>
+              </thead>
+              <tbody id="section-02-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="result-section" aria-labelledby="section-03-heading">
+          <h2 id="section-03-heading">Section 03</h2>
+          <div class="table-wrap">
+            <table dir="rtl">
+              <thead><tr><th>الضمير</th><th>فعل الامر</th><th>فعل الامر با نون تأكيد ثقيلة</th><th>فعل الامر با نون تأكيد خفيفة</th></tr></thead>
+              <tbody id="section-03-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
     </main>
 
     <script src="script.js"></script>

@@ -24,16 +24,16 @@ const MAJZUM_PARTICLES = Object.freeze(["لَمْ", "لَمَّا", "لَا"]);
 
 // I3's validation list supplies these particles. Its inconsistent surrounding
 // whitespace is deliberately normalized; builders add the one separator.
-const MANSUB_PARTICLES = Object.freeze(["أَنْ", "لَنْ", "كَيْ", "إِذَنْ"]);
+const MANSUB_PARTICLES = Object.freeze(["لَنْ", "أَنْ", "كَيْ", "إِذَنْ"]);
 
 // The Bāb-dependent vowels are transcribed from the workbook's hidden Q1:U7 table.
 const BAB_CONFIG = Object.freeze({
-  "فَتَحَ-يَفْتَحُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.FATHA }),
-  "ضَرَبَ-يَضْرِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.KASRA }),
-  "نَصَرَ-يَنْصُرُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.DAMMA }),
-  "سَمِعَ-يَسْمَعُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.FATHA }),
-  "كَرُمَ-يَكْرُمُ": Object.freeze({ pastMiddleVowel: HARAKAT.DAMMA, presentMiddleVowel: HARAKAT.DAMMA }),
-  "حَسِبَ-يَحْسِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.KASRA }),
+  "فَتَحَ-يَفْتَحُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA }),
+  "ضَرَبَ-يَضْرِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA }),
+  "نَصَرَ-يَنْصُرُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.DAMMA, imperativeInitialVowel: HARAKAT.DAMMA }),
+  "سَمِعَ-يَسْمَعُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA }),
+  "كَرُمَ-يَكْرُمُ": Object.freeze({ pastMiddleVowel: HARAKAT.DAMMA, presentMiddleVowel: HARAKAT.DAMMA, imperativeInitialVowel: HARAKAT.DAMMA }),
+  "حَسِبَ-يَحْسِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA }),
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA } = HARAKAT;
@@ -107,6 +107,19 @@ function buildEmphaticPresent(root, config, weight, sighah = SIGHAS[0]) {
   return `${LAM}${FATHA}${buildPresentStem(root, config, sighah)}${ending}`;
 }
 
+function buildImperative(root, config, weight = "ordinary", sighah = SIGHAS[0]) {
+  const endingKey = weight === "ordinary" ? "majzumEnding" : weight === "heavy" ? "heavyEmphaticEnding" : weight === "light" ? "lightEmphaticEnding" : null;
+  if (!endingKey) throw new Error(`Unknown imperative weight: ${weight}`);
+  const ending = sighah[endingKey];
+  if (ending === null) return null;
+
+  const [first, second, third] = root;
+  if (sighah.person === 2) {
+    return `${ALIF}${config.imperativeInitialVowel}${first}${SUKUN}${second}${config.presentMiddleVowel}${third}${ending}`;
+  }
+  return `${LAM}${KASRA}${buildPresentStem(root, config, sighah)}${ending}`;
+}
+
 function generateActiveForms(root, bab) {
   const config = getBabConfig(bab);
   return SIGHAS.map((sighah) => ({
@@ -143,35 +156,14 @@ function generateEmphaticForms(root, bab) {
   }));
 }
 
-function createResultsTable(headers, rows) {
-  const tableWrap = document.createElement("div");
-  tableWrap.className = "table-wrap";
-  const table = document.createElement("table");
-  table.dir = "rtl";
-  const head = document.createElement("thead");
-  const headingRow = document.createElement("tr");
-  for (const header of headers) {
-    const cell = document.createElement("th");
-    cell.scope = "col";
-    cell.textContent = header;
-    headingRow.append(cell);
-  }
-  head.append(headingRow);
-  const body = document.createElement("tbody");
-  for (const values of rows) {
-    const row = document.createElement("tr");
-    for (const value of values) {
-      const cell = document.createElement("td");
-      cell.lang = "ar";
-      cell.dir = "rtl";
-      cell.textContent = value;
-      row.append(cell);
-    }
-    body.append(row);
-  }
-  table.append(head, body);
-  tableWrap.append(table);
-  return tableWrap;
+function generateImperativeForms(root, bab) {
+  const config = getBabConfig(bab);
+  return SIGHAS.map((sighah) => ({
+    ...sighah,
+    imperative: buildImperative(root, config, "ordinary", sighah),
+    heavyImperative: buildImperative(root, config, "heavy", sighah),
+    lightImperative: buildImperative(root, config, "light", sighah),
+  }));
 }
 
 if (typeof document !== "undefined") {
@@ -180,7 +172,23 @@ if (typeof document !== "undefined") {
   const babSelect = document.querySelector("#bab");
   const particleSelect = document.querySelector("#majzum-particle");
   const mansubParticleSelect = document.querySelector("#mansub-particle");
-  const results = document.querySelector("#results");
+  const sectionBodies = ["#section-01-body", "#section-02-body", "#section-03-body"].map((selector) => document.querySelector(selector));
+
+  function replaceTableRows(body, rows) {
+    const fragment = document.createDocumentFragment();
+    for (const values of rows) {
+      const row = document.createElement("tr");
+      for (const value of values) {
+        const cell = document.createElement("td");
+        cell.lang = "ar";
+        cell.dir = "rtl";
+        cell.textContent = value ?? "";
+        row.append(cell);
+      }
+      fragment.append(row);
+    }
+    body.replaceChildren(fragment);
+  }
 
   function renderResults() {
     const root = rootInputs.map((input) => input.value.trim());
@@ -188,40 +196,11 @@ if (typeof document !== "undefined") {
     const version4Forms = generateVersion4Forms(root, babSelect.value, particleSelect.value);
     const mansubForms = generateMansubForms(root, babSelect.value, mansubParticleSelect.value);
     const emphaticForms = generateEmphaticForms(root, babSelect.value);
+    const imperativeForms = generateImperativeForms(root, babSelect.value);
 
-    const heading = document.createElement("h2");
-    heading.textContent = "التَّصْرِيفُ";
-    heading.lang = "ar";
-    heading.dir = "rtl";
-    const activeTable = createResultsTable(
-      ["الضَّمِيرُ", "الْمَاضِي", "الْمُضَارِعُ"],
-      activeForms.map(({ pronoun, past, present }) => [pronoun, past, present]),
-    );
-    const additionalHeading = document.createElement("h2");
-    additionalHeading.textContent = "الْمَبْنِيُّ لِلْمَجْهُولِ وَالْمَجْزُومُ";
-    additionalHeading.lang = "ar";
-    additionalHeading.dir = "rtl";
-    const additionalTable = createResultsTable(
-      ["الضَّمِيرُ", "الْمَاضِي الْمَجْهُولُ", "الْمُضَارِعُ الْمَجْهُولُ", "الْمُضَارِعُ الْمَجْزُومُ"],
-      version4Forms.map(({ pronoun, passivePast, passivePresent, majzumPresent }) => [pronoun, passivePast, passivePresent, majzumPresent]),
-    );
-    const mansubHeading = document.createElement("h2");
-    mansubHeading.textContent = "فِعْلُ الْمُضَارِعِ الْمَنْصُوبِ";
-    mansubHeading.lang = "ar";
-    mansubHeading.dir = "rtl";
-    const mansubTable = createResultsTable(
-      ["الضَّمِيرُ", "الْمُضَارِعُ الْمَنْصُوبُ"],
-      mansubForms.map(({ pronoun, mansubPresent }) => [pronoun, mansubPresent]),
-    );
-    const emphaticHeading = document.createElement("h2");
-    emphaticHeading.textContent = "لَامُ التَّأْكِيدِ مَعَ نُونِ التَّأْكِيدِ";
-    emphaticHeading.lang = "ar";
-    emphaticHeading.dir = "rtl";
-    const emphaticTable = createResultsTable(
-      ["الضمير", "نون التأكيد الثقيلة", "نون التأكيد الخفيفة"],
-      emphaticForms.map(({ pronoun, heavyEmphatic, lightEmphatic }) => [pronoun, heavyEmphatic, lightEmphatic ?? ""]),
-    );
-    results.replaceChildren(heading, activeTable, additionalHeading, additionalTable, mansubHeading, mansubTable, emphaticHeading, emphaticTable);
+    replaceTableRows(sectionBodies[0], activeForms.map(({ pronoun, past, present }, index) => [pronoun, past, present, version4Forms[index].passivePast, version4Forms[index].passivePresent]));
+    replaceTableRows(sectionBodies[1], version4Forms.map(({ pronoun, majzumPresent }, index) => [pronoun, majzumPresent, mansubForms[index].mansubPresent, emphaticForms[index].heavyEmphatic, emphaticForms[index].lightEmphatic]));
+    replaceTableRows(sectionBodies[2], imperativeForms.map(({ pronoun, imperative, heavyImperative, lightImperative }) => [pronoun, imperative, heavyImperative, lightImperative]));
   }
 
   form.addEventListener("submit", (event) => {
@@ -229,16 +208,17 @@ if (typeof document !== "undefined") {
     renderResults();
   });
 
-  mansubParticleSelect.addEventListener("change", () => {
-    if (results.hasChildNodes()) renderResults();
-  });
+  for (const select of [particleSelect, mansubParticleSelect]) {
+    select.addEventListener("change", () => {
+      if (sectionBodies[0].hasChildNodes()) renderResults();
+    });
+  }
 }
-
 if (typeof module !== "undefined") {
   module.exports = {
     BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
-    buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent,
-    generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, getBabConfig,
+    buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent, buildImperative,
+    generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms, getBabConfig,
   };
 }
