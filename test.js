@@ -1,9 +1,10 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const {
   BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
   buildMansubPresent, generateActiveForms, generateVersion4Forms, generateMansubForms,
-  buildEmphaticPresent, generateEmphaticForms,
+  buildEmphaticPresent, generateEmphaticForms, buildImperative, generateImperativeForms,
 } = require("./script.js");
 
 const activeCases = [
@@ -89,7 +90,7 @@ const mansubCases = [
   },
 ];
 
-assert.deepEqual(MANSUB_PARTICLES, ["أَنْ", "لَنْ", "كَيْ", "إِذَنْ"]);
+assert.deepEqual(MANSUB_PARTICLES, ["لَنْ", "أَنْ", "كَيْ", "إِذَنْ"]);
 for (const testCase of mansubCases) {
   for (const particle of MANSUB_PARTICLES) {
     const actual = generateMansubForms(testCase.root, testCase.bab, particle);
@@ -170,4 +171,45 @@ for (const [bab, middleVowel] of emphaticBabCases) {
 }
 assert.throws(() => buildEmphaticPresent(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "medium"), /Unknown emphatic weight/);
 
-console.log("Verified workbook-derived Version 6 emphatic forms for all six Bābs and all prior regressions.");
+// Exact L/M/N workbook outputs for all 14 rows, including unavailable light-Nūn forms.
+const imperativeForms = generateImperativeForms(["ك", "ر", "م"], "كَرُمَ-يَكْرُمُ");
+assert.deepEqual(imperativeForms.map(({ imperative }) => imperative), [
+  "لِيَكْرُمْ", "لِيَكْرُمَا", "لِيَكْرُمُوْا", "لِتَكْرُمْ", "لِتَكْرُمَا", "لِيَكْرُمْنَ",
+  "اُكْرُمْ", "اُكْرُمَا", "اُكْرُمُوْا", "اُكْرُمِيْ", "اُكْرُمَا", "اُكْرُمْنَ", "لِأَكْرُمْ", "لِنَكْرُمْ",
+]);
+assert.deepEqual(imperativeForms.map(({ heavyImperative }) => heavyImperative), [
+  "لِيَكْرُمَنَّ", "لِيَكْرُمَانِّ", "لِيَكْرُمُنَّ", "لِتَكْرُمَنَّ", "لِتَكْرُمَانِّ", "لِيَكْرُمْنَانِّ",
+  "اُكْرُمَنَّ", "اُكْرُمَانِّ", "اُكْرُمُنَّ", "اُكْرُمِنَّ", "اُكْرُمَانِّ", "اُكْرُمْنَانِّ", "لِأَكْرُمَنَّ", "لِنَكْرُمَنَّ",
+]);
+assert.deepEqual(imperativeForms.map(({ lightImperative }) => lightImperative), [
+  "لِيَكْرُمَنْ", null, "لِيَكْرُمُنْ", "لِتَكْرُمَنْ", null, null,
+  "اُكْرُمَنْ", null, "اُكْرُمُنْ", "اُكْرُمِنْ", null, null, "لِأَكْرُمَنْ", "لِنَكْرُمَنْ",
+]);
+
+for (const [bab] of basicCases) {
+  const config = BAB_CONFIG[bab];
+  const forms = generateImperativeForms(["ف", "ع", "ل"], bab);
+  for (const [index, sighah] of SIGHAS.entries()) {
+    assert.equal(forms[index].imperative, buildImperative(["ف", "ع", "ل"], config, "ordinary", sighah));
+    assert.equal(forms[index].heavyImperative, buildImperative(["ف", "ع", "ل"], config, "heavy", sighah));
+    assert.equal(forms[index].lightImperative, buildImperative(["ف", "ع", "ل"], config, "light", sighah));
+    if (sighah.person === 2) {
+      const initial = `ا${config.imperativeInitialVowel}`;
+      assert.equal(forms[index].imperative.startsWith(initial), true);
+      assert.equal(forms[index].heavyImperative.startsWith(initial), true);
+      if (forms[index].lightImperative !== null) assert.equal(forms[index].lightImperative.startsWith(initial), true);
+    }
+  }
+}
+assert.throws(() => buildImperative(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "medium"), /Unknown imperative weight/);
+
+const html = fs.readFileSync("index.html", "utf8");
+assert.equal((html.match(/class="result-section"/g) || []).length, 3);
+assert.equal((html.match(/class="table-wrap"/g) || []).length, 3);
+for (const label of ["Section 01", "Section 02", "Section 03"]) assert.equal(html.includes(label), true);
+const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
+assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
+assert.equal(mansubSelect.includes('<option value="لَنْ" selected>'), true);
+assert.deepEqual([...mansubSelect.matchAll(/<option[^>]*value="([^"]+)"/g)].map((match) => match[1]), MANSUB_PARTICLES);
+
+console.log("Verified Version 7 imperatives, three-section layout, and all Version 2–6 morphology regressions.");

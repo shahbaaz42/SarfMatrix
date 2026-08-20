@@ -153,7 +153,7 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
-.results:not(:empty) {
+.results {
   margin-top: 1.5rem;
   padding: 1rem;
   background: #eef8f4;
@@ -162,16 +162,27 @@ button:focus-visible {
   line-height: 1.7;
 }
 
-.results h2 {
+.result-section h2 {
   margin: 0 0 0.85rem;
   font-size: 1.1rem;
 }
 
-.results .table-wrap + h2 {
-  margin-top: 1.5rem;
+.result-section + .result-section {
+  margin-top: 1.75rem;
 }
 
-.particle-field select {
+.particle-row label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.75rem;
+  white-space: normal;
+}
+
+.particle-row select {
+  min-width: 8rem;
+  min-height: 2.75rem;
   font-size: 1.2rem;
 }
 
@@ -184,23 +195,15 @@ button:focus-visible {
 
 table {
   width: 100%;
-  min-width: 30rem;
+  min-width: 58rem;
   border-collapse: collapse;
   text-align: center;
   background: var(--surface);
   font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
 }
 
-.results .table-wrap:nth-of-type(2) table {
-  min-width: 48rem;
-}
-
-.results .table-wrap:nth-of-type(3) table {
-  min-width: 24rem;
-}
-
-.results .table-wrap:nth-of-type(4) table {
-  min-width: 36rem;
+.result-section:last-child table {
+  min-width: 50rem;
 }
 
 th,
@@ -228,6 +231,11 @@ tbody tr:last-child td {
 
 tbody tr:nth-child(even) {
   background: #fbfdfc;
+}
+
+.particle-row th {
+  padding-block: 0.5rem;
+  vertical-align: bottom;
 }
 
 @media (max-width: 32rem) {
@@ -265,7 +273,7 @@ tbody tr:nth-child(even) {
     font-size: 0.75rem;
   }
 
-  .results:not(:empty) {
+  .results {
     padding: 0.65rem;
   }
 
