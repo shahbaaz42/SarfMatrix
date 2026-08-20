@@ -8,7 +8,9 @@ const {
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
+  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, splitRootRuns,
 } = require("./script.js");
+const { filenameFor, metadataRows, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
 const activeCases = [
   {
@@ -265,9 +267,109 @@ const babSelect = html.match(/<select id="bab"[\s\S]*?<\/select>/)[0];
 assert.equal(babSelect.includes('required'), true);
 assert.equal(babSelect.includes('<option value="" selected disabled>اختر الباب</option>'), true);
 assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG)]);
+assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map((match) => match[1]), [
+  "اختر الباب",
+  "فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ", "ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ",
+  "نَصَرَ / يَنْصُرُ — فَعَلَ / يَفْعُلُ", "سَمِعَ / يَسْمَعُ — فَعِلَ / يَفْعَلُ",
+  "كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ", "حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ",
+]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
 assert.equal(mansubSelect.includes('<option value="لَنْ" selected>'), true);
 assert.deepEqual([...mansubSelect.matchAll(/<option[^>]*value="([^"]+)"/g)].map((match) => match[1]), MANSUB_PARTICLES);
 
-console.log("Verified all 33 Section 04 workbook cells and all Version 2–7 morphology regressions.");
+// Version 8 final presentation and immutable export-state regressions.
+const css = fs.readFileSync("style.css", "utf8");
+assert.match(css, /\.app\s*\{[\s\S]*?width:\s*94vw;[\s\S]*?max-width:\s*100rem;/);
+assert.match(css, /font-family:\s*Calibri,\s*"Segoe UI",\s*Arial,\s*sans-serif;/);
+assert.match(css, /\.result-section h2\s*\{[\s\S]*?text-align:\s*right;/);
+assert.match(css, /\.derived-card h3\s*\{[\s\S]*?text-align:\s*right;/);
+assert.match(css, /th\s*\{[\s\S]*?text-align:\s*center;/);
+assert.match(css, /td\s*\{[\s\S]*?text-align:\s*center;/);
+assert.match(css, /tbody td:first-child\s*\{\s*text-align:\s*right;/);
+assert.match(css, /@media \(max-width: 32rem\)[\s\S]*?overflow-y:\s*auto;/);
+assert.match(css, /\.table-wrap[\s\S]*?overflow-x:\s*auto;/);
+assert.equal(/id="colour-root-letters"[^>]*checked/.test(html), false);
+assert.match(html, /<span>Colour root letters<\/span>/);
+assert.match(html, /<section id="export-panel"[\s\S]*?PDF[\s\S]*?Word[\s\S]*?Portrait[\s\S]*?Landscape[\s\S]*?Download/);
+assert.match(html, /Developed by Shahbaaz Ahmed/);
+assert.match(html, /mailto:shahbaaz\.education@gmail\.com/);
+assert.match(html, /© Shahbaaz Ahmed\. All Rights Reserved\./);
+
+const snapshotOptions = {
+  root: ["د", "خ", "ل"],
+  bab: "فَتَحَ-يَفْتَحُ",
+  babLabel: "فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ",
+  majzumParticle: "لَمْ",
+  mansubParticle: "لَنْ",
+};
+const snapshot = buildGeneratedSnapshot(snapshotOptions);
+assert.equal(Object.isFrozen(snapshot), true);
+assert.equal(Object.isFrozen(snapshot.root), true);
+assert.equal(Object.isFrozen(snapshot.sections.section04.activeParticiple[0].values), true);
+snapshot.root[0] = "ك";
+assert.equal(snapshot.root[0], "د");
+assert.equal(snapshot.sections.section01[0].past, generateActiveForms(snapshotOptions.root, snapshotOptions.bab)[0].past);
+const colouredSnapshot = updateSnapshotColour(snapshot, true);
+assert.equal(colouredSnapshot.sections, snapshot.sections);
+assert.equal(colouredSnapshot.sections.section01[0].past, snapshot.sections.section01[0].past);
+
+const prefixedRepeated = splitRootRuns("نَنُصِرُ", ["ن", "ص", "ر"]);
+assert.equal(prefixedRepeated.filter(({ radical }) => radical === 1).map(({ text }) => text).join(""), "نُ");
+assert.equal(prefixedRepeated[0].radical, 0);
+const repeatedRoot = splitRootRuns("دَدِدُدْتُ", ["د", "د", "د"]);
+assert.deepEqual(repeatedRoot.filter(({ radical }) => radical).map(({ radical }) => radical), [1, 2, 3]);
+assert.deepEqual(repeatedRoot.filter(({ radical }) => radical).map(({ text }) => text), ["دَ", "دِ", "دُ"]);
+
+const store = createGeneratedStateStore();
+store.generate(snapshotOptions);
+const generatedBeforeEdit = store.get();
+store.invalidate(); // Root or Bāb input listeners use this exact invalidation path.
+assert.equal(store.get(), null);
+store.generate(snapshotOptions); // Export works again only after regeneration.
+assert.equal(filenameFor(store.get(), "pdf"), "Sarf_دخل.pdf");
+assert.equal(filenameFor(store.get(), "docx"), "Sarf_دخل.docx");
+store.updateParticles("لَمَّا", "كَيْ");
+assert.equal(store.get().majzumParticle, "لَمَّا");
+assert.equal(store.get().mansubParticle, "كَيْ");
+assert.equal(store.get().root.join(""), generatedBeforeEdit.root.join(""));
+assert.equal(store.get().bab, generatedBeforeEdit.bab);
+assert.equal(store.get().sections.section02[0].majzumPresent.startsWith("لَمَّا "), true);
+assert.equal(store.get().sections.section02[0].mansubPresent.startsWith("كَيْ "), true);
+store.updateColour(true);
+assert.deepEqual(store.get().root, snapshotOptions.root);
+
+assert.deepEqual(metadataRows(snapshot), [
+  ["الجذر", "دخل"], ["الباب", snapshotOptions.babLabel], ["حرف الجزم", "لَمْ"], ["حرف النصب", "لَنْ"],
+]);
+const landscape = landscapeVerbTable(snapshot);
+assert.equal(landscape.headings.filter((heading) => heading === "الضمير").length, 1);
+assert.equal(landscape.headings.length, 12);
+assert.equal(landscape.rows.every((row) => row.length === 12), true);
+const portraitPages = buildExportPages(colouredSnapshot, "portrait");
+const landscapePages = buildExportPages(colouredSnapshot, "landscape");
+assert.equal(portraitPages.length >= 4, true);
+assert.equal(portraitPages[0].includes("القسم 01"), true);
+assert.equal(portraitPages[1].includes("القسم 02"), true);
+assert.equal(portraitPages[2].includes("القسم 03"), true);
+assert.equal(portraitPages.slice(3).every((page) => page.includes("القسم 04")), true);
+assert.equal(landscapePages[0].match(/الضمير/g).length, 1);
+assert.equal(landscapePages.slice(1).every((page) => page.includes("section04-page")), true);
+for (const title of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.equal(landscapePages.slice(1).join("").includes(title), true);
+assert.equal(landscapePages.every((page) => page.includes(FOOTER)), true);
+assert.equal(landscapePages.join("").includes("color:#C62828"), true);
+
+const docx = buildDocx(colouredSnapshot, "landscape");
+assert.equal(Buffer.from(docx.subarray(0, 4)).toString("binary"), "PK\u0003\u0004");
+for (const requiredPart of ["[Content_Types].xml", "word/document.xml", "word/footer1.xml", "word/_rels/document.xml.rels"]) assert.equal(Buffer.from(docx).includes(Buffer.from(requiredPart)), true);
+assert.equal(Buffer.from(docx).includes(Buffer.from('w:orient="landscape"')), true);
+assert.equal(Buffer.from(docx).includes(Buffer.from("C62828")), true);
+assert.equal(Buffer.from(docx).includes(Buffer.from(FOOTER)), true);
+
+const tinyJpeg = Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==", "base64");
+const pdf = buildPdfDocument([tinyJpeg], "portrait");
+assert.equal(Buffer.from(pdf.subarray(0, 8)).toString("ascii"), "%PDF-1.4");
+assert.equal(Buffer.from(pdf).includes(Buffer.from("/Type /Page")), true);
+assert.equal(Buffer.from(pdf).subarray(-6).toString("ascii"), "%%EOF\n");
+
+console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions.");
