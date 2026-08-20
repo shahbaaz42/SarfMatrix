@@ -171,6 +171,31 @@ button:focus-visible {
   margin-top: 1.75rem;
 }
 
+.derived-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.derived-card {
+  min-width: 0;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+}
+
+.derived-card h3 {
+  margin: 0 0 0.75rem;
+}
+
+.derived-card table {
+  min-width: 52rem;
+}
+
+.derived-card:last-child table {
+  min-width: 34rem;
+}
+
 .particle-row label {
   display: block;
   margin-bottom: 0.35rem;

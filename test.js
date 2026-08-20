@@ -5,6 +5,9 @@ const {
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
   buildMansubPresent, generateActiveForms, generateVersion4Forms, generateMansubForms,
   buildEmphaticPresent, generateEmphaticForms, buildImperative, generateImperativeForms,
+  HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
+  inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
+  generateElativeForms, generateZarfForms,
 } = require("./script.js");
 
 const activeCases = [
@@ -203,13 +206,68 @@ for (const [bab] of basicCases) {
 }
 assert.throws(() => buildImperative(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "medium"), /Unknown imperative weight/);
 
+// Exact Base - Template!D24:I38 derived-noun regressions for the workbook's ك ر م example.
+const derivedRoot = ["ك", "ر", "م"];
+assert.equal(HARAKAT.DAMMATAN, "ٌ");
+assert.equal(HARAKAT.KASRATAN, "ٍ");
+assert.equal(LETTERS.TA_MARBUTA, "ة");
+assert.equal(LETTERS.ALIF_MAQSURA, "ى");
+assert.equal(buildActiveParticipleStem(derivedRoot), "كَارِم");
+assert.equal(buildPassiveParticipleStem(derivedRoot), "مَكْرُوْم");
+
+const activeParticiple = generateActiveParticipleForms(derivedRoot);
+const passiveParticiple = generatePassiveParticipleForms(derivedRoot);
+assert.deepEqual(activeParticiple.map(({ nominative }) => nominative), ["كَارِمٌ", "كَارِمَانِ", "كَارِمُوْنَ", "كَارِمَةٌ", "كَارِمَتَانِ", "كَارِمَاتٌ"]);
+assert.deepEqual(activeParticiple.map(({ oblique }) => oblique), [null, "كَارِمَيْنِ", "كَارِمِيْنَ", null, "كَارِمَتَيْنِ", "كَارِمَاتٍ"]);
+assert.deepEqual(passiveParticiple.map(({ nominative }) => nominative), ["مَكْرُوْمٌ", "مَكْرُوْمَانِ", "مَكْرُوْمُوْنَ", "مَكْرُوْمَةٌ", "مَكْرُوْمَتَانِ", "مَكْرُوْمَاتٌ"]);
+assert.deepEqual(passiveParticiple.map(({ oblique }) => oblique), [null, "مَكْرُوْمَيْنِ", "مَكْرُوْمِيْنَ", null, "مَكْرُوْمَتَيْنِ", "مَكْرُوْمَاتٍ"]);
+assert.deepEqual(activeParticiple.map(({ id, gender, number, oblique }) => ({ id, gender, number, available: oblique !== null })), passiveParticiple.map(({ id, gender, number, oblique }) => ({ id, gender, number, available: oblique !== null })));
+assert.deepEqual(inflectNominalStem("س").map(({ id }) => id), NOMINAL_INFLECTIONS.map(({ id }) => id));
+
+const elative = generateElativeForms(derivedRoot);
+assert.deepEqual(elative.primary, ["أَكْرَمُ", "أَكْرَمَانِ", "أَكْرَمُوْنَ", "كُرْمَى", "كُرْمَيَانِ", "كُرْمَيَاتٌ"]);
+assert.deepEqual(elative.additional, [null, null, "أَكَارِمُ", null, null, "كُرَمٌ"]);
+
+const zarfVowels = [
+  ["فَتَحَ-يَفْتَحُ", "َ"], ["ضَرَبَ-يَضْرِبُ", "ِ"], ["نَصَرَ-يَنْصُرُ", "َ"],
+  ["سَمِعَ-يَسْمَعُ", "َ"], ["كَرُمَ-يَكْرُمُ", "َ"], ["حَسِبَ-يَحْسِبُ", "ِ"],
+];
+const zarfPlurals = new Set();
+for (const [bab, vowel] of zarfVowels) {
+  assert.equal(BAB_CONFIG[bab].zarfMiddleVowel, vowel);
+  const forms = generateZarfForms(derivedRoot, bab);
+  zarfPlurals.add(forms.ordinaryPlural);
+  assert.equal(forms.taMarbutaPlural, null);
+  assert.equal(forms.ordinarySingular, `مَكْر${vowel}مُ`);
+}
+assert.deepEqual([...zarfPlurals], ["مَكَارِمُ"]);
+assert.deepEqual(generateZarfForms(derivedRoot, "كَرُمَ-يَكْرُمُ"), {
+  ordinarySingular: "مَكْرَمُ", ordinaryDual: "مَكْرَمَانِ", ordinaryPlural: "مَكَارِمُ",
+  taMarbutaSingular: "مَكْرَمَةٌ", taMarbutaDual: "مَكْرَمَتَانِ", taMarbutaPlural: null,
+});
+
+const populatedDerivedCells = activeParticiple.filter(({ nominative }) => nominative).length
+  + activeParticiple.filter(({ oblique }) => oblique).length
+  + passiveParticiple.filter(({ nominative }) => nominative).length
+  + passiveParticiple.filter(({ oblique }) => oblique).length
+  + elative.primary.filter(Boolean).length + elative.additional.filter(Boolean).length
+  + Object.values(generateZarfForms(derivedRoot, "كَرُمَ-يَكْرُمُ")).filter(Boolean).length;
+assert.equal(populatedDerivedCells, 33);
+
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal((html.match(/class="result-section"/g) || []).length, 3);
-assert.equal((html.match(/class="table-wrap"/g) || []).length, 3);
-for (const label of ["Section 01", "Section 02", "Section 03"]) assert.equal(html.includes(label), true);
+assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
+assert.equal((html.match(/class="table-wrap"/g) || []).length, 7);
+assert.equal((html.match(/class="derived-card"/g) || []).length, 4);
+for (const label of ["القسم 01 — المرفوع والمجهول", "القسم 02 — المجزوم والمنصوب والتوكيد", "القسم 03 — فعل الأمر", "القسم 04 — المشتقات"]) assert.equal(html.includes(label), true);
+for (const label of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.equal(html.includes(`<h3>${label}</h3>`), true);
+for (const label of ["الفعل الماضي المرفوع", "الفعل المضارع المرفوع", "الفعل الماضي المجهول", "الفعل المضارع المجهول", "حرف الجزم", "حرف النصب"]) assert.equal(html.includes(label), true);
+const babSelect = html.match(/<select id="bab"[\s\S]*?<\/select>/)[0];
+assert.equal(babSelect.includes('required'), true);
+assert.equal(babSelect.includes('<option value="" selected disabled>اختر الباب</option>'), true);
+assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG)]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
 assert.equal(mansubSelect.includes('<option value="لَنْ" selected>'), true);
 assert.deepEqual([...mansubSelect.matchAll(/<option[^>]*value="([^"]+)"/g)].map((match) => match[1]), MANSUB_PARTICLES);
 
-console.log("Verified Version 7 imperatives, three-section layout, and all Version 2–6 morphology regressions.");
+console.log("Verified all 33 Section 04 workbook cells and all Version 2–7 morphology regressions.");
