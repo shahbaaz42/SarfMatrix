@@ -1,5 +1,12 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+
+// Guard the four manually reconciled files against accidentally committing a
+// partial conflict resolution in a future merge.
+for (const filename of ["README.md", "script.js", "style.css", "test.js"]) {
+  const contents = fs.readFileSync(filename, "utf8");
+  assert.equal(/^(?:<<<<<<<|=======|>>>>>>>)/m.test(contents), false, `${filename} contains a Git conflict marker`);
+}
 const {
   BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
