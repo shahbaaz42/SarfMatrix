@@ -27,6 +27,13 @@ light-Nūn cells remain blank. Version 8 adds the workbook-derived `اسم ال�
 workbook's blank positions and Bāb-dependent ظرف vowel. Optional derived patterns
 and Thulāthī Mazīd Fīh forms remain outside the application.
 
+The final Version 8 interface carries radical-role metadata directly from the
+morphology templates, so it can colour only the three root positions without
+searching or changing generated Unicode strings. After generation, an immutable snapshot
+keeps displayed metadata and morphology synchronized while client-side PDF and
+genuine DOCX downloads provide portrait and landscape layouts. Editing a root
+or Bāb invalidates that snapshot until **Generate** is clicked again.
+
 ## Known workbook inconsistency
 
 `Base - Template!A18` contains an inconsistent helper formula and cached value
@@ -57,4 +64,6 @@ Then visit <http://localhost:8000> in your browser.
 - `script.js` contains the workbook-derived Bāb, reusable 14-Ṣīghah, and nominal
   configurations and builds the Version 8 result tables
   when **Generate** is clicked.
+- `export.js` builds browser-shaped PDF pages and WordprocessingML DOCX packages
+  entirely in the browser from the immutable generated-state snapshot.
 - `Arabic Sarf Template.xlsx` is the authoritative reference workbook.

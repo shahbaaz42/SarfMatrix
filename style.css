@@ -23,11 +23,12 @@ body {
   padding: 2rem 1rem;
   color: var(--text);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
 }
 
 .app {
-  width: min(100%, 54rem);
+  width: 94vw;
+  max-width: 100rem;
   padding: clamp(1.25rem, 4vw, 2.5rem);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -103,6 +104,23 @@ button {
   font: inherit;
 }
 
+.colour-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  width: fit-content;
+  margin-inline-start: auto;
+  cursor: pointer;
+}
+
+.colour-toggle input,
+.export-panel input {
+  width: auto;
+  min-height: auto;
+  accent-color: var(--accent);
+}
+
 input,
 select {
   min-height: 3.25rem;
@@ -165,6 +183,7 @@ button:focus-visible {
 .result-section h2 {
   margin: 0 0 0.85rem;
   font-size: 1.1rem;
+  text-align: right;
 }
 
 .result-section + .result-section {
@@ -186,6 +205,7 @@ button:focus-visible {
 
 .derived-card h3 {
   margin: 0 0 0.75rem;
+  text-align: right;
 }
 
 .derived-card table {
@@ -200,7 +220,7 @@ button:focus-visible {
   display: block;
   margin-bottom: 0.35rem;
   color: var(--muted);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
   font-size: 0.75rem;
   white-space: normal;
 }
@@ -224,7 +244,7 @@ table {
   border-collapse: collapse;
   text-align: center;
   background: var(--surface);
-  font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
 }
 
 .result-section:last-child table {
@@ -242,13 +262,66 @@ th {
   color: var(--muted);
   background: #f7fbf9;
   font-size: 1rem;
+  text-align: center;
 }
 
 td {
   font-size: clamp(1.25rem, 4vw, 1.65rem);
   font-weight: 700;
   line-height: 1.6;
+  text-align: center;
 }
+
+tbody td:first-child {
+  text-align: right;
+}
+
+.radical-1 { color: #c62828; }
+.radical-2 { color: #1565c0; }
+.radical-3 { color: #2e7d32; }
+
+.export-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem 2rem;
+  background: #f7fbf9;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+}
+
+.export-panel[hidden] { display: none; }
+
+.export-panel h2 {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.export-panel fieldset {
+  display: flex;
+  gap: 1rem;
+}
+
+.export-panel fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.export-panel button { width: auto; }
+
+.developer-footer {
+  width: 94vw;
+  max-width: 100rem;
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.developer-footer p { margin: 0.25rem; }
+.developer-footer a { color: var(--accent-dark); }
 
 tbody tr:last-child td {
   border-bottom: 0;

@@ -47,6 +47,11 @@
           </select>
         </div>
 
+        <label class="colour-toggle" for="colour-root-letters">
+          <input id="colour-root-letters" name="colour-root-letters" type="checkbox">
+          <span>Colour root letters</span>
+        </label>
+
         <button type="submit">Generate</button>
       </form>
 
@@ -111,8 +116,30 @@
           </div>
         </section>
       </section>
+
+      <section id="export-panel" class="export-panel" aria-labelledby="export-heading" hidden>
+        <h2 id="export-heading">Download generated results</h2>
+        <fieldset>
+          <legend>Format</legend>
+          <label><input type="radio" name="export-format" value="pdf" checked> PDF</label>
+          <label><input type="radio" name="export-format" value="docx"> Word</label>
+        </fieldset>
+        <fieldset>
+          <legend>Layout</legend>
+          <label><input type="radio" name="export-layout" value="portrait" checked> Portrait</label>
+          <label><input type="radio" name="export-layout" value="landscape"> Landscape</label>
+        </fieldset>
+        <button id="download-export" type="button">Download</button>
+      </section>
     </main>
 
+    <footer class="developer-footer">
+      <p>Developed by Shahbaaz Ahmed</p>
+      <p><a href="mailto:shahbaaz.education@gmail.com">shahbaaz.education@gmail.com</a></p>
+      <p>© Shahbaaz Ahmed. All Rights Reserved.</p>
+    </footer>
+
     <script src="script.js"></script>
+    <script src="export.js"></script>
   </body>
 </html>
