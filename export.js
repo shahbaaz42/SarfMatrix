@@ -12,7 +12,7 @@
   const HEADINGS = Object.freeze({
     section01: ["الضمير", "الفعل الماضي المرفوع", "الفعل المضارع المرفوع", "الفعل الماضي المجهول", "الفعل المضارع المجهول"],
     section02: ["الضمير", "مجزوم المضارع", "منصوب المضارع", "لام تأكيد با نون تأكيد ثقيلة", "لام تأكيد با نون تأكيد خفيفة"],
-    section03: ["الضمير", "فعل الامر", "فعل الامر با نون تأكيد ثقيلة", "فعل الامر با نون تأكيد خفيفة"],
+    section03: ["الضمير", "فعل الأمر", "فعل الأمر بنون تأكيد ثقيلة", "فعل الأمر بنون تأكيد خفيفة"],
     activeParticiple: ["الحالة", "مذكر مفرد", "مذكر مثنى", "مذكر جمع", "مؤنث مفرد", "مؤنث مثنى", "مؤنث جمع"],
     passiveParticiple: ["الحالة", "مذكر مفرد", "مذكر مثنى", "مذكر جمع", "مؤنث مفرد", "مؤنث مثنى", "مؤنث جمع"],
     elative: ["الخيار", "مذكر مفرد", "مذكر مثنى", "مذكر جمع", "مؤنث مفرد", "مؤنث مثنى", "مؤنث جمع"],
@@ -93,13 +93,11 @@
       const verbs = landscapeVerbTable(snapshot);
       return [
         pageShell(snapshot, htmlTable(verbs.headings, verbs.rows, snapshot), "landscape verb-page"),
-        pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["activeParticiple", "passiveParticiple"])}`, "landscape section04-page"),
-        pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["elative", "zarf"])}`, "landscape section04-page"),
+        pageShell(snapshot, derivedHtml(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]), "landscape section04-page"),
       ];
     }
     return ["section01", "section02", "section03"].map((key) => pageShell(snapshot, `<h1>${SECTION_TITLES[key]}</h1>${htmlTable(HEADINGS[key], sectionRows(snapshot, key), snapshot)}`, `${key}-page`)).concat([
-      pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["activeParticiple", "passiveParticiple"])}`, "section04-page"),
-      pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["elative", "zarf"])}`, "section04-page"),
+      pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"])}`, "section04-page"),
     ]);
   }
 
@@ -110,17 +108,18 @@
     .metadata{margin:0 0 12px;font-size:13px;text-align:right;direction:rtl;white-space:nowrap}
     table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;margin-bottom:14px}
     th,td{border:1px solid #b7cbc4;padding:5px 3px;text-align:center;vertical-align:middle;direction:rtl}
-    th{background:#edf6f3;color:#405e54;font-size:14px}.category{text-align:center;font-size:18.5px}.derived-table .category{text-align:right}.morphology{font-size:18.5px;font-weight:700}
-    .verb-page th{font-size:8px}.verb-page td{font-size:10px;padding:3px 1px}.verb-page .category{font-size:10px;text-align:center}
-    .derived{break-inside:avoid}footer{position:absolute;bottom:22px;left:20px;right:20px;text-align:center;color:#536b63;font-size:11px}
+    th{background:#edf6f3;color:#405e54;font-size:14px}.category{text-align:center;font-size:18.5px}.derived-table .category{text-align:center}.morphology{font-size:18.5px;font-weight:700}
+    .landscape.verb-page th{font-size:10px;line-height:1.15;white-space:normal}.landscape.verb-page td{font-size:12px;padding:5px 1px}.verb-page .category{font-size:12px;text-align:center}
+    .derived{break-inside:avoid}.section04-page h1{margin:4px 0;font-size:22px}.section04-page .derived h2{margin:4px 0;font-size:17px}.section04-page table{margin-bottom:5px}.section04-page th{font-size:11px;padding:3px 2px}.section04-page td{font-size:13px;padding:3px 2px}.landscape.section04-page{padding-top:40px}.landscape.section04-page .derived h2{font-size:16px}.landscape.section04-page th,.landscape.section04-page td{padding:2px;font-size:12px}footer{position:absolute;bottom:22px;left:20px;right:20px;text-align:center;color:#536b63;font-size:11px}
   `;
 
-  function htmlToSvg(pageHtml, width, height) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px"><style>${PAGE_CSS}</style>${pageHtml}</div></foreignObject></svg>`;
+  function htmlToSvg(pageHtml, width, height, scale = 1) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width * scale}" height="${height * scale}" viewBox="0 0 ${width} ${height}"><foreignObject width="${width}" height="${height}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px"><style>${PAGE_CSS}</style>${pageHtml}</div></foreignObject></svg>`;
   }
 
   async function rasterizePage(pageHtml, width, height) {
-    const svg = htmlToSvg(pageHtml, width, height);
+    const scale = 3;
+    const svg = htmlToSvg(pageHtml, width, height, scale);
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const image = new Image();
     const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -130,14 +129,14 @@
       image.src = dataUrl;
     });
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("The browser did not provide a 2D canvas context.");
     context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, width, height);
-    context.drawImage(image, 0, 0, width, height);
-    const jpegBlob = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The browser could not encode the PDF page as JPEG.")), "image/jpeg", 0.92));
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const jpegBlob = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The browser could not encode the PDF page as JPEG.")), "image/jpeg", 0.96));
     return new Uint8Array(await jpegBlob.arrayBuffer());
   }
 
@@ -160,7 +159,7 @@
     const pagesId = add("");
     const pageIds = [];
     images.forEach((jpeg, index) => {
-      const imageId = add(concatBytes([asciiBytes(`<< /Type /XObject /Subtype /Image /Width ${landscape ? 1123 : 794} /Height ${landscape ? 794 : 1123} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`), jpeg, asciiBytes("\nendstream")]));
+      const imageId = add(concatBytes([asciiBytes(`<< /Type /XObject /Subtype /Image /Width ${landscape ? 3369 : 2382} /Height ${landscape ? 2382 : 3369} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`), jpeg, asciiBytes("\nendstream")]));
       const command = `q ${pageWidth} 0 0 ${pageHeight} 0 0 cm /Im${index + 1} Do Q`;
       const contentId = add(`<< /Length ${command.length} >>\nstream\n${command}\nendstream`);
       const pageId = add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im${index + 1} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`);
@@ -220,7 +219,7 @@
   }
   function wordParagraph(value, snapshot, colour = true, align = "center") { return `<w:p><w:pPr><w:bidi/><w:jc w:val="${align}"/></w:pPr>${wordRuns(value, snapshot, colour)}</w:p>`; }
   function wordTable(headings, rows, snapshot, derived = false) {
-    const rowXml = (cells, heading = false) => `<w:tr>${cells.map((cell, index) => `<w:tc><w:tcPr><w:textDirection w:val="lrTb"/>${heading ? "<w:shd w:fill=\"EDF6F3\"/>" : ""}</w:tcPr>${wordParagraph(cell, snapshot, !heading && index > 0, derived && index === 0 && !heading ? "right" : "center")}</w:tc>`).join("")}</w:tr>`;
+    const rowXml = (cells, heading = false) => `<w:tr>${cells.map((cell, index) => `<w:tc><w:tcPr><w:textDirection w:val="lrTb"/>${heading ? "<w:shd w:fill=\"EDF6F3\"/>" : ""}</w:tcPr>${wordParagraph(cell, snapshot, !heading && index > 0, "center")}</w:tc>`).join("")}</w:tr>`;
     const tableGrid = `<w:tblGrid>${headings.map(() => "<w:gridCol/>").join("")}</w:tblGrid>`;
     return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${tableGrid}${rowXml(headings, true)}${rows.map((row) => rowXml(row)).join("")}</w:tbl>`;
   }
@@ -234,7 +233,7 @@
     if (layout === "landscape") {
       const verbs = landscapeVerbTable(snapshot);
       body += wordMetadata(snapshot) + wordTable(verbs.headings, verbs.rows, snapshot);
-      body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
+      body += pageBreak() + wordMetadata(snapshot) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
     } else {
       ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); body += wordMetadata(snapshot) + wordHeading(SECTION_TITLES[key]) + wordTable(HEADINGS[key], sectionRows(snapshot, key), snapshot); });
       body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
