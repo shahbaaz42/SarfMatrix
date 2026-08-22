@@ -8,7 +8,7 @@ const {
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
-  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore,
+  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, presentedRuns,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
@@ -329,6 +329,12 @@ assert.deepEqual(enteredPast.runs.map(({ text, radicalIndex }) => [text, radical
 const enteredDual = snapshot.sections.section01[1].presentation.past;
 assertStructuralValue(enteredDual, "دَخَلَا");
 assert.deepEqual(enteredDual.runs.slice(-2).map(({ text, radicalIndex }) => [text, radicalIndex]), [["لَ", 3], ["ا", null]]);
+assert.equal(snapshot.sections.section01[1].past, "دَخَلَا");
+assert.deepEqual(presentedRuns(enteredDual.text, enteredDual, true).map(({ text, radicalIndex }) => [text, radicalIndex]), [["دَ", 1], ["خَ", 2], ["لَ", 3], ["ا", null]]);
+const otherDualSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["ن", "ص", "ر"], bab: "نَصَرَ-يَنْصُرُ" });
+const otherDual = otherDualSnapshot.sections.section01[1].presentation.past;
+assert.equal(otherDual.text, "نَصَرَا");
+assert.deepEqual(otherDual.runs.slice(-2).map(({ text, radicalIndex }) => [text, radicalIndex]), [["رَ", 3], ["ا", null]]);
 for (const particle of ["لَمْ", "لَنْ", "لَا"]) {
   const particleSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, majzumParticle: particle === "لَنْ" ? "لَمْ" : particle, mansubParticle: particle === "لَنْ" ? particle : "لَنْ" });
   const value = particle === "لَنْ" ? particleSnapshot.sections.section02[0].presentation.mansubPresent : particleSnapshot.sections.section02[0].presentation.majzumPresent;
@@ -344,6 +350,7 @@ assert.equal(hamzahElative.runs[1].radicalIndex, 1);
 assert.equal(hamzahElative.runs[1].text, "أْ");
 const repeatedSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["د", "د", "د"] });
 assertStructuralValue(repeatedSnapshot.sections.section01[1].presentation.past, repeatedSnapshot.sections.section01[1].past);
+assert.deepEqual(repeatedSnapshot.sections.section01[1].presentation.past.runs.map(({ text, radicalIndex }) => [text, radicalIndex]), [["دَ", 1], ["دَ", 2], ["دَ", 3], ["ا", null]]);
 for (const addition of ["ت", "م", "ن", "ي", "و", "ا", "أ"]) {
   const additionSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: [addition, addition, addition] });
   const structural = additionSnapshot.sections.section03[0].presentation.heavyImperative;
