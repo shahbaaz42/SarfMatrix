@@ -9,7 +9,6 @@ const {
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
   buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, presentedRuns,
-  morphologyRun, morphologyValue, isRadicalLamAlifBoundary,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
@@ -289,7 +288,6 @@ assert.match(css, /th\s*\{[\s\S]*?text-align:\s*center;/);
 assert.match(css, /td\s*\{[\s\S]*?text-align:\s*center;/);
 assert.match(css, /tbody td:first-child\s*\{\s*text-align:\s*right;/);
 assert.match(css, /@media \(max-width: 32rem\)[\s\S]*?overflow-y:\s*auto;/);
-assert.match(css, /\.separate-lam-alif-colours\s*\{[\s\S]*?font-feature-settings:\s*"rlig" 0;/);
 assert.match(css, /\.table-wrap[\s\S]*?overflow-x:\s*auto;/);
 assert.equal(/id="colour-root-letters"[^>]*checked/.test(html), false);
 assert.match(html, /<span>Colour root letters<\/span>/);
@@ -333,28 +331,6 @@ assertStructuralValue(enteredDual, "دَخَلَا");
 assert.deepEqual(enteredDual.runs.slice(-2).map(({ text, radicalIndex }) => [text, radicalIndex]), [["لَ", 3], ["ا", null]]);
 assert.equal(snapshot.sections.section01[1].past, "دَخَلَا");
 assert.deepEqual(presentedRuns(enteredDual.text, enteredDual, true).map(({ text, radicalIndex }) => [text, radicalIndex]), [["دَ", 1], ["خَ", 2], ["لَ", 3], ["ا", null]]);
-assert.equal(isRadicalLamAlifBoundary(enteredDual.runs, 2), true);
-
-// The presentation rule is positional and structural, rather than tied to a
-// word or family: exercise lam in each radical slot and a non-lam control.
-for (const radicalIndex of [1, 2, 3]) {
-  const positional = morphologyValue(morphologyRun("لَ", radicalIndex), morphologyRun("ا", null));
-  assert.equal(isRadicalLamAlifBoundary(positional.runs, 0), true);
-  assert.equal(positional.text, "لَا");
-}
-assert.equal(isRadicalLamAlifBoundary(morphologyValue(morphologyRun("فَ", 1), morphologyRun("ا", null)).runs, 0), false);
-assert.equal(isRadicalLamAlifBoundary(morphologyValue(morphologyRun("لَ", 1), morphologyRun("ا", 2)).runs, 0), false);
-
-const initialLamSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["ل", "ه", "م"] });
-const initialLamParticiple = initialLamSnapshot.sections.section04.activeParticiple[0].presentations[0];
-assert.equal(initialLamParticiple.text, "لَاهِمٌ");
-assert.equal(isRadicalLamAlifBoundary(initialLamParticiple.runs, 0), true);
-const controlParticipleSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["ف", "ه", "م"] });
-const controlParticiple = controlParticipleSnapshot.sections.section04.activeParticiple[0].presentations[0];
-assert.equal(controlParticiple.text, "فَاهِمٌ");
-assert.equal(isRadicalLamAlifBoundary(controlParticiple.runs, 0), false);
-const finalLamDerivedDual = snapshot.sections.section04.activeParticiple[0].presentations[1];
-assert.equal(isRadicalLamAlifBoundary(finalLamDerivedDual.runs, finalLamDerivedDual.runs.length - 2), true);
 const otherDualSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["ن", "ص", "ر"], bab: "نَصَرَ-يَنْصُرُ" });
 const otherDual = otherDualSnapshot.sections.section01[1].presentation.past;
 assert.equal(otherDual.text, "نَصَرَا");
@@ -439,10 +415,7 @@ assert.match(fs.readFileSync("export.js", "utf8"), /\.derived-table \.category\{
 assert.match(fs.readFileSync("export.js", "utf8"), /const scale = 3;/);
 assert.equal(require("./export.js").HEADINGS.section03.includes("فعل الأمر"), true);
 assert.equal(html.includes("فعل الامر"), false);
-assert.equal(portraitPages[0].includes(`<span style="color:#2E7D32;font-feature-settings:'rlig' 0;">لَ</span><span style="font-feature-settings:'rlig' 0;">ا</span>`), true);
-const initialLamPages = buildExportPages(updateSnapshotColour(initialLamSnapshot, true), "portrait");
-assert.equal(initialLamPages[3].includes(`<span style="color:#C62828;font-feature-settings:'rlig' 0;">لَ</span><span style="font-feature-settings:'rlig' 0;">ا</span>`), true);
-assert.match(fs.readFileSync("script.js", "utf8"), /span\.classList\.add\("separate-lam-alif-colours"\)/);
+assert.equal(portraitPages[0].includes('<span style="color:#2E7D32">لَ</span>ا'), true);
 
 const docx = buildDocx(colouredSnapshot, "landscape");
 assert.equal(Buffer.from(docx.subarray(0, 4)).toString("binary"), "PK\u0003\u0004");
@@ -456,8 +429,6 @@ assert.equal((landscapeDocxXml.match(/الجذر: دخل \| الباب:/g) || []
 assert.match(landscapeDocxXml, /<w:pPr><w:bidi\/><w:jc w:val="right"\/><\/w:pPr>[\s\S]*?الجذر: دخل/);
 assert.equal(landscapeDocxXml.includes('<w:jc w:val="center"/>'), true);
 assert.match(landscapeDocxXml, /<w:color w:val="2E7D32"\/><w:rtl\/><\/w:rPr><w:t xml:space="preserve">لَ<\/w:t><\/w:r><w:r>[\s\S]*?<w:t xml:space="preserve">ا<\/w:t>/);
-const initialLamDocxXml = Buffer.from(buildDocx(updateSnapshotColour(initialLamSnapshot, true), "portrait")).toString("utf8");
-assert.match(initialLamDocxXml, /<w:color w:val="C62828"\/><w:rtl\/><\/w:rPr><w:t xml:space="preserve">لَ<\/w:t><\/w:r><w:r>[\s\S]*?<w:t xml:space="preserve">ا<\/w:t>/);
 assert.equal(Buffer.from(buildDocx(snapshot, "portrait")).includes(Buffer.from("C62828")), false);
 const portraitDocxXml = Buffer.from(buildDocx(snapshot, "portrait")).toString("utf8");
 assert.equal((portraitDocxXml.match(/الجذر: دخل \| الباب:/g) || []).length, 4);

@@ -260,16 +260,6 @@ function presentedRuns(value, presentation, colourRootLetters) {
   return presentation.runs;
 }
 
-// A coloured lam and an uncoloured alif can still be shaped by browsers as one
-// lam-alif glyph, which then takes the lam's colour. Identify that boundary
-// from structural runs so renderers can suppress only this ligature.
-function isRadicalLamAlifBoundary(runs, index) {
-  const current = runs[index];
-  const next = runs[index + 1];
-  return Boolean(current?.radicalIndex && /^ل\p{M}*$/u.test(current.text)
-    && next?.radicalIndex === null && /^ا/u.test(next.text));
-}
-
 function splitInitialMarks(text) {
   const match = String(text ?? "").match(/^(\p{M}*)([\s\S]*)$/u);
   return { marks: match[1], remainder: match[2] };
@@ -478,12 +468,9 @@ if (typeof document !== "undefined") {
       cell.textContent = value ?? "";
       return;
     }
-    for (const [index, run] of runs.entries()) {
+    for (const run of runs) {
       const span = document.createElement("span");
       if (run.radicalIndex) span.className = `radical-${run.radicalIndex}`;
-      if (isRadicalLamAlifBoundary(runs, index) || isRadicalLamAlifBoundary(runs, index - 1)) {
-        span.classList.add("separate-lam-alif-colours");
-      }
       span.textContent = run.text;
       cell.append(span);
     }
@@ -579,7 +566,7 @@ if (typeof module !== "undefined") {
     buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem,
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
-    morphologyRun, morphologyValue, presentedRuns, isRadicalLamAlifBoundary, structuralVerbValues, structuralDerivedValues,
+    morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
     deepFreeze, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
