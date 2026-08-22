@@ -379,24 +379,36 @@ assert.equal(landscape.headings.length, 12);
 assert.equal(landscape.rows.every((row) => row.length === 12), true);
 const portraitPages = buildExportPages(colouredSnapshot, "portrait");
 const landscapePages = buildExportPages(colouredSnapshot, "landscape");
-assert.equal(portraitPages.length >= 4, true);
+assert.equal(portraitPages.length, 4);
 assert.equal(portraitPages[0].includes("القسم 01"), true);
 assert.equal(portraitPages[1].includes("القسم 02"), true);
 assert.equal(portraitPages[2].includes("القسم 03"), true);
-assert.equal(portraitPages.slice(3).every((page) => page.includes("القسم 04")), true);
+assert.equal(portraitPages[3].includes("القسم 04 — المشتقات"), true);
 assert.equal(landscapePages[0].match(/الضمير/g).length, 1);
 assert.equal(landscapePages[0].includes("القسم 01 — المرفوع والمجهول · القسم 02"), false);
 assert.equal(landscapePages[0].includes("الجذر: دخل | الباب:"), true);
 assert.equal(landscapePages[0].includes('class="metadata" dir="rtl"'), true);
 assert.equal(landscapePages[0].includes('class="verb-table"'), true);
-assert.equal(landscapePages.slice(1).every((page) => page.includes("section04-page")), true);
-for (const title of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.equal(landscapePages.slice(1).join("").includes(title), true);
+assert.equal(landscapePages.length, 2);
+assert.equal(landscapePages[1].includes("section04-page"), true);
+assert.equal(landscapePages[1].includes("القسم 04 — المشتقات"), false);
+for (const title of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) {
+  assert.equal(landscapePages[1].includes(title), true);
+  assert.equal(portraitPages[3].includes(title), true);
+}
 assert.equal(landscapePages.every((page) => page.includes(FOOTER)), true);
 assert.equal(landscapePages.join("").includes("color:#C62828"), true);
 assert.equal(buildExportPages(snapshot, "portrait").join("").includes("color:#C62828"), false);
 assert.equal(portraitPages.every((page) => page.includes("الجذر: دخل | الباب:")), true);
 assert.equal(portraitPages[0].includes("القسم 02"), false);
 assert.equal(portraitPages[1].includes("القسم 01"), false);
+assert.match(portraitPages[3], /<th>الحالة<\/th>/);
+assert.match(portraitPages[3], /<td class="category">مرفوع<\/td>/);
+assert.match(fs.readFileSync("export.js", "utf8"), /\.derived-table \.category\{text-align:center\}/);
+assert.match(fs.readFileSync("export.js", "utf8"), /const scale = 3;/);
+assert.equal(require("./export.js").HEADINGS.section03.includes("فعل الأمر"), true);
+assert.equal(html.includes("فعل الامر"), false);
+assert.equal(portraitPages[0].includes('<span style="color:#2E7D32">لَ</span>ا'), true);
 
 const docx = buildDocx(colouredSnapshot, "landscape");
 assert.equal(Buffer.from(docx.subarray(0, 4)).toString("binary"), "PK\u0003\u0004");
@@ -404,16 +416,34 @@ for (const requiredPart of ["[Content_Types].xml", "word/document.xml", "word/fo
 assert.equal(Buffer.from(docx).includes(Buffer.from('w:orient="landscape"')), true);
 assert.equal(Buffer.from(docx).includes(Buffer.from("C62828")), true);
 assert.equal(Buffer.from(docx).includes(Buffer.from(FOOTER)), true);
+const landscapeDocxXml = Buffer.from(docx).toString("utf8");
+assert.equal(landscapeDocxXml.includes("القسم 04 — المشتقات"), false);
+assert.equal((landscapeDocxXml.match(/الجذر: دخل \| الباب:/g) || []).length, 2);
+assert.match(landscapeDocxXml, /<w:pPr><w:bidi\/><w:jc w:val="right"\/><\/w:pPr>[\s\S]*?الجذر: دخل/);
+assert.equal(landscapeDocxXml.includes('<w:jc w:val="center"/>'), true);
+assert.match(landscapeDocxXml, /<w:color w:val="2E7D32"\/><w:rtl\/><\/w:rPr><w:t xml:space="preserve">لَ<\/w:t><\/w:r><w:r>[\s\S]*?<w:t xml:space="preserve">ا<\/w:t>/);
 assert.equal(Buffer.from(buildDocx(snapshot, "portrait")).includes(Buffer.from("C62828")), false);
-assert.equal((Buffer.from(buildDocx(snapshot, "portrait")).toString("utf8").match(/الجذر: دخل \| الباب:/g) || []).length, 4);
+const portraitDocxXml = Buffer.from(buildDocx(snapshot, "portrait")).toString("utf8");
+assert.equal((portraitDocxXml.match(/الجذر: دخل \| الباب:/g) || []).length, 4);
+assert.match(portraitDocxXml, /<w:pPr><w:bidi\/><w:jc w:val="right"\/><\/w:pPr>[\s\S]*?الجذر: دخل/);
+for (const title of Object.values(require("./export.js").SECTION_TITLES)) assert.match(portraitDocxXml, new RegExp(`<w:jc w:val="right"\/>[\\s\\S]*?${title}`));
+for (const title of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.match(portraitDocxXml, new RegExp(`<w:jc w:val="right"\/>[\\s\\S]*?${title}`));
+for (const headings of Object.values(require("./export.js").HEADINGS)) {
+  const grid = `<w:tblGrid>${headings.map(() => "<w:gridCol/>").join("")}</w:tblGrid>`;
+  assert.equal(portraitDocxXml.includes(grid) || landscapeDocxXml.includes(grid), true);
+}
 
 const tinyJpeg = Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==", "base64");
 const pdf = buildPdfDocument([tinyJpeg], "portrait");
 const landscapePdf = buildPdfDocument([tinyJpeg], "landscape");
+const portraitFourPagePdf = buildPdfDocument(Array(4).fill(tinyJpeg), "portrait");
+const landscapeTwoPagePdf = buildPdfDocument(Array(2).fill(tinyJpeg), "landscape");
 assert.equal(Buffer.from(pdf.subarray(0, 8)).toString("ascii"), "%PDF-1.4");
 assert.equal(Buffer.from(pdf).includes(Buffer.from("/Type /Page")), true);
 assert.equal(Buffer.from(pdf).subarray(-6).toString("ascii"), "%%EOF\n");
 assert.equal(Buffer.from(landscapePdf.subarray(0, 8)).toString("ascii"), "%PDF-1.4");
+assert.equal((Buffer.from(portraitFourPagePdf).toString("binary").match(/\/Type \/Page\b/g) || []).length, 4);
+assert.equal((Buffer.from(landscapeTwoPagePdf).toString("binary").match(/\/Type \/Page\b/g) || []).length, 2);
 const scriptSource = fs.readFileSync("script.js", "utf8");
 assert.equal(scriptSource.includes("splitRootRuns"), false);
 assert.equal(scriptSource.includes("baseLetter"), false);
