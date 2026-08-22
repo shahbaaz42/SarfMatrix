@@ -27,8 +27,9 @@ light-Nūn cells remain blank. Version 8 adds the workbook-derived `اسم ال�
 workbook's blank positions and Bāb-dependent ظرف vowel. Optional derived patterns
 and Thulāthī Mazīd Fīh forms remain outside the application.
 
-The final Version 8 interface can colour the three root positions without
-changing generated Unicode strings. After generation, an immutable snapshot
+The final Version 8 interface carries radical-role metadata directly from the
+morphology templates, so it can colour only the three root positions without
+searching or changing generated Unicode strings. After generation, an immutable snapshot
 keeps displayed metadata and morphology synchronized while client-side PDF and
 genuine DOCX downloads provide portrait and landscape layouts. Editing a root
 or Bāb invalidates that snapshot until **Generate** is clicked again.

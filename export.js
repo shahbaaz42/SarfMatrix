@@ -20,12 +20,6 @@
   });
   const DERIVED_TITLES = Object.freeze({ activeParticiple: "اسم الفاعل", passiveParticiple: "اسم المفعول", elative: "اسم التفضيل", zarf: "اسم الظرف" });
 
-  function presentationApi() {
-    if (globalScope.SarfPresentation) return globalScope.SarfPresentation;
-    if (typeof require === "function") return require("./script.js");
-    throw new Error("Sarf presentation helpers are unavailable");
-  }
-
   function escapeXml(value) {
     return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
   }
@@ -43,11 +37,17 @@
     ];
   }
 
+  function metadataLine(snapshot) {
+    return metadataRows(snapshot).map(([key, value]) => `${key}: ${value}`).join(" | ");
+  }
+
+  function morphologyCell(text, presentation) { return { text, presentation }; }
+
   function sectionRows(snapshot, key) {
     const rows = snapshot.sections[key];
-    if (key === "section01") return rows.map((row) => [row.pronoun, row.past, row.present, row.passivePast, row.passivePresent]);
-    if (key === "section02") return rows.map((row) => [row.pronoun, row.majzumPresent, row.mansubPresent, row.heavyEmphatic, row.lightEmphatic]);
-    return rows.map((row) => [row.pronoun, row.imperative, row.heavyImperative, row.lightImperative]);
+    if (key === "section01") return rows.map((row) => [row.pronoun, morphologyCell(row.past, row.presentation.past), morphologyCell(row.present, row.presentation.present), morphologyCell(row.passivePast, row.presentation.passivePast), morphologyCell(row.passivePresent, row.presentation.passivePresent)]);
+    if (key === "section02") return rows.map((row) => [row.pronoun, morphologyCell(row.majzumPresent, row.presentation.majzumPresent), morphologyCell(row.mansubPresent, row.presentation.mansubPresent), morphologyCell(row.heavyEmphatic, row.presentation.heavyEmphatic), morphologyCell(row.lightEmphatic, row.presentation.lightEmphatic)]);
+    return rows.map((row) => [row.pronoun, morphologyCell(row.imperative, row.presentation.imperative), morphologyCell(row.heavyImperative, row.presentation.heavyImperative), morphologyCell(row.lightImperative, row.presentation.lightImperative)]);
   }
 
   function landscapeVerbTable(snapshot) {
@@ -55,32 +55,32 @@
     const rows = snapshot.sections.section01.map((one, index) => {
       const two = snapshot.sections.section02[index];
       const three = snapshot.sections.section03[index];
-      return [one.pronoun, one.past, one.present, one.passivePast, one.passivePresent, two.majzumPresent, two.mansubPresent, two.heavyEmphatic, two.lightEmphatic, three.imperative, three.heavyImperative, three.lightImperative];
+      return [one.pronoun, morphologyCell(one.past, one.presentation.past), morphologyCell(one.present, one.presentation.present), morphologyCell(one.passivePast, one.presentation.passivePast), morphologyCell(one.passivePresent, one.presentation.passivePresent), morphologyCell(two.majzumPresent, two.presentation.majzumPresent), morphologyCell(two.mansubPresent, two.presentation.mansubPresent), morphologyCell(two.heavyEmphatic, two.presentation.heavyEmphatic), morphologyCell(two.lightEmphatic, two.presentation.lightEmphatic), morphologyCell(three.imperative, three.presentation.imperative), morphologyCell(three.heavyImperative, three.presentation.heavyImperative), morphologyCell(three.lightImperative, three.presentation.lightImperative)];
     });
     return { headings, rows };
   }
 
-  function colouredHtml(value, snapshot) {
-    if (!snapshot.presentation.colourRootLetters || !value) return escapeXml(value ?? "");
-    return presentationApi().splitRootRuns(value, snapshot.root).map((run) => run.radical
-      ? `<span style="color:#${ROOT_COLOURS[run.radical - 1]}">${escapeXml(run.text)}</span>`
+  function colouredHtml(cell, snapshot) {
+    if (!snapshot.presentation.colourRootLetters || !cell.text) return escapeXml(cell.text ?? "");
+    return cell.presentation.runs.map((run) => run.radicalIndex
+      ? `<span style="color:#${ROOT_COLOURS[run.radicalIndex - 1]}">${escapeXml(run.text)}</span>`
       : escapeXml(run.text)).join("");
   }
 
-  function htmlTable(headings, rows, snapshot) {
+  function htmlTable(headings, rows, snapshot, derived = false) {
     const head = headings.map((heading) => `<th>${escapeXml(heading)}</th>`).join("");
     const body = rows.map((row) => `<tr>${row.map((value, index) => `<td class="${index === 0 ? "category" : "morphology"}">${index === 0 ? escapeXml(value ?? "") : colouredHtml(value, snapshot)}</td>`).join("")}</tr>`).join("");
-    return `<table dir="rtl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<table class="${derived ? "derived-table" : "verb-table"}" dir="rtl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
 
   function metadataHtml(snapshot) {
-    return `<dl class="metadata" dir="rtl">${metadataRows(snapshot).map(([key, value]) => `<div><dt>${escapeXml(key)}</dt><dd>${escapeXml(value)}</dd></div>`).join("")}</dl>`;
+    return `<p class="metadata" dir="rtl">${escapeXml(metadataLine(snapshot))}</p>`;
   }
 
   function derivedHtml(snapshot, keys) {
     return keys.map((key) => {
-      const rows = snapshot.sections.section04[key].map(({ label, values }) => [label, ...values]);
-      return `<section class="derived"><h2>${DERIVED_TITLES[key]}</h2>${htmlTable(HEADINGS[key], rows, snapshot)}</section>`;
+      const rows = snapshot.sections.section04[key].map(({ label, values, presentations }) => [label, ...values.map((value, index) => morphologyCell(value, presentations[index]))]);
+      return `<section class="derived"><h2>${DERIVED_TITLES[key]}</h2>${htmlTable(HEADINGS[key], rows, snapshot, true)}</section>`;
     }).join("");
   }
 
@@ -92,7 +92,7 @@
     if (layout === "landscape") {
       const verbs = landscapeVerbTable(snapshot);
       return [
-        pageShell(snapshot, `<h1>${SECTION_TITLES.section01} · ${SECTION_TITLES.section02} · ${SECTION_TITLES.section03}</h1>${htmlTable(verbs.headings, verbs.rows, snapshot)}`, "landscape verb-page"),
+        pageShell(snapshot, htmlTable(verbs.headings, verbs.rows, snapshot), "landscape verb-page"),
         pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["activeParticiple", "passiveParticiple"])}`, "landscape section04-page"),
         pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["elative", "zarf"])}`, "landscape section04-page"),
       ];
@@ -107,12 +107,11 @@
     *{box-sizing:border-box}body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;background:#fff;color:#172f28}
     .export-page{position:relative;width:100%;height:100%;padding:48px 42px 68px;overflow:hidden;background:#fff}
     h1,h2{text-align:right;margin:10px 0;direction:rtl}h1{font-size:25px}h2{font-size:20px}
-    .metadata{display:grid;grid-template-columns:repeat(2,1fr);gap:5px 20px;margin:0 0 12px;font-size:15px}
-    .metadata div{display:flex;gap:8px}.metadata dt{font-weight:700}.metadata dd{margin:0}
+    .metadata{margin:0 0 12px;font-size:13px;text-align:right;direction:rtl;white-space:nowrap}
     table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;margin-bottom:14px}
     th,td{border:1px solid #b7cbc4;padding:5px 3px;text-align:center;vertical-align:middle;direction:rtl}
-    th{background:#edf6f3;color:#405e54;font-size:12px}.category{text-align:right;font-size:13px}.morphology{font-size:17px;font-weight:700}
-    .verb-page th{font-size:8px}.verb-page td{font-size:10px;padding:3px 1px}.verb-page .category{font-size:9px}
+    th{background:#edf6f3;color:#405e54;font-size:14px}.category{text-align:center;font-size:18.5px}.derived-table .category{text-align:right}.morphology{font-size:18.5px;font-weight:700}
+    .verb-page th{font-size:8px}.verb-page td{font-size:10px;padding:3px 1px}.verb-page .category{font-size:10px;text-align:center}
     .derived{break-inside:avoid}footer{position:absolute;bottom:22px;left:20px;right:20px;text-align:center;color:#536b63;font-size:11px}
   `;
 
@@ -122,24 +121,24 @@
 
   async function rasterizePage(pageHtml, width, height) {
     const svg = htmlToSvg(pageHtml, width, height);
-    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    try {
-      const image = new Image();
-      image.decoding = "sync";
-      await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("Unable to shape export page")); image.src = url; });
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, width, height);
-      context.drawImage(image, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-      return Uint8Array.from(atob(dataUrl.split(",")[1]), (character) => character.charCodeAt(0));
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const image = new Image();
+    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("The browser could not render the Arabic SVG export page."));
+      image.src = dataUrl;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("The browser did not provide a 2D canvas context.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    const jpegBlob = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("The browser could not encode the PDF page as JPEG.")), "image/jpeg", 0.92));
+    return new Uint8Array(await jpegBlob.arrayBuffer());
   }
 
   function asciiBytes(value) { return Uint8Array.from(value, (character) => character.charCodeAt(0) & 0xff); }
@@ -212,31 +211,33 @@
     return concatBytes([...locals, central, little(0x06054b50, 4), little(0, 2), little(0, 2), little(centrals.length, 2), little(centrals.length, 2), little(central.length, 4), little(offset, 4), little(0, 2)]);
   }
 
-  function wordRuns(value, snapshot, colour = true) {
-    const runs = colour && snapshot.presentation.colourRootLetters && value
-      ? presentationApi().splitRootRuns(value, snapshot.root)
-      : [{ text: value ?? "", radical: 0 }];
-    return runs.map((run) => `<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>${run.radical ? `<w:color w:val="${ROOT_COLOURS[run.radical - 1]}"/>` : ""}<w:rtl/></w:rPr><w:t xml:space="preserve">${escapeXml(run.text)}</w:t></w:r>`).join("");
+  function wordRuns(cell, snapshot, colour = true) {
+    const normalized = cell && typeof cell === "object" ? cell : { text: cell ?? "", presentation: null };
+    const runs = colour && snapshot.presentation.colourRootLetters && normalized.text
+      ? normalized.presentation.runs
+      : [{ text: normalized.text, radicalIndex: null }];
+    return runs.map((run) => `<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="28"/><w:szCs w:val="28"/>${run.radicalIndex ? `<w:color w:val="${ROOT_COLOURS[run.radicalIndex - 1]}"/>` : ""}<w:rtl/></w:rPr><w:t xml:space="preserve">${escapeXml(run.text)}</w:t></w:r>`).join("");
   }
   function wordParagraph(value, snapshot, colour = true, align = "center") { return `<w:p><w:pPr><w:bidi/><w:jc w:val="${align}"/></w:pPr>${wordRuns(value, snapshot, colour)}</w:p>`; }
-  function wordTable(headings, rows, snapshot) {
-    const rowXml = (cells, heading = false) => `<w:tr>${cells.map((cell, index) => `<w:tc><w:tcPr><w:textDirection w:val="lrTb"/>${heading ? "<w:shd w:fill=\"EDF6F3\"/>" : ""}</w:tcPr>${wordParagraph(cell, snapshot, !heading && index > 0, index === 0 && !heading ? "right" : "center")}</w:tc>`).join("")}</w:tr>`;
-    return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${rowXml(headings, true)}${rows.map((row) => rowXml(row)).join("")}</w:tbl>`;
+  function wordTable(headings, rows, snapshot, derived = false) {
+    const rowXml = (cells, heading = false) => `<w:tr>${cells.map((cell, index) => `<w:tc><w:tcPr><w:textDirection w:val="lrTb"/>${heading ? "<w:shd w:fill=\"EDF6F3\"/>" : ""}</w:tcPr>${wordParagraph(cell, snapshot, !heading && index > 0, derived && index === 0 && !heading ? "right" : "center")}</w:tc>`).join("")}</w:tr>`;
+    const tableGrid = `<w:tblGrid>${headings.map(() => "<w:gridCol/>").join("")}</w:tblGrid>`;
+    return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${tableGrid}${rowXml(headings, true)}${rows.map((row) => rowXml(row)).join("")}</w:tbl>`;
   }
   function wordHeading(value) { return `<w:p><w:pPr><w:bidi/><w:jc w:val="right"/><w:keepNext/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="30"/><w:rtl/></w:rPr><w:t>${escapeXml(value)}</w:t></w:r></w:p>`; }
   function pageBreak() { return "<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>"; }
-  function wordMetadata(snapshot) { return metadataRows(snapshot).map(([key, value]) => wordParagraph(`${key}: ${value}`, snapshot, false, "right")).join(""); }
-  function wordDerived(snapshot, keys) { return keys.map((key) => wordHeading(DERIVED_TITLES[key]) + wordTable(HEADINGS[key], snapshot.sections.section04[key].map(({ label, values }) => [label, ...values]), snapshot)).join(""); }
+  function wordMetadata(snapshot) { return wordParagraph(metadataLine(snapshot), snapshot, false, "right"); }
+  function wordDerived(snapshot, keys) { return keys.map((key) => wordHeading(DERIVED_TITLES[key]) + wordTable(HEADINGS[key], snapshot.sections.section04[key].map(({ label, values, presentations }) => [label, ...values.map((value, index) => morphologyCell(value, presentations[index]))]), snapshot, true)).join(""); }
 
   function buildDocx(snapshot, layout = "portrait") {
-    let body = wordMetadata(snapshot);
+    let body = "";
     if (layout === "landscape") {
       const verbs = landscapeVerbTable(snapshot);
-      body += wordHeading(`${SECTION_TITLES.section01} · ${SECTION_TITLES.section02} · ${SECTION_TITLES.section03}`) + wordTable(verbs.headings, verbs.rows, snapshot);
-      body += pageBreak() + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
+      body += wordMetadata(snapshot) + wordTable(verbs.headings, verbs.rows, snapshot);
+      body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
     } else {
-      ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); body += wordHeading(SECTION_TITLES[key]) + wordTable(HEADINGS[key], sectionRows(snapshot, key), snapshot); });
-      body += pageBreak() + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
+      ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); body += wordMetadata(snapshot) + wordHeading(SECTION_TITLES[key]) + wordTable(HEADINGS[key], sectionRows(snapshot, key), snapshot); });
+      body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
     }
     const orientation = layout === "landscape" ? 'w:w="15840" w:h="12240" w:orient="landscape"' : 'w:w="12240" w:h="15840"';
     const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}<w:sectPr><w:footerReference w:type="default" r:id="rId1"/><w:pgSz ${orientation}/><w:pgMar w:top="720" w:right="540" w:bottom="720" w:left="540" w:footer="300"/></w:sectPr></w:body></w:document>`;
@@ -253,24 +254,30 @@
   function save(bytes, name, type) {
     const url = URL.createObjectURL(new Blob([bytes], { type }));
     const anchor = document.createElement("a");
-    anchor.href = url; anchor.download = name; anchor.click();
+    anchor.href = url; anchor.download = name;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function download(snapshot, { format = "pdf", layout = "portrait" } = {}) {
     if (format === "docx") {
-      save(buildDocx(snapshot, layout), filenameFor(snapshot, format), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-      return;
+      const name = filenameFor(snapshot, format);
+      save(buildDocx(snapshot, layout), name, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      return name;
     }
     const landscape = layout === "landscape";
     const width = landscape ? 1123 : 794;
     const height = landscape ? 794 : 1123;
     const images = [];
     for (const page of buildExportPages(snapshot, layout)) images.push(await rasterizePage(page, width, height));
-    save(buildPdfDocument(images, layout), filenameFor(snapshot, format), "application/pdf");
+    const name = filenameFor(snapshot, format);
+    save(buildPdfDocument(images, layout), name, "application/pdf");
+    return name;
   }
 
-  const api = { SECTION_TITLES, FOOTER, HEADINGS, filenameFor, metadataRows, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, createZip, download };
+  const api = { SECTION_TITLES, FOOTER, HEADINGS, filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, createZip, download };
   if (typeof module !== "undefined") module.exports = api;
   globalScope.SarfExport = api;
 }(typeof window !== "undefined" ? window : globalThis));

@@ -8,9 +8,9 @@ const {
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
-  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, splitRootRuns,
+  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore,
 } = require("./script.js");
-const { filenameFor, metadataRows, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
+const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
 const activeCases = [
   {
@@ -313,13 +313,43 @@ assert.equal(snapshot.sections.section01[0].past, generateActiveForms(snapshotOp
 const colouredSnapshot = updateSnapshotColour(snapshot, true);
 assert.equal(colouredSnapshot.sections, snapshot.sections);
 assert.equal(colouredSnapshot.sections.section01[0].past, snapshot.sections.section01[0].past);
+for (const row of snapshot.sections.section01) for (const key of ["past", "present", "passivePast", "passivePresent"]) assert.equal(row.presentation[key].text, row[key]);
+for (const row of snapshot.sections.section02) for (const key of ["majzumPresent", "mansubPresent", "heavyEmphatic", "lightEmphatic"]) assert.equal(row.presentation[key].text || null, row[key]);
+for (const row of snapshot.sections.section03) for (const key of ["imperative", "heavyImperative", "lightImperative"]) assert.equal(row.presentation[key].text || null, row[key]);
+for (const rows of Object.values(snapshot.sections.section04)) for (const row of rows) row.values.forEach((value, index) => assert.equal(row.presentations[index].text || null, value));
 
-const prefixedRepeated = splitRootRuns("نَنُصِرُ", ["ن", "ص", "ر"]);
-assert.equal(prefixedRepeated.filter(({ radical }) => radical === 1).map(({ text }) => text).join(""), "نُ");
-assert.equal(prefixedRepeated[0].radical, 0);
-const repeatedRoot = splitRootRuns("دَدِدُدْتُ", ["د", "د", "د"]);
-assert.deepEqual(repeatedRoot.filter(({ radical }) => radical).map(({ radical }) => radical), [1, 2, 3]);
-assert.deepEqual(repeatedRoot.filter(({ radical }) => radical).map(({ text }) => text), ["دَ", "دِ", "دُ"]);
+function assertStructuralValue(value, expectedText = value.text) {
+  assert.equal(value.text, expectedText);
+  assert.equal(value.runs.map(({ text }) => text).join(""), expectedText);
+  assert.deepEqual(value.runs.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+}
+const enteredPast = snapshot.sections.section01[0].presentation.past;
+assertStructuralValue(enteredPast, "دَخَلَ");
+assert.deepEqual(enteredPast.runs.map(({ text, radicalIndex }) => [text, radicalIndex]), [["دَ", 1], ["خَ", 2], ["لَ", 3]]);
+const enteredDual = snapshot.sections.section01[1].presentation.past;
+assertStructuralValue(enteredDual, "دَخَلَا");
+assert.deepEqual(enteredDual.runs.slice(-2).map(({ text, radicalIndex }) => [text, radicalIndex]), [["لَ", 3], ["ا", null]]);
+for (const particle of ["لَمْ", "لَنْ", "لَا"]) {
+  const particleSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, majzumParticle: particle === "لَنْ" ? "لَمْ" : particle, mansubParticle: particle === "لَنْ" ? particle : "لَنْ" });
+  const value = particle === "لَنْ" ? particleSnapshot.sections.section02[0].presentation.mansubPresent : particleSnapshot.sections.section02[0].presentation.majzumPresent;
+  assert.equal(value.runs[0].radicalIndex, null);
+  assert.equal(value.runs[0].text.startsWith(`${particle} `), true);
+  assert.equal(value.runs.filter(({ radicalIndex }) => radicalIndex).length, 3);
+}
+const hamzahSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["أ", "م", "ر"] });
+const hamzahElative = hamzahSnapshot.sections.section04.elative[0].presentations[0];
+assert.equal(hamzahElative.runs[0].text, "أَ");
+assert.equal(hamzahElative.runs[0].radicalIndex, null);
+assert.equal(hamzahElative.runs[1].radicalIndex, 1);
+assert.equal(hamzahElative.runs[1].text, "أْ");
+const repeatedSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: ["د", "د", "د"] });
+assertStructuralValue(repeatedSnapshot.sections.section01[1].presentation.past, repeatedSnapshot.sections.section01[1].past);
+for (const addition of ["ت", "م", "ن", "ي", "و", "ا", "أ"]) {
+  const additionSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root: [addition, addition, addition] });
+  const structural = additionSnapshot.sections.section03[0].presentation.heavyImperative;
+  assertStructuralValue(structural, additionSnapshot.sections.section03[0].heavyImperative);
+  assert.equal(structural.runs.filter(({ radicalIndex }) => radicalIndex).length, 3);
+}
 
 const store = createGeneratedStateStore();
 store.generate(snapshotOptions);
@@ -342,6 +372,7 @@ assert.deepEqual(store.get().root, snapshotOptions.root);
 assert.deepEqual(metadataRows(snapshot), [
   ["الجذر", "دخل"], ["الباب", snapshotOptions.babLabel], ["حرف الجزم", "لَمْ"], ["حرف النصب", "لَنْ"],
 ]);
+assert.equal(metadataLine(snapshot), `الجذر: دخل | الباب: ${snapshotOptions.babLabel} | حرف الجزم: لَمْ | حرف النصب: لَنْ`);
 const landscape = landscapeVerbTable(snapshot);
 assert.equal(landscape.headings.filter((heading) => heading === "الضمير").length, 1);
 assert.equal(landscape.headings.length, 12);
@@ -354,10 +385,18 @@ assert.equal(portraitPages[1].includes("القسم 02"), true);
 assert.equal(portraitPages[2].includes("القسم 03"), true);
 assert.equal(portraitPages.slice(3).every((page) => page.includes("القسم 04")), true);
 assert.equal(landscapePages[0].match(/الضمير/g).length, 1);
+assert.equal(landscapePages[0].includes("القسم 01 — المرفوع والمجهول · القسم 02"), false);
+assert.equal(landscapePages[0].includes("الجذر: دخل | الباب:"), true);
+assert.equal(landscapePages[0].includes('class="metadata" dir="rtl"'), true);
+assert.equal(landscapePages[0].includes('class="verb-table"'), true);
 assert.equal(landscapePages.slice(1).every((page) => page.includes("section04-page")), true);
 for (const title of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.equal(landscapePages.slice(1).join("").includes(title), true);
 assert.equal(landscapePages.every((page) => page.includes(FOOTER)), true);
 assert.equal(landscapePages.join("").includes("color:#C62828"), true);
+assert.equal(buildExportPages(snapshot, "portrait").join("").includes("color:#C62828"), false);
+assert.equal(portraitPages.every((page) => page.includes("الجذر: دخل | الباب:")), true);
+assert.equal(portraitPages[0].includes("القسم 02"), false);
+assert.equal(portraitPages[1].includes("القسم 01"), false);
 
 const docx = buildDocx(colouredSnapshot, "landscape");
 assert.equal(Buffer.from(docx.subarray(0, 4)).toString("binary"), "PK\u0003\u0004");
@@ -365,11 +404,21 @@ for (const requiredPart of ["[Content_Types].xml", "word/document.xml", "word/fo
 assert.equal(Buffer.from(docx).includes(Buffer.from('w:orient="landscape"')), true);
 assert.equal(Buffer.from(docx).includes(Buffer.from("C62828")), true);
 assert.equal(Buffer.from(docx).includes(Buffer.from(FOOTER)), true);
+assert.equal(Buffer.from(buildDocx(snapshot, "portrait")).includes(Buffer.from("C62828")), false);
+assert.equal((Buffer.from(buildDocx(snapshot, "portrait")).toString("utf8").match(/الجذر: دخل \| الباب:/g) || []).length, 4);
 
 const tinyJpeg = Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==", "base64");
 const pdf = buildPdfDocument([tinyJpeg], "portrait");
+const landscapePdf = buildPdfDocument([tinyJpeg], "landscape");
 assert.equal(Buffer.from(pdf.subarray(0, 8)).toString("ascii"), "%PDF-1.4");
 assert.equal(Buffer.from(pdf).includes(Buffer.from("/Type /Page")), true);
 assert.equal(Buffer.from(pdf).subarray(-6).toString("ascii"), "%%EOF\n");
+assert.equal(Buffer.from(landscapePdf.subarray(0, 8)).toString("ascii"), "%PDF-1.4");
+const scriptSource = fs.readFileSync("script.js", "utf8");
+assert.equal(scriptSource.includes("splitRootRuns"), false);
+assert.equal(scriptSource.includes("baseLetter"), false);
+assert.match(scriptSource, /addEventListener\("click", async \(\) =>/);
+assert.match(scriptSource, /await window\.SarfExport\.download/);
+assert.match(scriptSource, /console\.error\("Sarf export failed"/);
 
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions.");

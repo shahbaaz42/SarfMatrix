@@ -234,6 +234,108 @@ function generateZarfForms([first, second, third], bab) {
   });
 }
 
+// Presentation metadata is composed at the same structural points as the
+// morphology itself. It never searches a completed word for matching letters.
+function morphologyRun(text, radicalIndex = null) {
+  return Object.freeze({ text, radicalIndex });
+}
+
+function morphologyValue(...parts) {
+  const runs = [];
+  for (const part of parts.flat()) {
+    if (!part || !part.text) continue;
+    const previous = runs[runs.length - 1];
+    if (previous && previous.radicalIndex === part.radicalIndex) {
+      runs[runs.length - 1] = morphologyRun(previous.text + part.text, part.radicalIndex);
+    } else runs.push(morphologyRun(part.text, part.radicalIndex));
+  }
+  return Object.freeze({ text: runs.map(({ text }) => text).join(""), runs: Object.freeze(runs) });
+}
+
+function literal(text) { return morphologyRun(text, null); }
+function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index); }
+
+function splitInitialMarks(text) {
+  const match = String(text ?? "").match(/^(\p{M}*)([\s\S]*)$/u);
+  return { marks: match[1], remainder: match[2] };
+}
+
+function appendEnding(parts, root, ending) {
+  const { marks, remainder } = splitInitialMarks(ending);
+  return morphologyValue(parts, radical(root, 3, marks), literal(remainder));
+}
+
+function presentStemValue(root, config, sighah) {
+  return morphologyValue(literal(`${sighah.presentPrefix}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel));
+}
+
+function structuralVerbValues(root, bab, majzumParticle, mansubParticle) {
+  const config = getBabConfig(bab);
+  return SIGHAS.map((sighah) => {
+    const activePast = appendEnding([radical(root, 1, FATHA), radical(root, 2, config.pastMiddleVowel)], root, sighah.pastEnding);
+    const activePresent = appendEnding(presentStemValue(root, config, sighah).runs, root, sighah.presentEnding);
+    const passivePast = appendEnding([radical(root, 1, DAMMA), radical(root, 2, KASRA)], root, sighah.pastEnding);
+    const passivePresent = appendEnding([literal(`${sighah.presentPrefix}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA)], root, sighah.presentEnding);
+    const majzumVerb = appendEnding(presentStemValue(root, config, sighah).runs, root, sighah.majzumEnding);
+    const mansubVerb = appendEnding(presentStemValue(root, config, sighah).runs, root, sighah.mansubEnding);
+    const emphatic = (weight) => {
+      const ending = sighah[weight === "heavy" ? "heavyEmphaticEnding" : "lightEmphaticEnding"];
+      return ending === null ? morphologyValue() : appendEnding([literal(`${LAM}${FATHA}`), ...presentStemValue(root, config, sighah).runs], root, ending);
+    };
+    const imperative = (weight) => {
+      const ending = sighah[weight === "ordinary" ? "majzumEnding" : weight === "heavy" ? "heavyEmphaticEnding" : "lightEmphaticEnding"];
+      if (ending === null) return morphologyValue();
+      const stem = sighah.person === 2
+        ? [literal(`${ALIF}${config.imperativeInitialVowel}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel)]
+        : [literal(`${LAM}${KASRA}`), ...presentStemValue(root, config, sighah).runs];
+      return appendEnding(stem, root, ending);
+    };
+    return Object.freeze({
+      activePast, activePresent, passivePast, passivePresent,
+      majzumPresent: morphologyValue(literal(`${majzumParticle} `), ...majzumVerb.runs),
+      mansubPresent: morphologyValue(literal(`${mansubParticle} `), ...mansubVerb.runs),
+      heavyEmphatic: emphatic("heavy"), lightEmphatic: emphatic("light"),
+      imperative: imperative("ordinary"), heavyImperative: imperative("heavy"), lightImperative: imperative("light"),
+    });
+  });
+}
+
+function inflectStructuralStem(stemRuns, ending) {
+  if (ending === null) return morphologyValue();
+  const { marks, remainder } = splitInitialMarks(ending);
+  const runs = [...stemRuns];
+  const last = runs.pop();
+  return morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex), literal(remainder));
+}
+
+function structuralDerivedValues(root, bab) {
+  const activeStem = [radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3)];
+  const passiveStem = [literal(`${MIM}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, DAMMA), literal(`${WAW}${SUKUN}`), radical(root, 3)];
+  const nominalRows = (stem) => ({
+    nominative: NOMINAL_INFLECTIONS.map(({ nominative }) => inflectStructuralStem(stem, nominative)),
+    oblique: NOMINAL_INFLECTIONS.map(({ oblique }) => inflectStructuralStem(stem, oblique)),
+  });
+  const elativePrimary = [
+    morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA)),
+    morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, FATHA), literal(`${ALIF}${NUN}${KASRA}`)),
+    morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA), literal(`${WAW}${SUKUN}${NUN}${FATHA}`)),
+    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), literal(ALIF_MAQSURA)),
+    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), literal(`${YA}${FATHA}${ALIF}${NUN}${KASRA}`)),
+    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), literal(`${YA}${FATHA}${ALIF}${TA}${DAMMATAN}`)),
+  ];
+  const elativeAdditional = [morphologyValue(), morphologyValue(), morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3, DAMMA)), morphologyValue(), morphologyValue(), morphologyValue(radical(root, 1, DAMMA), radical(root, 2, FATHA), radical(root, 3, DAMMATAN))];
+  const { zarfMiddleVowel } = getBabConfig(bab);
+  const zarfStem = [literal(`${MIM}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, zarfMiddleVowel), radical(root, 3)];
+  return Object.freeze({
+    activeParticiple: nominalRows(activeStem), passiveParticiple: nominalRows(passiveStem),
+    elative: { primary: elativePrimary, additional: elativeAdditional },
+    zarf: {
+      ordinary: [inflectStructuralStem(zarfStem, DAMMA), inflectStructuralStem(zarfStem, `${FATHA}${ALIF}${NUN}${KASRA}`), morphologyValue(literal(`${MIM}${FATHA}`), radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3, DAMMA))],
+      taMarbuta: [inflectStructuralStem(zarfStem, `${FATHA}${TA_MARBUTA}${DAMMATAN}`), inflectStructuralStem(zarfStem, `${FATHA}${TA}${FATHA}${ALIF}${NUN}${KASRA}`), morphologyValue()],
+    },
+  });
+}
+
 function deepFreeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
@@ -251,6 +353,8 @@ function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubPar
   const passiveParticiple = generatePassiveParticipleForms(stableRoot);
   const elative = generateElativeForms(stableRoot);
   const zarf = generateZarfForms(stableRoot, bab);
+  const verbStructure = structuralVerbValues(stableRoot, bab, majzumParticle, mansubParticle);
+  const derivedStructure = structuralDerivedValues(stableRoot, bab);
 
   return deepFreeze({
     root: stableRoot,
@@ -260,25 +364,25 @@ function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubPar
     mansubParticle,
     presentation: { colourRootLetters: Boolean(colourRootLetters) },
     sections: {
-      section01: active.map(({ pronoun, past, present }, index) => ({ pronoun, past, present, passivePast: version4[index].passivePast, passivePresent: version4[index].passivePresent })),
-      section02: version4.map(({ pronoun, majzumPresent }, index) => ({ pronoun, majzumPresent, mansubPresent: mansub[index].mansubPresent, heavyEmphatic: emphatic[index].heavyEmphatic, lightEmphatic: emphatic[index].lightEmphatic })),
-      section03: imperative.map(({ pronoun, imperative: ordinary, heavyImperative, lightImperative }) => ({ pronoun, imperative: ordinary, heavyImperative, lightImperative })),
+      section01: active.map(({ pronoun, past, present }, index) => ({ pronoun, past, present, passivePast: version4[index].passivePast, passivePresent: version4[index].passivePresent, presentation: { past: verbStructure[index].activePast, present: verbStructure[index].activePresent, passivePast: verbStructure[index].passivePast, passivePresent: verbStructure[index].passivePresent } })),
+      section02: version4.map(({ pronoun, majzumPresent }, index) => ({ pronoun, majzumPresent, mansubPresent: mansub[index].mansubPresent, heavyEmphatic: emphatic[index].heavyEmphatic, lightEmphatic: emphatic[index].lightEmphatic, presentation: { majzumPresent: verbStructure[index].majzumPresent, mansubPresent: verbStructure[index].mansubPresent, heavyEmphatic: verbStructure[index].heavyEmphatic, lightEmphatic: verbStructure[index].lightEmphatic } })),
+      section03: imperative.map(({ pronoun, imperative: ordinary, heavyImperative, lightImperative }, index) => ({ pronoun, imperative: ordinary, heavyImperative, lightImperative, presentation: { imperative: verbStructure[index].imperative, heavyImperative: verbStructure[index].heavyImperative, lightImperative: verbStructure[index].lightImperative } })),
       section04: {
         activeParticiple: [
-          { label: "مرفوع", values: activeParticiple.map(({ nominative }) => nominative) },
-          { label: "منصوب ومجرور", values: activeParticiple.map(({ oblique }) => oblique) },
+          { label: "مرفوع", values: activeParticiple.map(({ nominative }) => nominative), presentations: derivedStructure.activeParticiple.nominative },
+          { label: "منصوب ومجرور", values: activeParticiple.map(({ oblique }) => oblique), presentations: derivedStructure.activeParticiple.oblique },
         ],
         passiveParticiple: [
-          { label: "مرفوع", values: passiveParticiple.map(({ nominative }) => nominative) },
-          { label: "منصوب ومجرور", values: passiveParticiple.map(({ oblique }) => oblique) },
+          { label: "مرفوع", values: passiveParticiple.map(({ nominative }) => nominative), presentations: derivedStructure.passiveParticiple.nominative },
+          { label: "منصوب ومجرور", values: passiveParticiple.map(({ oblique }) => oblique), presentations: derivedStructure.passiveParticiple.oblique },
         ],
         elative: [
-          { label: "الصيغة الأساسية", values: [...elative.primary] },
-          { label: "خيار جمع إضافي", values: [...elative.additional] },
+          { label: "الصيغة الأساسية", values: [...elative.primary], presentations: derivedStructure.elative.primary },
+          { label: "خيار جمع إضافي", values: [...elative.additional], presentations: derivedStructure.elative.additional },
         ],
         zarf: [
-          { label: "الصيغة العادية", values: [zarf.ordinarySingular, zarf.ordinaryDual, zarf.ordinaryPlural] },
-          { label: "صيغة التاء المربوطة", values: [zarf.taMarbutaSingular, zarf.taMarbutaDual, zarf.taMarbutaPlural] },
+          { label: "الصيغة العادية", values: [zarf.ordinarySingular, zarf.ordinaryDual, zarf.ordinaryPlural], presentations: derivedStructure.zarf.ordinary },
+          { label: "صيغة التاء المربوطة", values: [zarf.taMarbutaSingular, zarf.taMarbutaDual, zarf.taMarbutaPlural], presentations: derivedStructure.zarf.taMarbuta },
         ],
       },
     },
@@ -321,48 +425,6 @@ function createGeneratedStateStore() {
   });
 }
 
-function splitGraphemes(value) {
-  if (typeof Intl !== "undefined" && Intl.Segmenter) {
-    return [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(value)].map(({ segment }) => segment);
-  }
-  return value.match(/[^\p{M}]\p{M}*/gu) || [];
-}
-
-function baseLetter(grapheme) {
-  return grapheme.normalize("NFD").replace(/\p{M}/gu, "");
-}
-
-// Locate the tightest ordered radical sequence. This colours morphological
-// positions rather than every matching character, so repeated radicals and
-// identical letters in particles, prefixes, or endings remain safe.
-function splitRootRuns(value, root) {
-  if (value === null || value === undefined || value === "") return [{ text: value ?? "", radical: 0 }];
-  const graphemes = splitGraphemes(value);
-  const wanted = root.map((letter) => baseLetter(letter));
-  let best = null;
-  for (let first = 0; first < graphemes.length; first += 1) {
-    if (baseLetter(graphemes[first]) !== wanted[0]) continue;
-    for (let second = first + 1; second < graphemes.length; second += 1) {
-      if (baseLetter(graphemes[second]) !== wanted[1]) continue;
-      for (let third = second + 1; third < graphemes.length; third += 1) {
-        if (baseLetter(graphemes[third]) !== wanted[2]) continue;
-        const candidate = { indexes: [first, second, third], span: third - first, gaps: (second - first - 1) + (third - second - 1) };
-        if (!best || candidate.span < best.span || (candidate.span === best.span && candidate.gaps < best.gaps)) best = candidate;
-      }
-    }
-  }
-  if (!best) return [{ text: value, radical: 0 }];
-  const radicalAt = new Map(best.indexes.map((index, position) => [index, position + 1]));
-  const runs = [];
-  for (const [index, text] of graphemes.entries()) {
-    const radical = radicalAt.get(index) || 0;
-    const previous = runs[runs.length - 1];
-    if (previous && previous.radical === radical) previous.text += text;
-    else runs.push({ text, radical });
-  }
-  return runs;
-}
-
 if (typeof document !== "undefined") {
   const form = document.querySelector("#sarf-form");
   const rootInputs = ["#root-one", "#root-two", "#root-three"].map((selector) => document.querySelector(selector));
@@ -391,15 +453,15 @@ if (typeof document !== "undefined") {
     setExportAvailable(false);
   }
 
-  function appendPresentedText(cell, value) {
+  function appendPresentedText(cell, value, presentation) {
     const generatedSnapshot = generatedState.get();
     if (!generatedSnapshot.presentation.colourRootLetters || value === null) {
       cell.textContent = value ?? "";
       return;
     }
-    for (const run of splitRootRuns(value, generatedSnapshot.root)) {
+    for (const run of presentation.runs) {
       const span = document.createElement("span");
-      if (run.radical) span.className = `radical-${run.radical}`;
+      if (run.radicalIndex) span.className = `radical-${run.radicalIndex}`;
       span.textContent = run.text;
       cell.append(span);
     }
@@ -409,12 +471,13 @@ if (typeof document !== "undefined") {
     const fragment = document.createDocumentFragment();
     for (const values of rows) {
       const row = document.createElement("tr");
-      for (const [index, value] of values.entries()) {
+      for (const [index, entry] of values.entries()) {
+        const value = entry && typeof entry === "object" ? entry.text : entry;
         const cell = document.createElement("td");
         cell.lang = "ar";
         cell.dir = "rtl";
         if (index === 0) cell.textContent = value ?? "";
-        else appendPresentedText(cell, value);
+        else appendPresentedText(cell, value, entry.presentation);
         row.append(cell);
       }
       fragment.append(row);
@@ -425,13 +488,15 @@ if (typeof document !== "undefined") {
   function renderResults() {
     const generatedSnapshot = generatedState.get();
     const { section01, section02, section03, section04 } = generatedSnapshot.sections;
-    replaceTableRows(sectionBodies[0], section01.map(({ pronoun, past, present, passivePast, passivePresent }) => [pronoun, past, present, passivePast, passivePresent]));
-    replaceTableRows(sectionBodies[1], section02.map(({ pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic }) => [pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic]));
-    replaceTableRows(sectionBodies[2], section03.map(({ pronoun, imperative, heavyImperative, lightImperative }) => [pronoun, imperative, heavyImperative, lightImperative]));
-    replaceTableRows(derivedBodies.activeParticiple, section04.activeParticiple.map(({ label, values }) => [label, ...values]));
-    replaceTableRows(derivedBodies.passiveParticiple, section04.passiveParticiple.map(({ label, values }) => [label, ...values]));
-    replaceTableRows(derivedBodies.elative, section04.elative.map(({ label, values }) => [label, ...values]));
-    replaceTableRows(derivedBodies.zarf, section04.zarf.map(({ label, values }) => [label, ...values]));
+    const cell = (text, presentation) => ({ text, presentation });
+    replaceTableRows(sectionBodies[0], section01.map(({ pronoun, past, present, passivePast, passivePresent, presentation }) => [pronoun, cell(past, presentation.past), cell(present, presentation.present), cell(passivePast, presentation.passivePast), cell(passivePresent, presentation.passivePresent)]));
+    replaceTableRows(sectionBodies[1], section02.map(({ pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic, presentation }) => [pronoun, cell(majzumPresent, presentation.majzumPresent), cell(mansubPresent, presentation.mansubPresent), cell(heavyEmphatic, presentation.heavyEmphatic), cell(lightEmphatic, presentation.lightEmphatic)]));
+    replaceTableRows(sectionBodies[2], section03.map(({ pronoun, imperative, heavyImperative, lightImperative, presentation }) => [pronoun, cell(imperative, presentation.imperative), cell(heavyImperative, presentation.heavyImperative), cell(lightImperative, presentation.lightImperative)]));
+    const derivedRows = (rows) => rows.map(({ label, values, presentations }) => [label, ...values.map((value, index) => cell(value, presentations[index]))]);
+    replaceTableRows(derivedBodies.activeParticiple, derivedRows(section04.activeParticiple));
+    replaceTableRows(derivedBodies.passiveParticiple, derivedRows(section04.passiveParticiple));
+    replaceTableRows(derivedBodies.elative, derivedRows(section04.elative));
+    replaceTableRows(derivedBodies.zarf, derivedRows(section04.zarf));
   }
 
   form.addEventListener("submit", (event) => {
@@ -466,12 +531,20 @@ if (typeof document !== "undefined") {
     }
   });
 
-  downloadButton.addEventListener("click", () => {
+  downloadButton.addEventListener("click", async () => {
     const generatedSnapshot = generatedState.get();
     if (!generatedSnapshot || !window.SarfExport) return;
     const format = document.querySelector('input[name="export-format"]:checked').value;
     const layout = document.querySelector('input[name="export-layout"]:checked').value;
-    window.SarfExport.download(generatedSnapshot, { format, layout });
+    downloadButton.disabled = true;
+    try {
+      await window.SarfExport.download(generatedSnapshot, { format, layout });
+    } catch (error) {
+      console.error("Sarf export failed", error);
+      window.alert("The export could not be created. Please try again.");
+    } finally {
+      downloadButton.disabled = !generatedState.get();
+    }
   });
 
   setExportAvailable(false);
@@ -484,8 +557,7 @@ if (typeof module !== "undefined") {
     buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem,
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
-    deepFreeze, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore, splitRootRuns,
+    morphologyRun, morphologyValue, structuralVerbValues, structuralDerivedValues,
+    deepFreeze, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
-
-if (typeof window !== "undefined") window.SarfPresentation = { splitRootRuns };
