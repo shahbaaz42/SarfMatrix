@@ -43,6 +43,13 @@
 
   function morphologyCell(text, presentation) { return { text, presentation }; }
 
+  function isRadicalLamAlifBoundary(runs, index) {
+    const current = runs[index];
+    const next = runs[index + 1];
+    return Boolean(current?.radicalIndex && /^ل\p{M}*$/u.test(current.text)
+      && next?.radicalIndex === null && /^ا/u.test(next.text));
+  }
+
   function sectionRows(snapshot, key) {
     const rows = snapshot.sections[key];
     if (key === "section01") return rows.map((row) => [row.pronoun, morphologyCell(row.past, row.presentation.past), morphologyCell(row.present, row.presentation.present), morphologyCell(row.passivePast, row.presentation.passivePast), morphologyCell(row.passivePresent, row.presentation.passivePresent)]);
@@ -62,9 +69,12 @@
 
   function colouredHtml(cell, snapshot) {
     if (!snapshot.presentation.colourRootLetters || !cell.text) return escapeXml(cell.text ?? "");
-    return cell.presentation.runs.map((run) => run.radicalIndex
-      ? `<span style="color:#${ROOT_COLOURS[run.radicalIndex - 1]}">${escapeXml(run.text)}</span>`
-      : escapeXml(run.text)).join("");
+    const runs = cell.presentation.runs;
+    return runs.map((run, index) => {
+      const separate = isRadicalLamAlifBoundary(runs, index) || isRadicalLamAlifBoundary(runs, index - 1);
+      const style = `${run.radicalIndex ? `color:#${ROOT_COLOURS[run.radicalIndex - 1]};` : ""}${separate ? "font-feature-settings:'rlig' 0;" : ""}`;
+      return style ? `<span style="${style}">${escapeXml(run.text)}</span>` : escapeXml(run.text);
+    }).join("");
   }
 
   function htmlTable(headings, rows, snapshot, derived = false) {
