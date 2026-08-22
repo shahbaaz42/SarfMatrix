@@ -255,40 +255,48 @@ function morphologyValue(...parts) {
 function literal(text) { return morphologyRun(text, null); }
 function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index); }
 
+function presentedRuns(value, presentation, colourRootLetters) {
+  if (!colourRootLetters || value === null) return null;
+  return presentation.runs;
+}
+
 function splitInitialMarks(text) {
   const match = String(text ?? "").match(/^(\p{M}*)([\s\S]*)$/u);
   return { marks: match[1], remainder: match[2] };
 }
 
-function appendEnding(parts, root, ending) {
+function inflectVerbStem(stemRuns, ending) {
   const { marks, remainder } = splitInitialMarks(ending);
-  return morphologyValue(parts, radical(root, 3, marks), literal(remainder));
+  const runs = [...stemRuns];
+  const finalRadical = runs.pop();
+  if (!finalRadical || finalRadical.radicalIndex !== 3) throw new Error("Verb stem must end with the third radical");
+  return morphologyValue(runs, morphologyRun(finalRadical.text + marks, finalRadical.radicalIndex), literal(remainder));
 }
 
 function presentStemValue(root, config, sighah) {
-  return morphologyValue(literal(`${sighah.presentPrefix}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel));
+  return morphologyValue(literal(`${sighah.presentPrefix}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel), radical(root, 3));
 }
 
 function structuralVerbValues(root, bab, majzumParticle, mansubParticle) {
   const config = getBabConfig(bab);
   return SIGHAS.map((sighah) => {
-    const activePast = appendEnding([radical(root, 1, FATHA), radical(root, 2, config.pastMiddleVowel)], root, sighah.pastEnding);
-    const activePresent = appendEnding(presentStemValue(root, config, sighah).runs, root, sighah.presentEnding);
-    const passivePast = appendEnding([radical(root, 1, DAMMA), radical(root, 2, KASRA)], root, sighah.pastEnding);
-    const passivePresent = appendEnding([literal(`${sighah.presentPrefix}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA)], root, sighah.presentEnding);
-    const majzumVerb = appendEnding(presentStemValue(root, config, sighah).runs, root, sighah.majzumEnding);
-    const mansubVerb = appendEnding(presentStemValue(root, config, sighah).runs, root, sighah.mansubEnding);
+    const activePast = inflectVerbStem([radical(root, 1, FATHA), radical(root, 2, config.pastMiddleVowel), radical(root, 3)], sighah.pastEnding);
+    const activePresent = inflectVerbStem(presentStemValue(root, config, sighah).runs, sighah.presentEnding);
+    const passivePast = inflectVerbStem([radical(root, 1, DAMMA), radical(root, 2, KASRA), radical(root, 3)], sighah.pastEnding);
+    const passivePresent = inflectVerbStem([literal(`${sighah.presentPrefix}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3)], sighah.presentEnding);
+    const majzumVerb = inflectVerbStem(presentStemValue(root, config, sighah).runs, sighah.majzumEnding);
+    const mansubVerb = inflectVerbStem(presentStemValue(root, config, sighah).runs, sighah.mansubEnding);
     const emphatic = (weight) => {
       const ending = sighah[weight === "heavy" ? "heavyEmphaticEnding" : "lightEmphaticEnding"];
-      return ending === null ? morphologyValue() : appendEnding([literal(`${LAM}${FATHA}`), ...presentStemValue(root, config, sighah).runs], root, ending);
+      return ending === null ? morphologyValue() : inflectVerbStem([literal(`${LAM}${FATHA}`), ...presentStemValue(root, config, sighah).runs], ending);
     };
     const imperative = (weight) => {
       const ending = sighah[weight === "ordinary" ? "majzumEnding" : weight === "heavy" ? "heavyEmphaticEnding" : "lightEmphaticEnding"];
       if (ending === null) return morphologyValue();
       const stem = sighah.person === 2
-        ? [literal(`${ALIF}${config.imperativeInitialVowel}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel)]
+        ? [literal(`${ALIF}${config.imperativeInitialVowel}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel), radical(root, 3)]
         : [literal(`${LAM}${KASRA}`), ...presentStemValue(root, config, sighah).runs];
-      return appendEnding(stem, root, ending);
+      return inflectVerbStem(stem, ending);
     };
     return Object.freeze({
       activePast, activePresent, passivePast, passivePresent,
@@ -455,11 +463,12 @@ if (typeof document !== "undefined") {
 
   function appendPresentedText(cell, value, presentation) {
     const generatedSnapshot = generatedState.get();
-    if (!generatedSnapshot.presentation.colourRootLetters || value === null) {
+    const runs = presentedRuns(value, presentation, generatedSnapshot.presentation.colourRootLetters);
+    if (!runs) {
       cell.textContent = value ?? "";
       return;
     }
-    for (const run of presentation.runs) {
+    for (const run of runs) {
       const span = document.createElement("span");
       if (run.radicalIndex) span.className = `radical-${run.radicalIndex}`;
       span.textContent = run.text;
@@ -557,7 +566,7 @@ if (typeof module !== "undefined") {
     buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem,
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
-    morphologyRun, morphologyValue, structuralVerbValues, structuralDerivedValues,
+    morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
     deepFreeze, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
