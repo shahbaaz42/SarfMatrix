@@ -221,7 +221,8 @@
   function wordParagraph(value, snapshot, colour = true, align = "center") { return `<w:p><w:pPr><w:bidi/><w:jc w:val="${align}"/></w:pPr>${wordRuns(value, snapshot, colour)}</w:p>`; }
   function wordTable(headings, rows, snapshot, derived = false) {
     const rowXml = (cells, heading = false) => `<w:tr>${cells.map((cell, index) => `<w:tc><w:tcPr><w:textDirection w:val="lrTb"/>${heading ? "<w:shd w:fill=\"EDF6F3\"/>" : ""}</w:tcPr>${wordParagraph(cell, snapshot, !heading && index > 0, derived && index === 0 && !heading ? "right" : "center")}</w:tc>`).join("")}</w:tr>`;
-    return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${rowXml(headings, true)}${rows.map((row) => rowXml(row)).join("")}</w:tbl>`;
+    const tableGrid = `<w:tblGrid>${headings.map(() => "<w:gridCol/>").join("")}</w:tblGrid>`;
+    return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${tableGrid}${rowXml(headings, true)}${rows.map((row) => rowXml(row)).join("")}</w:tbl>`;
   }
   function wordHeading(value) { return `<w:p><w:pPr><w:bidi/><w:jc w:val="right"/><w:keepNext/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="30"/><w:rtl/></w:rPr><w:t>${escapeXml(value)}</w:t></w:r></w:p>`; }
   function pageBreak() { return "<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>"; }
