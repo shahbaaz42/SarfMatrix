@@ -280,12 +280,6 @@ tbody td:first-child {
 .radical-2 { color: #1565c0; }
 .radical-3 { color: #2e7d32; }
 
-/* Keep joining enabled generally; only the structurally split coloured-lam /
-   plain-alif boundary must not collapse into a single, single-colour glyph. */
-.separate-lam-alif-colours {
-  font-feature-settings: "rlig" 0;
-}
-
 .export-panel {
   margin-top: 1.5rem;
   padding: 1rem;
