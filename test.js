@@ -267,6 +267,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
+assert.equal(html.includes('<script src="script.js?v=section-04-nominal-cases"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 7);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 4);
