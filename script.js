@@ -5,6 +5,7 @@ const HARAKAT = Object.freeze({
   KASRA: "ِ",
   SUKUN: "ْ",
   SHADDA: "ّ",
+  FATHATAN: "ً",
   KASRATAN: "ٍ",
   DAMMATAN: "ٌ",
 });
@@ -40,7 +41,7 @@ const BAB_CONFIG = Object.freeze({
   "حَسِبَ-يَحْسِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.KASRA }),
 });
 
-const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, KASRATAN, DAMMATAN } = HARAKAT;
+const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
 const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA, LAM, TA_MARBUTA, ALIF_MAQSURA } = LETTERS;
 
 const HEAVY_NUN = NUN + SHADDA;
@@ -65,15 +66,16 @@ const SIGHAS = Object.freeze([
   { id: "1p", pronoun: "نَحْنُ", person: 1, gender: "common", number: "plural", presentPrefix: NUN, pastEnding: SUKUN + NUN + FATHA + ALIF, presentEnding: DAMMA, majzumEnding: SUKUN, mansubEnding: FATHA, heavyEmphaticEnding: FATHA + HEAVY_NUN + FATHA, lightEmphaticEnding: FATHA + LIGHT_NUN },
 ].map(Object.freeze));
 
-// D:I in the two participle sections share one workbook ending matrix. Null
-// entries preserve the genuinely blank singular oblique cells.
+// One case-by-form matrix drives both participles.  Keeping the endings here,
+// rather than assembling completed words, also lets the structural renderer
+// keep every added letter outside the radical-colour runs.
 const NOMINAL_INFLECTIONS = Object.freeze([
-  { id: "masculine-singular", gender: "masculine", number: "singular", nominative: DAMMATAN, oblique: null },
-  { id: "masculine-dual", gender: "masculine", number: "dual", nominative: FATHA + ALIF + NUN + KASRA, oblique: FATHA + YA + SUKUN + NUN + KASRA },
-  { id: "masculine-plural", gender: "masculine", number: "plural", nominative: DAMMA + WAW + SUKUN + NUN + FATHA, oblique: KASRA + YA + SUKUN + NUN + FATHA },
-  { id: "feminine-singular", gender: "feminine", number: "singular", nominative: FATHA + TA_MARBUTA + DAMMATAN, oblique: null },
-  { id: "feminine-dual", gender: "feminine", number: "dual", nominative: FATHA + TA + FATHA + ALIF + NUN + KASRA, oblique: FATHA + TA + FATHA + YA + SUKUN + NUN + KASRA },
-  { id: "feminine-plural", gender: "feminine", number: "plural", nominative: FATHA + ALIF + TA + DAMMATAN, oblique: FATHA + ALIF + TA + KASRATAN },
+  { id: "masculine-singular", gender: "masculine", number: "singular", nominative: DAMMATAN, accusative: FATHATAN + ALIF, genitive: KASRATAN },
+  { id: "masculine-dual", gender: "masculine", number: "dual", nominative: FATHA + ALIF + NUN + KASRA, accusative: FATHA + YA + SUKUN + NUN + KASRA, genitive: FATHA + YA + SUKUN + NUN + KASRA },
+  { id: "masculine-plural", gender: "masculine", number: "plural", nominative: DAMMA + WAW + NUN + FATHA, accusative: KASRA + YA + NUN + FATHA, genitive: KASRA + YA + NUN + FATHA },
+  { id: "feminine-singular", gender: "feminine", number: "singular", nominative: FATHA + TA_MARBUTA + DAMMATAN, accusative: FATHA + TA_MARBUTA + FATHATAN, genitive: FATHA + TA_MARBUTA + KASRATAN },
+  { id: "feminine-dual", gender: "feminine", number: "dual", nominative: FATHA + TA + FATHA + ALIF + NUN + KASRA, accusative: FATHA + TA + FATHA + YA + SUKUN + NUN + KASRA, genitive: FATHA + TA + FATHA + YA + SUKUN + NUN + KASRA },
+  { id: "feminine-plural", gender: "feminine", number: "plural", nominative: FATHA + ALIF + TA + DAMMATAN, accusative: FATHA + ALIF + TA + KASRATAN, genitive: FATHA + ALIF + TA + KASRATAN },
 ].map(Object.freeze));
 
 function getBabConfig(bab) {
@@ -186,14 +188,15 @@ function buildActiveParticipleStem([first, second, third]) {
 }
 
 function buildPassiveParticipleStem([first, second, third]) {
-  return `${MIM}${FATHA}${first}${SUKUN}${second}${DAMMA}${WAW}${SUKUN}${third}`;
+  return `${MIM}${FATHA}${first}${SUKUN}${second}${DAMMA}${WAW}${third}`;
 }
 
 function inflectNominalStem(stem) {
   return NOMINAL_INFLECTIONS.map((form) => ({
     ...form,
     nominative: `${stem}${form.nominative}`,
-    oblique: form.oblique === null ? null : `${stem}${form.oblique}`,
+    accusative: `${stem}${form.accusative}`,
+    genitive: `${stem}${form.genitive}`,
   }));
 }
 
@@ -318,11 +321,13 @@ function inflectStructuralStem(stemRuns, ending) {
 
 function structuralDerivedValues(root, bab) {
   const activeStem = [radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3)];
-  const passiveStem = [literal(`${MIM}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, DAMMA), literal(`${WAW}${SUKUN}`), radical(root, 3)];
-  const nominalRows = (stem) => ({
-    nominative: NOMINAL_INFLECTIONS.map(({ nominative }) => inflectStructuralStem(stem, nominative)),
-    oblique: NOMINAL_INFLECTIONS.map(({ oblique }) => inflectStructuralStem(stem, oblique)),
-  });
+  const passiveStem = [literal(`${MIM}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, DAMMA), literal(WAW), radical(root, 3)];
+  const nominalRows = (stem) => Object.freeze(Object.fromEntries(
+    ["nominative", "accusative", "genitive"].map((caseName) => [
+      caseName,
+      NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, literal(form[caseName]))),
+    ]),
+  ));
   const elativePrimary = [
     morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA)),
     morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, FATHA), literal(`${ALIF}${NUN}${KASRA}`)),
@@ -348,6 +353,20 @@ function deepFreeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
   return Object.freeze(value);
+}
+
+const NOMINAL_CASES = Object.freeze([
+  Object.freeze({ key: "nominative", label: "مرفوع" }),
+  Object.freeze({ key: "accusative", label: "منصوب" }),
+  Object.freeze({ key: "genitive", label: "مجرور" }),
+]);
+
+function nominalCaseRows(forms, structuralCases) {
+  return NOMINAL_CASES.map(({ key, label }) => ({
+    label,
+    values: forms.map((form) => form[key]),
+    presentations: structuralCases[key],
+  }));
 }
 
 function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
@@ -376,14 +395,8 @@ function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubPar
       section02: version4.map(({ pronoun, majzumPresent }, index) => ({ pronoun, majzumPresent, mansubPresent: mansub[index].mansubPresent, heavyEmphatic: emphatic[index].heavyEmphatic, lightEmphatic: emphatic[index].lightEmphatic, presentation: { majzumPresent: verbStructure[index].majzumPresent, mansubPresent: verbStructure[index].mansubPresent, heavyEmphatic: verbStructure[index].heavyEmphatic, lightEmphatic: verbStructure[index].lightEmphatic } })),
       section03: imperative.map(({ pronoun, imperative: ordinary, heavyImperative, lightImperative }, index) => ({ pronoun, imperative: ordinary, heavyImperative, lightImperative, presentation: { imperative: verbStructure[index].imperative, heavyImperative: verbStructure[index].heavyImperative, lightImperative: verbStructure[index].lightImperative } })),
       section04: {
-        activeParticiple: [
-          { label: "مرفوع", values: activeParticiple.map(({ nominative }) => nominative), presentations: derivedStructure.activeParticiple.nominative },
-          { label: "منصوب ومجرور", values: activeParticiple.map(({ oblique }) => oblique), presentations: derivedStructure.activeParticiple.oblique },
-        ],
-        passiveParticiple: [
-          { label: "مرفوع", values: passiveParticiple.map(({ nominative }) => nominative), presentations: derivedStructure.passiveParticiple.nominative },
-          { label: "منصوب ومجرور", values: passiveParticiple.map(({ oblique }) => oblique), presentations: derivedStructure.passiveParticiple.oblique },
-        ],
+        activeParticiple: nominalCaseRows(activeParticiple, derivedStructure.activeParticiple),
+        passiveParticiple: nominalCaseRows(passiveParticiple, derivedStructure.passiveParticiple),
         elative: [
           { label: "الصيغة الأساسية", values: [...elative.primary], presentations: derivedStructure.elative.primary },
           { label: "خيار جمع إضافي", values: [...elative.additional], presentations: derivedStructure.elative.additional },
@@ -560,10 +573,10 @@ if (typeof document !== "undefined") {
 }
 if (typeof module !== "undefined") {
   module.exports = {
-    BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_INFLECTIONS, SIGHAS,
+    BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
     buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent, buildImperative,
-    buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem,
+    buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem, nominalCaseRows,
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
