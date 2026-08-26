@@ -41,6 +41,26 @@ const BAB_CONFIG = Object.freeze({
   "حَسِبَ-يَحْسِبُ": Object.freeze({ pastMiddleVowel: HARAKAT.KASRA, presentMiddleVowel: HARAKAT.KASRA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.KASRA }),
 });
 
+// Mazīd bābs are structural templates, deliberately separate from the
+// Mujarrad vowel table above.  Future forms can be added here without changing
+// the person/ending engine; Phase 1 exposes only Form IV.
+const MAZID_BAB_CONFIG = Object.freeze({
+  "form-iv-ifal": Object.freeze({
+    family: "mazid", form: 4, label: "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
+    availability: Object.freeze({ passive: "lexical-metadata-ready", passiveParticiple: "lexical-metadata-ready" }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["literal", "أَ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["radical", 3]]),
+      activePresent: Object.freeze([["personPrefix", "ُ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePast: Object.freeze([["literal", "أُ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePresent: Object.freeze([["personPrefix", "ُ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["radical", 3]]),
+      imperative: Object.freeze([["literal", "أَ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      masdar: Object.freeze([["literal", "إِ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["literal", "ا"], ["radical", 3]]),
+      activeParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passiveParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["radical", 3]]),
+    }),
+  }),
+});
+
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
 const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA, LAM, TA_MARBUTA, ALIF_MAQSURA } = LETTERS;
 
@@ -258,6 +278,58 @@ function morphologyValue(...parts) {
 function literal(text) { return morphologyRun(text, null); }
 function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index); }
 
+function instantiateMazidTemplate(root, template, sighah = SIGHAS[0]) {
+  return morphologyValue(template.map(([kind, value, marks = ""]) => {
+    if (kind === "radical") return radical(root, value, marks);
+    if (kind === "personPrefix") return literal(`${sighah.presentPrefix}${value}`);
+    return literal(value);
+  }));
+}
+
+function isSoundFormIVRoot(root) {
+  const bare = root.map((letter) => String(letter).normalize("NFC").replace(/\p{M}/gu, ""));
+  const weak = new Set(["ا", "و", "ي", "ى"]);
+  return bare.length === 3 && bare.every((letter) => /^\p{Script=Arabic}$/u.test(letter))
+    && !bare.some((letter) => weak.has(letter) || letter.includes("ء") || /[أإآؤئ]/u.test(letter))
+    && bare[1] !== bare[2];
+}
+
+function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
+  const config = MAZID_BAB_CONFIG[bab];
+  if (!config) throw new Error(`Unknown Mazīd Bāb: ${bab}`);
+  if (!isSoundFormIVRoot(root)) throw new Error("باب الإفعال متاح حاليًا للجذر الصحيح السالم فقط.");
+  const templates = config.templates;
+  const verbs = SIGHAS.map((sighah) => {
+    const inflect = (name, ending) => inflectVerbStem(instantiateMazidTemplate(root, templates[name], sighah).runs, ending);
+    const present = instantiateMazidTemplate(root, templates.activePresent, sighah);
+    const emphatic = (key) => sighah[key] === null ? morphologyValue() : inflectVerbStem([literal(`${LAM}${FATHA}`), ...present.runs], sighah[key]);
+    const imperative = (key) => {
+      if (sighah[key] === null) return morphologyValue();
+      const stem = sighah.person === 2 ? instantiateMazidTemplate(root, templates.imperative, sighah).runs : [literal(`${LAM}${KASRA}`), ...present.runs];
+      return inflectVerbStem(stem, sighah[key]);
+    };
+    const majzum = inflectVerbStem(present.runs, sighah.majzumEnding);
+    const mansub = inflectVerbStem(present.runs, sighah.mansubEnding);
+    return {
+      pronoun: sighah.pronoun,
+      past: inflect("activePast", sighah.pastEnding), present: inflect("activePresent", sighah.presentEnding),
+      passivePast: inflect("passivePast", sighah.pastEnding), passivePresent: inflect("passivePresent", sighah.presentEnding),
+      majzumPresent: morphologyValue(literal(`${majzumParticle} `), majzum.runs), mansubPresent: morphologyValue(literal(`${mansubParticle} `), mansub.runs),
+      heavyEmphatic: emphatic("heavyEmphaticEnding"), lightEmphatic: emphatic("lightEmphaticEnding"),
+      imperative: imperative("majzumEnding"), heavyImperative: imperative("heavyEmphaticEnding"), lightImperative: imperative("lightEmphaticEnding"),
+    };
+  });
+  const nominalRows = (template) => {
+    const stem = instantiateMazidTemplate(root, template).runs;
+    return NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, literal(form[key])).text), presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, literal(form[key]))) }));
+  };
+  const section01 = verbs.map((v) => ({ pronoun: v.pronoun, past: v.past.text, present: v.present.text, passivePast: v.passivePast.text, passivePresent: v.passivePresent.text, presentation: { past: v.past, present: v.present, passivePast: v.passivePast, passivePresent: v.passivePresent } }));
+  const section02 = verbs.map((v) => ({ pronoun: v.pronoun, majzumPresent: v.majzumPresent.text, mansubPresent: v.mansubPresent.text, heavyEmphatic: v.heavyEmphatic.text || null, lightEmphatic: v.lightEmphatic.text || null, presentation: { majzumPresent: v.majzumPresent, mansubPresent: v.mansubPresent, heavyEmphatic: v.heavyEmphatic, lightEmphatic: v.lightEmphatic } }));
+  const section03 = verbs.map((v) => ({ pronoun: v.pronoun, imperative: v.imperative.text, heavyImperative: v.heavyImperative.text || null, lightImperative: v.lightImperative.text || null, presentation: { imperative: v.imperative, heavyImperative: v.heavyImperative, lightImperative: v.lightImperative } }));
+  const masdar = instantiateMazidTemplate(root, templates.masdar);
+  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", majzumParticle, mansubParticle, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows(templates.activeParticiple), passiveParticiple: nominalRows(templates.passiveParticiple) } } });
+}
+
 function presentedRuns(value, presentation, colourRootLetters) {
   if (!colourRootLetters || value === null) return null;
   return presentation.runs;
@@ -370,6 +442,7 @@ function nominalCaseRows(forms, structuralCases) {
 }
 
 function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
+  if (MAZID_BAB_CONFIG[bab]) return buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   const stableRoot = [...root];
   const active = generateActiveForms(stableRoot, bab);
   const version4 = generateVersion4Forms(stableRoot, bab, majzumParticle);
@@ -386,6 +459,7 @@ function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubPar
   return deepFreeze({
     root: stableRoot,
     bab,
+    family: "mujarrad",
     babLabel,
     majzumParticle,
     mansubParticle,
@@ -454,6 +528,7 @@ if (typeof document !== "undefined") {
   const mansubParticleSelect = document.querySelector("#mansub-particle");
   const sectionBodies = ["#section-01-body", "#section-02-body", "#section-03-body"].map((selector) => document.querySelector(selector));
   const derivedBodies = {
+    masdar: document.querySelector("#masdar-body"),
     activeParticiple: document.querySelector("#active-participle-body"),
     passiveParticiple: document.querySelector("#passive-participle-body"),
     elative: document.querySelector("#elative-body"),
@@ -515,6 +590,11 @@ if (typeof document !== "undefined") {
     replaceTableRows(sectionBodies[1], section02.map(({ pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic, presentation }) => [pronoun, cell(majzumPresent, presentation.majzumPresent), cell(mansubPresent, presentation.mansubPresent), cell(heavyEmphatic, presentation.heavyEmphatic), cell(lightEmphatic, presentation.lightEmphatic)]));
     replaceTableRows(sectionBodies[2], section03.map(({ pronoun, imperative, heavyImperative, lightImperative, presentation }) => [pronoun, cell(imperative, presentation.imperative), cell(heavyImperative, presentation.heavyImperative), cell(lightImperative, presentation.lightImperative)]));
     const derivedRows = (rows) => rows.map(({ label, values, presentations }) => [label, ...values.map((value, index) => cell(value, presentations[index]))]);
+    const mazid = generatedSnapshot.family === "mazid";
+    document.querySelector("#masdar-card").hidden = !mazid;
+    document.querySelector("#elative-card").hidden = mazid;
+    document.querySelector("#zarf-card").hidden = mazid;
+    replaceTableRows(derivedBodies.masdar, mazid ? derivedRows(section04.masdar) : []);
     replaceTableRows(derivedBodies.activeParticiple, derivedRows(section04.activeParticiple));
     replaceTableRows(derivedBodies.passiveParticiple, derivedRows(section04.passiveParticiple));
     replaceTableRows(derivedBodies.elative, derivedRows(section04.elative));
@@ -523,14 +603,15 @@ if (typeof document !== "undefined") {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    generatedState.generate({
+    try { generatedState.generate({
       root: rootInputs.map((input) => input.value.trim()),
       bab: babSelect.value,
       babLabel: babSelect.options[babSelect.selectedIndex].text,
       majzumParticle: particleSelect.value,
       mansubParticle: mansubParticleSelect.value,
       colourRootLetters: colourToggle.checked,
-    });
+    }); } catch (error) { document.querySelector("#validation-message").textContent = error.message; invalidateGeneratedState(); return; }
+    document.querySelector("#validation-message").textContent = "";
     renderResults();
     setExportAvailable(true);
   });
@@ -573,13 +654,13 @@ if (typeof document !== "undefined") {
 }
 if (typeof module !== "undefined") {
   module.exports = {
-    BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
+    BAB_CONFIG, MAZID_BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
     buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent, buildImperative,
     buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem, nominalCaseRows,
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, isSoundFormIVRoot, buildMazidSnapshot, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }

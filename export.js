@@ -15,10 +15,13 @@
     section03: ["الضمير", "فعل الأمر", "فعل الأمر بنون تأكيد ثقيلة", "فعل الأمر بنون تأكيد خفيفة"],
     activeParticiple: ["الحالة", "مذكر مفرد", "مذكر مثنى", "مذكر جمع", "مؤنث مفرد", "مؤنث مثنى", "مؤنث جمع"],
     passiveParticiple: ["الحالة", "مذكر مفرد", "مذكر مثنى", "مذكر جمع", "مؤنث مفرد", "مؤنث مثنى", "مؤنث جمع"],
+    masdar: ["النوع", "الصيغة"],
     elative: ["الخيار", "مذكر مفرد", "مذكر مثنى", "مذكر جمع", "مؤنث مفرد", "مؤنث مثنى", "مؤنث جمع"],
     zarf: ["الصيغة", "مفرد", "مثنى", "جمع"],
   });
-  const DERIVED_TITLES = Object.freeze({ activeParticiple: "اسم الفاعل", passiveParticiple: "اسم المفعول", elative: "اسم التفضيل", zarf: "اسم الظرف" });
+  const DERIVED_TITLES = Object.freeze({ masdar: "المصدر", activeParticiple: "اسم الفاعل", passiveParticiple: "اسم المفعول", elative: "اسم التفضيل", zarf: "اسم الظرف" });
+
+  function derivedKeys(snapshot) { return snapshot.family === "mazid" ? ["masdar", "activeParticiple", "passiveParticiple"] : ["activeParticiple", "passiveParticiple", "elative", "zarf"]; }
 
   function escapeXml(value) {
     return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -93,11 +96,11 @@
       const verbs = landscapeVerbTable(snapshot);
       return [
         pageShell(snapshot, htmlTable(verbs.headings, verbs.rows, snapshot), "landscape verb-page"),
-        pageShell(snapshot, derivedHtml(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]), "landscape section04-page"),
+        pageShell(snapshot, derivedHtml(snapshot, derivedKeys(snapshot)), "landscape section04-page"),
       ];
     }
     return ["section01", "section02", "section03"].map((key) => pageShell(snapshot, `<h1>${SECTION_TITLES[key]}</h1>${htmlTable(HEADINGS[key], sectionRows(snapshot, key), snapshot)}`, `${key}-page`)).concat([
-      pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"])}`, "section04-page"),
+      pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, derivedKeys(snapshot))}`, "section04-page"),
     ]);
   }
 
@@ -233,10 +236,10 @@
     if (layout === "landscape") {
       const verbs = landscapeVerbTable(snapshot);
       body += wordMetadata(snapshot) + wordTable(verbs.headings, verbs.rows, snapshot);
-      body += pageBreak() + wordMetadata(snapshot) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
+      body += pageBreak() + wordMetadata(snapshot) + wordDerived(snapshot, derivedKeys(snapshot));
     } else {
       ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); body += wordMetadata(snapshot) + wordHeading(SECTION_TITLES[key]) + wordTable(HEADINGS[key], sectionRows(snapshot, key), snapshot); });
-      body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, ["activeParticiple", "passiveParticiple", "elative", "zarf"]);
+      body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, derivedKeys(snapshot));
     }
     const orientation = layout === "landscape" ? 'w:w="15840" w:h="12240" w:orient="landscape"' : 'w:w="12240" w:h="15840"';
     const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}<w:sectPr><w:footerReference w:type="default" r:id="rId1"/><w:pgSz ${orientation}/><w:pgMar w:top="720" w:right="540" w:bottom="720" w:left="540" w:footer="300"/></w:sectPr></w:body></w:document>`;

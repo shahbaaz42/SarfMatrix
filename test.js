@@ -2,14 +2,14 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const {
-  BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
+  BAB_CONFIG, MAZID_BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
   buildMansubPresent, generateActiveForms, generateVersion4Forms, generateMansubForms,
   buildEmphaticPresent, generateEmphaticForms, buildImperative, generateImperativeForms,
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
-  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, presentedRuns,
+  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
@@ -269,20 +269,21 @@ assert.equal(populatedDerivedCells, 49);
 const html = fs.readFileSync("index.html", "utf8");
 assert.equal(html.includes('<script src="script.js?v=section-04-nominal-cases"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
-assert.equal((html.match(/class="table-wrap"/g) || []).length, 7);
-assert.equal((html.match(/class="derived-card"/g) || []).length, 4);
+assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
+assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
 for (const label of ["القسم 01 — المرفوع والمجهول", "القسم 02 — المجزوم والمنصوب والتوكيد", "القسم 03 — فعل الأمر", "القسم 04 — المشتقات"]) assert.equal(html.includes(label), true);
 for (const label of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.equal(html.includes(`<h3>${label}</h3>`), true);
 for (const label of ["الفعل الماضي المرفوع", "الفعل المضارع المرفوع", "الفعل الماضي المجهول", "الفعل المضارع المجهول", "حرف الجزم", "حرف النصب"]) assert.equal(html.includes(label), true);
 const babSelect = html.match(/<select id="bab"[\s\S]*?<\/select>/)[0];
 assert.equal(babSelect.includes('required'), true);
 assert.equal(babSelect.includes('<option value="" selected disabled>اختر الباب</option>'), true);
-assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG)]);
+assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG)]);
 assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map((match) => match[1]), [
   "اختر الباب",
   "فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ", "ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ",
   "نَصَرَ / يَنْصُرُ — فَعَلَ / يَفْعُلُ", "سَمِعَ / يَسْمَعُ — فَعِلَ / يَفْعَلُ",
   "كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ", "حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ",
+  "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -480,7 +481,8 @@ assert.equal((portraitDocxXml.match(/الجذر: دخل \| الباب:/g) || [])
 assert.match(portraitDocxXml, /<w:pPr><w:bidi\/><w:jc w:val="right"\/><\/w:pPr>[\s\S]*?الجذر: دخل/);
 for (const title of Object.values(require("./export.js").SECTION_TITLES)) assert.match(portraitDocxXml, new RegExp(`<w:jc w:val="right"\/>[\\s\\S]*?${title}`));
 for (const title of ["اسم الفاعل", "اسم المفعول", "اسم التفضيل", "اسم الظرف"]) assert.match(portraitDocxXml, new RegExp(`<w:jc w:val="right"\/>[\\s\\S]*?${title}`));
-for (const headings of Object.values(require("./export.js").HEADINGS)) {
+for (const [key, headings] of Object.entries(require("./export.js").HEADINGS)) {
+  if (key === "masdar") continue;
   const grid = `<w:tblGrid>${headings.map(() => "<w:gridCol/>").join("")}</w:tblGrid>`;
   assert.equal(portraitDocxXml.includes(grid) || landscapeDocxXml.includes(grid), true);
 }
@@ -496,6 +498,32 @@ assert.equal(Buffer.from(pdf).subarray(-6).toString("ascii"), "%%EOF\n");
 assert.equal(Buffer.from(landscapePdf.subarray(0, 8)).toString("ascii"), "%PDF-1.4");
 assert.equal((Buffer.from(portraitFourPagePdf).toString("binary").match(/\/Type \/Page\b/g) || []).length, 4);
 assert.equal((Buffer.from(landscapeTwoPagePdf).toString("binary").match(/\/Type \/Page\b/g) || []).length, 2);
+// Form IV Phase 1 covers the complete shared matrices and structural colouring.
+const formIV = (root) => buildGeneratedSnapshot({ root, bab: "form-iv-ifal", babLabel: "باب الإفعال", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+const karamIV = formIV(["ك", "ر", "م"]);
+assert.equal(karamIV.family, "mazid");
+assert.equal(karamIV.sections.section01.length, 14);
+assert.deepEqual(karamIV.sections.section01.slice(0, 3).map((row) => row.past), ["أَكْرَمَ", "أَكْرَمَا", "أَكْرَمُوْا"]);
+assert.deepEqual(karamIV.sections.section01.slice(0, 3).map((row) => row.present), ["يُكْرِمُ", "يُكْرِمَانِ", "يُكْرِمُوْنَ"]);
+assert.deepEqual([karamIV.sections.section01[0].passivePast, karamIV.sections.section01[0].passivePresent], ["أُكْرِمَ", "يُكْرَمُ"]);
+assert.deepEqual([karamIV.sections.section02[0].majzumPresent, karamIV.sections.section02[0].mansubPresent], ["لَمْ يُكْرِمْ", "لَنْ يُكْرِمَ"]);
+assert.deepEqual([karamIV.sections.section02[0].heavyEmphatic, karamIV.sections.section02[0].lightEmphatic], ["لَيُكْرِمَنَّ", "لَيُكْرِمَنْ"]);
+assert.equal(karamIV.sections.section03[0].imperative, "لِيُكْرِمْ");
+assert.deepEqual(karamIV.sections.section03.slice(6, 12).map((row) => row.imperative), ["أَكْرِمْ", "أَكْرِمَا", "أَكْرِمُوْا", "أَكْرِمِيْ", "أَكْرِمَا", "أَكْرِمْنَ"]);
+assert.equal(karamIV.sections.section04.masdar[0].values[0], "إِكْرَام");
+assert.deepEqual(karamIV.sections.section04.activeParticiple.map((row) => row.values[0]), ["مُكْرِمٌ", "مُكْرِمًا", "مُكْرِمٍ"]);
+assert.deepEqual(karamIV.sections.section04.passiveParticiple.map((row) => row.values[0]), ["مُكْرَمٌ", "مُكْرَمًا", "مُكْرَمٍ"]);
+for (const key of ["activeParticiple", "passiveParticiple"]) assert.deepEqual(karamIV.sections.section04[key].map((row) => row.values.length), [6, 6, 6]);
+for (const root of [["ك", "ر", "م"], ["خ", "ر", "ج"], ["ن", "ز", "ل"], ["د", "ر", "د"]]) assert.equal(formIV(root).sections.section01.length, 14);
+const repeatedRuns = formIV(["د", "ر", "د"]).sections.section01[0].presentation.past.runs;
+assert.deepEqual(repeatedRuns.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1, 2, 3]);
+assert.equal(repeatedRuns[0].radicalIndex, null);
+assert.equal(isSoundFormIVRoot(["ق", "و", "ل"]), false);
+assert.equal(isSoundFormIVRoot(["م", "د", "د"]), false);
+assert.throws(() => formIV(["أ", "ك", "ل"]), /الصحيح السالم/);
+assert.equal(buildExportPages(karamIV, "portrait")[3].includes("اسم التفضيل"), false);
+assert.equal(Buffer.from(buildDocx(karamIV, "portrait")).toString("utf8").includes("المصدر"), true);
+
 const scriptSource = fs.readFileSync("script.js", "utf8");
 assert.equal(scriptSource.includes("splitRootRuns"), false);
 assert.equal(scriptSource.includes("baseLetter"), false);
