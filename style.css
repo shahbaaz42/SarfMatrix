@@ -66,6 +66,8 @@ h1 {
   display: grid;
   gap: 1.4rem;
 }
+.validation-message { min-height: 1.5em; margin: -0.7rem 0; color: #a02020; font-weight: 700; text-align: right; }
+.derived-card[hidden] { display: none; }
 
 fieldset {
   margin: 0;

@@ -38,14 +38,20 @@
           <label for="bab">Bāb</label>
           <select id="bab" name="bab" required>
             <option value="" selected disabled>اختر الباب</option>
+            <optgroup label="ثلاثي مجرد">
             <option value="فَتَحَ-يَفْتَحُ">فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ</option>
             <option value="ضَرَبَ-يَضْرِبُ">ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ</option>
             <option value="نَصَرَ-يَنْصُرُ">نَصَرَ / يَنْصُرُ — فَعَلَ / يَفْعُلُ</option>
             <option value="سَمِعَ-يَسْمَعُ">سَمِعَ / يَسْمَعُ — فَعِلَ / يَفْعَلُ</option>
             <option value="كَرُمَ-يَكْرُمُ">كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ</option>
             <option value="حَسِبَ-يَحْسِبُ">حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ</option>
+            </optgroup>
+            <optgroup label="ثلاثي مزيد فيه">
+              <option value="form-iv-ifal">باب الإفعال — أَفْعَلَ / يُفْعِلُ</option>
+            </optgroup>
           </select>
         </div>
+        <p id="validation-message" class="validation-message" role="alert" aria-live="assertive"></p>
 
         <label class="colour-toggle" for="colour-root-letters">
           <input id="colour-root-letters" name="colour-root-letters" type="checkbox">
@@ -97,6 +103,7 @@
         <section class="result-section derived-section" aria-labelledby="section-04-heading">
           <h2 id="section-04-heading">القسم 04 — المشتقات</h2>
           <div class="derived-grid">
+            <article id="masdar-card" class="derived-card" hidden><h3>المصدر</h3><div class="table-wrap"><table dir="rtl"><thead><tr><th>النوع</th><th>الصيغة</th></tr></thead><tbody id="masdar-body"></tbody></table></div></article>
             <article class="derived-card">
               <h3>اسم الفاعل</h3>
               <div class="table-wrap"><table dir="rtl"><thead><tr><th>الحالة</th><th>مذكر مفرد</th><th>مذكر مثنى</th><th>مذكر جمع</th><th>مؤنث مفرد</th><th>مؤنث مثنى</th><th>مؤنث جمع</th></tr></thead><tbody id="active-participle-body"></tbody></table></div>
@@ -105,11 +112,11 @@
               <h3>اسم المفعول</h3>
               <div class="table-wrap"><table dir="rtl"><thead><tr><th>الحالة</th><th>مذكر مفرد</th><th>مذكر مثنى</th><th>مذكر جمع</th><th>مؤنث مفرد</th><th>مؤنث مثنى</th><th>مؤنث جمع</th></tr></thead><tbody id="passive-participle-body"></tbody></table></div>
             </article>
-            <article class="derived-card">
+            <article id="elative-card" class="derived-card">
               <h3>اسم التفضيل</h3>
               <div class="table-wrap"><table dir="rtl"><thead><tr><th>الخيار</th><th>مذكر مفرد</th><th>مذكر مثنى</th><th>مذكر جمع</th><th>مؤنث مفرد</th><th>مؤنث مثنى</th><th>مؤنث جمع</th></tr></thead><tbody id="elative-body"></tbody></table></div>
             </article>
-            <article class="derived-card">
+            <article id="zarf-card" class="derived-card">
               <h3>اسم الظرف</h3>
               <div class="table-wrap"><table dir="rtl"><thead><tr><th>الصيغة</th><th>مفرد</th><th>مثنى</th><th>جمع</th></tr></thead><tbody id="zarf-body"></tbody></table></div>
             </article>
