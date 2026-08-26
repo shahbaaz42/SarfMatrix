@@ -9,7 +9,7 @@ const {
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
-  buildGeneratedSnapshot, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot,
+  buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
@@ -267,7 +267,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=section-04-nominal-cases"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=form-iv-browser-dispatch-fix"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -524,11 +524,28 @@ assert.throws(() => formIV(["أ", "ك", "ل"]), /الصحيح السالم/);
 assert.equal(buildExportPages(karamIV, "portrait")[3].includes("اسم التفضيل"), false);
 assert.equal(Buffer.from(buildDocx(karamIV, "portrait")).toString("utf8").includes("المصدر"), true);
 
+// Exercise the same top-level family dispatch used by the browser's Generate
+// submit handler, including semantic R1/R2/R3 order from the three UI fields.
+const browserDispatch = (root, bab) => dispatchGeneration({ root, bab, babLabel: bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: false });
+const kharajaIV = browserDispatch(["خ", "ر", "ج"], "form-iv-ifal");
+assert.deepEqual(kharajaIV.root, ["خ", "ر", "ج"]);
+assert.deepEqual(kharajaIV.sections.section01[0], {
+  ...kharajaIV.sections.section01[0],
+  past: "أَخْرَجَ", present: "يُخْرِجُ", passivePast: "أُخْرِجَ", passivePresent: "يُخْرَجُ",
+});
+for (const section of [kharajaIV.sections.section01, kharajaIV.sections.section02, kharajaIV.sections.section03]) assert.ok(section.length > 0);
+for (const section of Object.values(kharajaIV.sections.section04)) assert.ok(section.length > 0);
+const mujarradDispatch = browserDispatch(["ن", "ص", "ر"], "نَصَرَ-يَنْصُرُ");
+assert.equal(mujarradDispatch.family, "mujarrad");
+for (const section of [mujarradDispatch.sections.section01, mujarradDispatch.sections.section02, mujarradDispatch.sections.section03]) assert.ok(section.length > 0);
+for (const section of Object.values(mujarradDispatch.sections.section04)) assert.ok(section.length > 0);
+
 const scriptSource = fs.readFileSync("script.js", "utf8");
 assert.equal(scriptSource.includes("splitRootRuns"), false);
 assert.equal(scriptSource.includes("baseLetter"), false);
 assert.match(scriptSource, /addEventListener\("click", async \(\) =>/);
 assert.match(scriptSource, /await window\.SarfExport\.download/);
 assert.match(scriptSource, /console\.error\("Sarf export failed"/);
+assert.match(scriptSource, /console\.error\("Sarf generation failed"/);
 
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions.");

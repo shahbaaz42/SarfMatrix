@@ -484,6 +484,13 @@ function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubPar
   });
 }
 
+// This is the single dispatch boundary used by the browser submit handler and
+// by non-DOM consumers. Keeping the family decision behind this boundary makes
+// browser-path regressions testable without duplicating the click-handler logic.
+function dispatchGeneration(options) {
+  return buildGeneratedSnapshot(options);
+}
+
 function updateSnapshotParticles(snapshot, majzumParticle, mansubParticle) {
   return buildGeneratedSnapshot({
     root: snapshot.root,
@@ -507,7 +514,7 @@ function createGeneratedStateStore() {
   let snapshot = null;
   return Object.freeze({
     get: () => snapshot,
-    generate: (options) => { snapshot = buildGeneratedSnapshot(options); return snapshot; },
+    generate: (options) => { snapshot = dispatchGeneration(options); return snapshot; },
     invalidate: () => { snapshot = null; },
     updateParticles: (majzumParticle, mansubParticle) => {
       if (snapshot) snapshot = updateSnapshotParticles(snapshot, majzumParticle, mansubParticle);
@@ -597,23 +604,33 @@ if (typeof document !== "undefined") {
     replaceTableRows(derivedBodies.masdar, mazid ? derivedRows(section04.masdar) : []);
     replaceTableRows(derivedBodies.activeParticiple, derivedRows(section04.activeParticiple));
     replaceTableRows(derivedBodies.passiveParticiple, derivedRows(section04.passiveParticiple));
-    replaceTableRows(derivedBodies.elative, derivedRows(section04.elative));
-    replaceTableRows(derivedBodies.zarf, derivedRows(section04.zarf));
+    // Mazīd snapshots intentionally omit the Mujarrad-only elative and zarf
+    // collections. Render their hidden tables as empty instead of attempting
+    // to map undefined values.
+    replaceTableRows(derivedBodies.elative, derivedRows(section04.elative || []));
+    replaceTableRows(derivedBodies.zarf, derivedRows(section04.zarf || []));
   }
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    try { generatedState.generate({
-      root: rootInputs.map((input) => input.value.trim()),
-      bab: babSelect.value,
-      babLabel: babSelect.options[babSelect.selectedIndex].text,
-      majzumParticle: particleSelect.value,
-      mansubParticle: mansubParticleSelect.value,
-      colourRootLetters: colourToggle.checked,
-    }); } catch (error) { document.querySelector("#validation-message").textContent = error.message; invalidateGeneratedState(); return; }
-    document.querySelector("#validation-message").textContent = "";
-    renderResults();
-    setExportAvailable(true);
+    try {
+      generatedState.generate({
+        // DOM order is semantic radical order even though the form is RTL.
+        root: rootInputs.map((input) => input.value.trim()),
+        bab: babSelect.value,
+        babLabel: babSelect.options[babSelect.selectedIndex].text,
+        majzumParticle: particleSelect.value,
+        mansubParticle: mansubParticleSelect.value,
+        colourRootLetters: colourToggle.checked,
+      });
+      renderResults();
+      document.querySelector("#validation-message").textContent = "";
+      setExportAvailable(true);
+    } catch (error) {
+      console.error("Sarf generation failed", error);
+      document.querySelector("#validation-message").textContent = error instanceof Error ? error.message : "تعذر إنشاء التصريف. يرجى المحاولة مرة أخرى.";
+      invalidateGeneratedState();
+    }
   });
 
   for (const control of [...rootInputs, babSelect]) control.addEventListener(control === babSelect ? "change" : "input", invalidateGeneratedState);
@@ -661,6 +678,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, isSoundFormIVRoot, buildMazidSnapshot, buildGeneratedSnapshot, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, isSoundFormIVRoot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
