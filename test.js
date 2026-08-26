@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const {
   BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
@@ -208,22 +209,33 @@ for (const [bab] of basicCases) {
 }
 assert.throws(() => buildImperative(["ف", "ع", "ل"], BAB_CONFIG[basicCases[0][0]], "medium"), /Unknown imperative weight/);
 
-// Exact Base - Template!D24:I38 derived-noun regressions for the workbook's ك ر م example.
+// Combined case declensions share one engine for both participle stems.
 const derivedRoot = ["ك", "ر", "م"];
 assert.equal(HARAKAT.DAMMATAN, "ٌ");
+assert.equal(HARAKAT.FATHATAN, "ً");
 assert.equal(HARAKAT.KASRATAN, "ٍ");
 assert.equal(LETTERS.TA_MARBUTA, "ة");
 assert.equal(LETTERS.ALIF_MAQSURA, "ى");
 assert.equal(buildActiveParticipleStem(derivedRoot), "كَارِم");
-assert.equal(buildPassiveParticipleStem(derivedRoot), "مَكْرُوْم");
+assert.equal(buildPassiveParticipleStem(derivedRoot), "مَكْرُوم");
 
 const activeParticiple = generateActiveParticipleForms(derivedRoot);
 const passiveParticiple = generatePassiveParticipleForms(derivedRoot);
-assert.deepEqual(activeParticiple.map(({ nominative }) => nominative), ["كَارِمٌ", "كَارِمَانِ", "كَارِمُوْنَ", "كَارِمَةٌ", "كَارِمَتَانِ", "كَارِمَاتٌ"]);
-assert.deepEqual(activeParticiple.map(({ oblique }) => oblique), [null, "كَارِمَيْنِ", "كَارِمِيْنَ", null, "كَارِمَتَيْنِ", "كَارِمَاتٍ"]);
-assert.deepEqual(passiveParticiple.map(({ nominative }) => nominative), ["مَكْرُوْمٌ", "مَكْرُوْمَانِ", "مَكْرُوْمُوْنَ", "مَكْرُوْمَةٌ", "مَكْرُوْمَتَانِ", "مَكْرُوْمَاتٌ"]);
-assert.deepEqual(passiveParticiple.map(({ oblique }) => oblique), [null, "مَكْرُوْمَيْنِ", "مَكْرُوْمِيْنَ", null, "مَكْرُوْمَتَيْنِ", "مَكْرُوْمَاتٍ"]);
-assert.deepEqual(activeParticiple.map(({ id, gender, number, oblique }) => ({ id, gender, number, available: oblique !== null })), passiveParticiple.map(({ id, gender, number, oblique }) => ({ id, gender, number, available: oblique !== null })));
+const expectedActiveCases = {
+  nominative: ["كَارِمٌ", "كَارِمَانِ", "كَارِمُونَ", "كَارِمَةٌ", "كَارِمَتَانِ", "كَارِمَاتٌ"],
+  accusative: ["كَارِمًا", "كَارِمَيْنِ", "كَارِمِينَ", "كَارِمَةً", "كَارِمَتَيْنِ", "كَارِمَاتٍ"],
+  genitive: ["كَارِمٍ", "كَارِمَيْنِ", "كَارِمِينَ", "كَارِمَةٍ", "كَارِمَتَيْنِ", "كَارِمَاتٍ"],
+};
+const expectedPassiveCases = {
+  nominative: ["مَكْرُومٌ", "مَكْرُومَانِ", "مَكْرُومُونَ", "مَكْرُومَةٌ", "مَكْرُومَتَانِ", "مَكْرُومَاتٌ"],
+  accusative: ["مَكْرُومًا", "مَكْرُومَيْنِ", "مَكْرُومِينَ", "مَكْرُومَةً", "مَكْرُومَتَيْنِ", "مَكْرُومَاتٍ"],
+  genitive: ["مَكْرُومٍ", "مَكْرُومَيْنِ", "مَكْرُومِينَ", "مَكْرُومَةٍ", "مَكْرُومَتَيْنِ", "مَكْرُومَاتٍ"],
+};
+for (const caseName of ["nominative", "accusative", "genitive"]) {
+  assert.deepEqual(activeParticiple.map((form) => form[caseName]), expectedActiveCases[caseName]);
+  assert.deepEqual(passiveParticiple.map((form) => form[caseName]), expectedPassiveCases[caseName]);
+}
+assert.deepEqual(activeParticiple.map(({ id, gender, number }) => ({ id, gender, number })), passiveParticiple.map(({ id, gender, number }) => ({ id, gender, number })));
 assert.deepEqual(inflectNominalStem("س").map(({ id }) => id), NOMINAL_INFLECTIONS.map(({ id }) => id));
 
 const elative = generateElativeForms(derivedRoot);
@@ -248,13 +260,11 @@ assert.deepEqual(generateZarfForms(derivedRoot, "كَرُمَ-يَكْرُمُ")
   taMarbutaSingular: "مَكْرَمَةٌ", taMarbutaDual: "مَكْرَمَتَانِ", taMarbutaPlural: null,
 });
 
-const populatedDerivedCells = activeParticiple.filter(({ nominative }) => nominative).length
-  + activeParticiple.filter(({ oblique }) => oblique).length
-  + passiveParticiple.filter(({ nominative }) => nominative).length
-  + passiveParticiple.filter(({ oblique }) => oblique).length
+const populatedDerivedCells = ["nominative", "accusative", "genitive"]
+  .reduce((total, caseName) => total + activeParticiple.filter((form) => form[caseName]).length + passiveParticiple.filter((form) => form[caseName]).length, 0)
   + elative.primary.filter(Boolean).length + elative.additional.filter(Boolean).length
   + Object.values(generateZarfForms(derivedRoot, "كَرُمَ-يَكْرُمُ")).filter(Boolean).length;
-assert.equal(populatedDerivedCells, 33);
+assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
@@ -310,6 +320,25 @@ assert.equal(Object.isFrozen(snapshot.sections.section04.activeParticiple[0].val
 snapshot.root[0] = "ك";
 assert.equal(snapshot.root[0], "د");
 assert.equal(snapshot.sections.section01[0].past, generateActiveForms(snapshotOptions.root, snapshotOptions.bab)[0].past);
+
+// Every Mujarrad Bāb uses the same complete participle declension while the
+// three verb sections remain projections of their pre-existing generators.
+for (const [root, bab] of Object.keys(BAB_CONFIG).map((bab, index) => [index % 2 ? ["ن", "ص", "ر"] : ["د", "خ", "ل"], bab])) {
+  const babSnapshot = buildGeneratedSnapshot({ ...snapshotOptions, root, bab });
+  const activeVerbs = generateActiveForms(root, bab);
+  const passiveVerbs = generateVersion4Forms(root, bab, snapshotOptions.majzumParticle);
+  const mansubVerbs = generateMansubForms(root, bab, snapshotOptions.mansubParticle);
+  const imperatives = generateImperativeForms(root, bab);
+  assert.deepEqual(babSnapshot.sections.section01.map(({ pronoun, past, present, passivePast, passivePresent }) => ({ pronoun, past, present, passivePast, passivePresent })), activeVerbs.map(({ pronoun, past, present }, index) => ({ pronoun, past, present, passivePast: passiveVerbs[index].passivePast, passivePresent: passiveVerbs[index].passivePresent })));
+  assert.deepEqual(babSnapshot.sections.section02.map(({ mansubPresent }) => mansubPresent), mansubVerbs.map(({ mansubPresent }) => mansubPresent));
+  assert.deepEqual(babSnapshot.sections.section03.map(({ imperative, heavyImperative, lightImperative }) => ({ imperative, heavyImperative, lightImperative })), imperatives.map(({ imperative, heavyImperative, lightImperative }) => ({ imperative, heavyImperative, lightImperative })));
+  for (const key of ["activeParticiple", "passiveParticiple"]) {
+    const rows = babSnapshot.sections.section04[key];
+    assert.deepEqual(rows.map(({ label }) => label), ["مرفوع", "منصوب", "مجرور"]);
+    assert.equal(rows.length, 3);
+    assert.equal(rows.every(({ values }) => values.length === 6), true);
+  }
+}
 const colouredSnapshot = updateSnapshotColour(snapshot, true);
 assert.equal(colouredSnapshot.sections, snapshot.sections);
 assert.equal(colouredSnapshot.sections.section01[0].past, snapshot.sections.section01[0].past);
@@ -357,6 +386,21 @@ for (const addition of ["ت", "م", "ن", "ي", "و", "ا", "أ"]) {
   assertStructuralValue(structural, additionSnapshot.sections.section03[0].heavyImperative);
   assert.equal(structural.runs.filter(({ radicalIndex }) => radicalIndex).length, 3);
 }
+
+for (const key of ["activeParticiple", "passiveParticiple"]) {
+  for (const row of colouredSnapshot.sections.section04[key]) {
+    for (const presentation of row.presentations) {
+      assert.equal(presentation.runs.filter(({ radicalIndex }) => radicalIndex).length, 3);
+      assert.equal(presentation.runs.at(-1).radicalIndex, null, "nominal inflection endings must remain non-radical");
+    }
+  }
+}
+
+assert.equal(
+  crypto.createHash("sha256").update(fs.readFileSync("Arabic Sarf Template.xlsx")).digest("hex"),
+  "728156be24b19c9c4246c8ec3cde5d671dafca0c8213d586fff8e778a233a76a",
+  "Arabic Sarf Template.xlsx must remain unchanged",
+);
 
 const store = createGeneratedStateStore();
 store.generate(snapshotOptions);
