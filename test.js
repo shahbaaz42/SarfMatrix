@@ -267,7 +267,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=form-iv-browser-dispatch-fix"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=form-ii-tafil-phase-2"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -284,6 +284,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "نَصَرَ / يَنْصُرُ — فَعَلَ / يَفْعُلُ", "سَمِعَ / يَسْمَعُ — فَعِلَ / يَفْعَلُ",
   "كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ", "حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ",
   "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
+  "باب التفعيل — فَعَّلَ / يُفَعِّلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -524,6 +525,46 @@ assert.throws(() => formIV(["أ", "ك", "ل"]), /الصحيح السالم/);
 assert.equal(buildExportPages(karamIV, "portrait")[3].includes("اسم التفضيل"), false);
 assert.equal(Buffer.from(buildDocx(karamIV, "portrait")).toString("utf8").includes("المصدر"), true);
 
+// Form II is a declarative Mazīd configuration: the shared SIGHAS, mood,
+// request, nominal-inflection, presentation, and snapshot engines consume it.
+const formII = (root) => buildGeneratedSnapshot({ root, bab: "form-ii-tafil", babLabel: "باب التفعيل", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+const allamaII = formII(["ع", "ل", "م"]);
+assert.equal(allamaII.family, "mazid");
+assert.deepEqual(allamaII.sections.section01.map((row) => row.past).slice(0, 4), ["عَلَّمَ", "عَلَّمَا", "عَلَّمُوْا", "عَلَّمَتْ"]);
+assert.deepEqual(allamaII.sections.section01.map((row) => row.present).slice(0, 4), ["يُعَلِّمُ", "يُعَلِّمَانِ", "يُعَلِّمُوْنَ", "تُعَلِّمُ"]);
+assert.deepEqual([allamaII.sections.section01[0].passivePast, allamaII.sections.section01[0].passivePresent], ["عُلِّمَ", "يُعَلَّمُ"]);
+assert.equal(allamaII.sections.section01.length, SIGHAS.length);
+for (const row of allamaII.sections.section01) for (const key of ["past", "present", "passivePast", "passivePresent"]) assert.ok(row[key]);
+assert.deepEqual([allamaII.sections.section02[0].majzumPresent, allamaII.sections.section02[0].mansubPresent], ["لَمْ يُعَلِّمْ", "لَنْ يُعَلِّمَ"]);
+assert.deepEqual([allamaII.sections.section02[0].heavyEmphatic, allamaII.sections.section02[0].lightEmphatic], ["لَيُعَلِّمَنَّ", "لَيُعَلِّمَنْ"]);
+assert.equal(allamaII.sections.section03[0].imperative, "لِيُعَلِّمْ");
+assert.deepEqual(allamaII.sections.section03.slice(6, 12).map((row) => row.imperative), ["عَلِّمْ", "عَلِّمَا", "عَلِّمُوْا", "عَلِّمِيْ", "عَلِّمَا", "عَلِّمْنَ"]);
+assert.deepEqual([allamaII.sections.section03[6].heavyImperative, allamaII.sections.section03[6].lightImperative], ["عَلِّمَنَّ", "عَلِّمَنْ"]);
+assert.equal(allamaII.sections.section04.masdar[0].values[0], "تَعْلِيم");
+assert.deepEqual(allamaII.sections.section04.activeParticiple.map((row) => row.values[0]), ["مُعَلِّمٌ", "مُعَلِّمًا", "مُعَلِّمٍ"]);
+assert.deepEqual(allamaII.sections.section04.passiveParticiple.map((row) => row.values[0]), ["مُعَلَّمٌ", "مُعَلَّمًا", "مُعَلَّمٍ"]);
+for (const key of ["activeParticiple", "passiveParticiple"]) assert.deepEqual(allamaII.sections.section04[key].map((row) => row.values.length), [6, 6, 6]);
+for (const root of [["ع", "ل", "م"], ["ص", "ر", "ف"], ["ك", "ب", "ر"], ["د", "ر", "د"]]) assert.equal(formII(root).sections.section01.length, 14);
+
+// Shaddah is a mark inside the single R2 run, never an added pseudo-radical.
+const formIIPastRuns = allamaII.sections.section01[0].presentation.past.runs;
+assert.deepEqual(formIIPastRuns.map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.deepEqual(formIIPastRuns.map(({ text }) => text), ["عَ", "لَّ", "مَ"]);
+assert.equal(formIIPastRuns[1].radicalIndex, 2);
+const masdarRuns = allamaII.sections.section04.masdar[0].presentations[0].runs;
+assert.deepEqual(masdarRuns.map(({ text, radicalIndex }) => [text, radicalIndex]), [["تَ", null], ["عْ", 1], ["لِ", 2], ["ي", null], ["م", 3]]);
+for (const key of ["activeParticiple", "passiveParticiple"]) {
+  const runs = allamaII.sections.section04[key][0].presentations[0].runs;
+  assert.deepEqual(runs.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+  assert.equal(runs[0].radicalIndex, null);
+  assert.equal(runs[0].text, "مُ");
+  assert.equal(runs[2].radicalIndex, 2);
+  assert.match(runs[2].text, /ّ/u);
+}
+assert.throws(() => formII(["ق", "و", "ل"]), /الصحيح السالم/);
+assert.throws(() => formII(["م", "د", "د"]), /الصحيح السالم/);
+assert.throws(() => formII(["أ", "ك", "ل"]), /الصحيح السالم/);
+
 // Exercise the same top-level family dispatch used by the browser's Generate
 // submit handler, including semantic R1/R2/R3 order from the three UI fields.
 const browserDispatch = (root, bab) => dispatchGeneration({ root, bab, babLabel: bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: false });
@@ -535,6 +576,10 @@ assert.deepEqual(kharajaIV.sections.section01[0], {
 });
 for (const section of [kharajaIV.sections.section01, kharajaIV.sections.section02, kharajaIV.sections.section03]) assert.ok(section.length > 0);
 for (const section of Object.values(kharajaIV.sections.section04)) assert.ok(section.length > 0);
+const allamaIIDispatch = browserDispatch(["ع", "ل", "م"], "form-ii-tafil");
+assert.equal(allamaIIDispatch.sections.section01[0].past, "عَلَّمَ");
+for (const section of [allamaIIDispatch.sections.section01, allamaIIDispatch.sections.section02, allamaIIDispatch.sections.section03]) assert.ok(section.length > 0);
+for (const section of Object.values(allamaIIDispatch.sections.section04)) assert.ok(section.length > 0);
 const mujarradDispatch = browserDispatch(["ن", "ص", "ر"], "نَصَرَ-يَنْصُرُ");
 assert.equal(mujarradDispatch.family, "mujarrad");
 for (const section of [mujarradDispatch.sections.section01, mujarradDispatch.sections.section02, mujarradDispatch.sections.section03]) assert.ok(section.length > 0);
