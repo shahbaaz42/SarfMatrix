@@ -43,7 +43,7 @@ const BAB_CONFIG = Object.freeze({
 
 // Mazīd bābs are structural templates, deliberately separate from the
 // Mujarrad vowel table above.  Future forms can be added here without changing
-// the person/ending engine. Forms IV and II share every inflection path.
+// the person/ending engine. Forms IV, II, and III share every inflection path.
 const MAZID_BAB_CONFIG = Object.freeze({
   "form-iv-ifal": Object.freeze({
     family: "mazid", form: 4, label: "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
@@ -70,6 +70,19 @@ const MAZID_BAB_CONFIG = Object.freeze({
       masdar: Object.freeze([["literal", "تَ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["literal", "ي"], ["radical", 3]]),
       activeParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["radical", 2, "ِّ"], ["radical", 3]]),
       passiveParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
+    }),
+  }),
+  "form-iii-mufaalah": Object.freeze({
+    family: "mazid", form: 3, label: "باب المفاعلة — فَاعَلَ / يُفَاعِلُ",
+    templates: Object.freeze({
+      activePast: Object.freeze([["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+      activePresent: Object.freeze([["personPrefix", "ُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePast: Object.freeze([["radical", 1, "ُ"], ["literal", "و"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePresent: Object.freeze([["personPrefix", "ُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+      imperative: Object.freeze([["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "ِ"], ["radical", 3]]),
+      masdar: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3, "َ"], ["literal", "ة"]]),
+      activeParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passiveParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
     }),
   }),
 });

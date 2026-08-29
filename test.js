@@ -267,7 +267,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=form-ii-tafil-phase-2"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=form-iii-mufaalah-phase-3"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -285,6 +285,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ", "حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ",
   "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
   "باب التفعيل — فَعَّلَ / يُفَعِّلُ",
+  "باب المفاعلة — فَاعَلَ / يُفَاعِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -565,6 +566,44 @@ assert.throws(() => formII(["ق", "و", "ل"]), /الصحيح السالم/);
 assert.throws(() => formII(["م", "د", "د"]), /الصحيح السالم/);
 assert.throws(() => formII(["أ", "ك", "ل"]), /الصحيح السالم/);
 
+// Form III adds only declarative stems; all four sections continue through the
+// shared Mazīd person, mood, request, declension, and presentation machinery.
+const formIII = (root) => buildGeneratedSnapshot({ root, bab: "form-iii-mufaalah", babLabel: "باب المفاعلة", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+const qatalaIII = formIII(["ق", "ت", "ل"]);
+assert.equal(qatalaIII.family, "mazid");
+assert.equal(qatalaIII.sections.section01.length, SIGHAS.length);
+assert.deepEqual(qatalaIII.sections.section01.slice(0, 4).map((row) => row.past), ["قَاتَلَ", "قَاتَلَا", "قَاتَلُوْا", "قَاتَلَتْ"]);
+assert.deepEqual(qatalaIII.sections.section01.slice(0, 4).map((row) => row.present), ["يُقَاتِلُ", "يُقَاتِلَانِ", "يُقَاتِلُوْنَ", "تُقَاتِلُ"]);
+assert.deepEqual(qatalaIII.sections.section01.slice(0, 4).map((row) => row.passivePast), ["قُوتِلَ", "قُوتِلَا", "قُوتِلُوْا", "قُوتِلَتْ"]);
+assert.deepEqual(qatalaIII.sections.section01.slice(0, 4).map((row) => row.passivePresent), ["يُقَاتَلُ", "يُقَاتَلَانِ", "يُقَاتَلُوْنَ", "تُقَاتَلُ"]);
+for (const row of qatalaIII.sections.section01) for (const key of ["past", "present", "passivePast", "passivePresent"]) assert.ok(row[key]);
+assert.equal(qatalaIII.sections.section02.length, SIGHAS.length);
+assert.deepEqual([qatalaIII.sections.section02[0].majzumPresent, qatalaIII.sections.section02[0].mansubPresent], ["لَمْ يُقَاتِلْ", "لَنْ يُقَاتِلَ"]);
+assert.deepEqual([qatalaIII.sections.section02[0].heavyEmphatic, qatalaIII.sections.section02[0].lightEmphatic], ["لَيُقَاتِلَنَّ", "لَيُقَاتِلَنْ"]);
+assert.equal(qatalaIII.sections.section02.filter((row) => row.heavyEmphatic).length, SIGHAS.filter((s) => s.heavyEmphaticEnding !== null).length);
+assert.equal(qatalaIII.sections.section02.filter((row) => row.lightEmphatic).length, SIGHAS.filter((s) => s.lightEmphaticEnding !== null).length);
+assert.equal(qatalaIII.sections.section03.length, SIGHAS.length);
+assert.equal(qatalaIII.sections.section03[0].imperative, "لِيُقَاتِلْ");
+assert.deepEqual(qatalaIII.sections.section03.slice(6, 12).map((row) => row.imperative), ["قَاتِلْ", "قَاتِلَا", "قَاتِلُوْا", "قَاتِلِيْ", "قَاتِلَا", "قَاتِلْنَ"]);
+assert.deepEqual([qatalaIII.sections.section03[6].heavyImperative, qatalaIII.sections.section03[6].lightImperative], ["قَاتِلَنَّ", "قَاتِلَنْ"]);
+assert.equal(qatalaIII.sections.section04.masdar[0].values[0], "مُقَاتَلَة");
+assert.deepEqual(qatalaIII.sections.section04.activeParticiple.map((row) => row.values[0]), ["مُقَاتِلٌ", "مُقَاتِلًا", "مُقَاتِلٍ"]);
+assert.deepEqual(qatalaIII.sections.section04.passiveParticiple.map((row) => row.values[0]), ["مُقَاتَلٌ", "مُقَاتَلًا", "مُقَاتَلٍ"]);
+for (const key of ["activeParticiple", "passiveParticiple"]) {
+  assert.deepEqual(qatalaIII.sections.section04[key].map((row) => row.values.length), [6, 6, 6]);
+  assert.equal(qatalaIII.sections.section04[key].flatMap((row) => row.values).length, 18);
+}
+assert.deepEqual(qatalaIII.sections.section01[0].presentation.past.runs.map(({ text, radicalIndex }) => [text, radicalIndex]), [["قَ", 1], ["ا", null], ["تَ", 2], ["لَ", 3]]);
+assert.deepEqual(qatalaIII.sections.section01[0].presentation.passivePast.runs.map(({ text, radicalIndex }) => [text, radicalIndex]), [["قُ", 1], ["و", null], ["تِ", 2], ["لَ", 3]]);
+assert.deepEqual(qatalaIII.sections.section04.masdar[0].presentations[0].runs.map(({ text, radicalIndex }) => [text, radicalIndex]), [["مُ", null], ["قَ", 1], ["ا", null], ["تَ", 2], ["لَ", 3], ["ة", null]]);
+for (const root of [["ق", "ت", "ل"], ["ج", "ه", "د"], ["س", "ف", "ر"], ["د", "ر", "د"]]) assert.equal(formIII(root).sections.section01.length, 14);
+const repeatedIIIRuns = formIII(["د", "ر", "د"]).sections.section01[0].presentation.past.runs;
+assert.deepEqual(repeatedIIIRuns.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.throws(() => formIII(["ق", "و", "ل"]), /الصحيح السالم/);
+assert.throws(() => formIII(["م", "د", "د"]), /الصحيح السالم/);
+assert.throws(() => formIII(["أ", "ك", "ل"]), /الصحيح السالم/);
+assert.equal(Buffer.from(buildDocx(qatalaIII, "portrait")).toString("utf8").includes("المصدر"), true);
+
 // Exercise the same top-level family dispatch used by the browser's Generate
 // submit handler, including semantic R1/R2/R3 order from the three UI fields.
 const browserDispatch = (root, bab) => dispatchGeneration({ root, bab, babLabel: bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: false });
@@ -580,6 +619,13 @@ const allamaIIDispatch = browserDispatch(["ع", "ل", "م"], "form-ii-tafil");
 assert.equal(allamaIIDispatch.sections.section01[0].past, "عَلَّمَ");
 for (const section of [allamaIIDispatch.sections.section01, allamaIIDispatch.sections.section02, allamaIIDispatch.sections.section03]) assert.ok(section.length > 0);
 for (const section of Object.values(allamaIIDispatch.sections.section04)) assert.ok(section.length > 0);
+const qatalaIIIDispatch = browserDispatch(["ق", "ت", "ل"], "form-iii-mufaalah");
+assert.deepEqual(qatalaIIIDispatch.sections.section01[0], {
+  ...qatalaIIIDispatch.sections.section01[0],
+  past: "قَاتَلَ", present: "يُقَاتِلُ", passivePast: "قُوتِلَ", passivePresent: "يُقَاتَلُ",
+});
+for (const section of [qatalaIIIDispatch.sections.section01, qatalaIIIDispatch.sections.section02, qatalaIIIDispatch.sections.section03]) assert.ok(section.length > 0);
+for (const section of Object.values(qatalaIIIDispatch.sections.section04)) assert.ok(section.length > 0);
 const mujarradDispatch = browserDispatch(["ن", "ص", "ر"], "نَصَرَ-يَنْصُرُ");
 assert.equal(mujarradDispatch.family, "mujarrad");
 for (const section of [mujarradDispatch.sections.section01, mujarradDispatch.sections.section02, mujarradDispatch.sections.section03]) assert.ok(section.length > 0);
