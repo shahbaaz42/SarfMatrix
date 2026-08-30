@@ -43,7 +43,7 @@ const BAB_CONFIG = Object.freeze({
 
 // Mazīd bābs are structural templates, deliberately separate from the
 // Mujarrad vowel table above.  Future forms can be added here without changing
-// the person/ending engine. Forms IV, II, III, and V share every inflection path.
+// the person/ending engine. Forms IV, II, III, V, and VI share every inflection path.
 const MAZID_BAB_CONFIG = Object.freeze({
   "form-iv-ifal": Object.freeze({
     family: "mazid", form: 4, label: "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
@@ -97,6 +97,20 @@ const MAZID_BAB_CONFIG = Object.freeze({
       masdar: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "ُّ"], ["radical", 3]]),
       activeParticiple: Object.freeze([["literal", "مُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "ِّ"], ["radical", 3]]),
       passiveParticiple: Object.freeze([["literal", "مُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
+    }),
+  }),
+  "form-vi-tafaul": Object.freeze({
+    family: "mazid", form: 6, label: "باب التفاعل — تَفَاعَلَ / يَتَفَاعَلُ",
+    availability: Object.freeze({ passive: "lexical-metadata-ready", passiveParticiple: "lexical-metadata-ready" }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+      activePresent: Object.freeze([["personPrefix", "َ"], ["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+      passivePast: Object.freeze([["literal", "تُ"], ["radical", 1, "ُ"], ["literal", "و"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePresent: Object.freeze([["personPrefix", "ُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+      imperative: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+      masdar: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "ُ"], ["radical", 3]]),
+      activeParticiple: Object.freeze([["literal", "مُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passiveParticiple: Object.freeze([["literal", "مُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
     }),
   }),
 });
