@@ -43,7 +43,7 @@ const BAB_CONFIG = Object.freeze({
 
 // Mazīd bābs are structural templates, deliberately separate from the
 // Mujarrad vowel table above.  Future forms can be added here without changing
-// the person/ending engine. Forms IV, II, and III share every inflection path.
+// the person/ending engine. Forms IV, II, III, and V share every inflection path.
 const MAZID_BAB_CONFIG = Object.freeze({
   "form-iv-ifal": Object.freeze({
     family: "mazid", form: 4, label: "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
@@ -83,6 +83,20 @@ const MAZID_BAB_CONFIG = Object.freeze({
       masdar: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3, "َ"], ["literal", "ة"]]),
       activeParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "ِ"], ["radical", 3]]),
       passiveParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "َ"], ["literal", "ا"], ["radical", 2, "َ"], ["radical", 3]]),
+    }),
+  }),
+  "form-v-tafaul": Object.freeze({
+    family: "mazid", form: 5, label: "باب التفعّل — تَفَعَّلَ / يَتَفَعَّلُ",
+    availability: Object.freeze({ passive: "lexical-metadata-ready", passiveParticiple: "lexical-metadata-ready" }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
+      activePresent: Object.freeze([["personPrefix", "َ"], ["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
+      passivePast: Object.freeze([["literal", "تُ"], ["radical", 1, "ُ"], ["radical", 2, "ِّ"], ["radical", 3]]),
+      passivePresent: Object.freeze([["personPrefix", "ُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
+      imperative: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
+      masdar: Object.freeze([["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "ُّ"], ["radical", 3]]),
+      activeParticiple: Object.freeze([["literal", "مُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "ِّ"], ["radical", 3]]),
+      passiveParticiple: Object.freeze([["literal", "مُ"], ["literal", "تَ"], ["radical", 1, "َ"], ["radical", 2, "َّ"], ["radical", 3]]),
     }),
   }),
 });
@@ -294,7 +308,10 @@ function morphologyValue(...parts) {
   for (const part of parts.flat()) {
     if (!part || !part.text) continue;
     const previous = runs[runs.length - 1];
-    if (previous && previous.radicalIndex === part.radicalIndex) {
+    // Only coalesce pieces of the same radical. Distinct adjacent additions
+    // (for example Form V's person prefix and derivational tāʾ) must remain
+    // separately identifiable structural runs even though both are uncoloured.
+    if (previous && part.radicalIndex !== null && previous.radicalIndex === part.radicalIndex) {
       runs[runs.length - 1] = morphologyRun(previous.text + part.text, part.radicalIndex);
     } else runs.push(morphologyRun(part.text, part.radicalIndex));
   }
