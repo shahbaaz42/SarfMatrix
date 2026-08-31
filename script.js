@@ -43,7 +43,7 @@ const BAB_CONFIG = Object.freeze({
 
 // Mazīd bābs are structural templates, deliberately separate from the
 // Mujarrad vowel table above.  Future forms can be added here without changing
-// the person/ending engine. Forms IV, II, III, V, VI, and VII share every inflection path.
+// the person/ending engine. Forms IV, II, III, V, VI, VII, and VIII share every inflection path.
 const MAZID_BAB_CONFIG = Object.freeze({
   "form-iv-ifal": Object.freeze({
     family: "mazid", form: 4, label: "باب الإفعال — أَفْعَلَ / يُفْعِلُ",
@@ -125,6 +125,19 @@ const MAZID_BAB_CONFIG = Object.freeze({
       masdar: Object.freeze([["literal", "اِ"], ["literal", "نْ"], ["radical", 1, "ِ"], ["radical", 2, "َ"], ["literal", "ا"], ["radical", 3]]),
       activeParticiple: Object.freeze([["literal", "مُ"], ["literal", "نْ"], ["radical", 1, "َ"], ["radical", 2, "ِ"], ["radical", 3]]),
       passiveParticiple: Object.freeze([["literal", "مُ"], ["literal", "نْ"], ["radical", 1, "َ"], ["radical", 2, "َ"], ["radical", 3]]),
+    }),
+  }),
+  "form-viii-iftial": Object.freeze({
+    family: "mazid", form: 8, label: "باب الافتعال — اِفْتَعَلَ / يَفْتَعِلُ",
+    templates: Object.freeze({
+      activePast: Object.freeze([["literal", "اِ"], ["radical", 1, "ْ"], ["literal", "تَ"], ["radical", 2, "َ"], ["radical", 3]]),
+      activePresent: Object.freeze([["personPrefix", "َ"], ["radical", 1, "ْ"], ["literal", "تَ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePast: Object.freeze([["literal", "اُ"], ["radical", 1, "ْ"], ["literal", "تُ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passivePresent: Object.freeze([["personPrefix", "ُ"], ["radical", 1, "ْ"], ["literal", "تَ"], ["radical", 2, "َ"], ["radical", 3]]),
+      imperative: Object.freeze([["literal", "اِ"], ["radical", 1, "ْ"], ["literal", "تَ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      masdar: Object.freeze([["literal", "اِ"], ["radical", 1, "ْ"], ["literal", "تِ"], ["radical", 2, "َ"], ["literal", "ا"], ["radical", 3]]),
+      activeParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "ْ"], ["literal", "تَ"], ["radical", 2, "ِ"], ["radical", 3]]),
+      passiveParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "ْ"], ["literal", "تَ"], ["radical", 2, "َ"], ["radical", 3]]),
     }),
   }),
 });
@@ -365,10 +378,24 @@ function isSoundFormIVRoot(root) {
     && bare[1] !== bare[2];
 }
 
+// Phase 7 deliberately defers the phonological ت substitutions and
+// assimilations peculiar to Form VIII. This is independent of the generic
+// sound-root check so no other Mazīd form loses otherwise-supported roots.
+const FORM_VIII_SPECIAL_R1 = new Set(["ت", "ث", "د", "ذ", "ز", "ص", "ض", "ط", "ظ"]);
+
+function isRegularFormVIIIRoot(root) {
+  if (!isSoundFormIVRoot(root)) return false;
+  const first = String(root[0]).normalize("NFC").replace(/\p{M}/gu, "");
+  return !FORM_VIII_SPECIAL_R1.has(first);
+}
+
 function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
   const config = MAZID_BAB_CONFIG[bab];
   if (!config) throw new Error(`Unknown Mazīd Bāb: ${bab}`);
   if (!isSoundFormIVRoot(root)) throw new Error(`${config.label} متاح حاليًا للجذر الصحيح السالم فقط.`);
+  if (config.form === 8 && !isRegularFormVIIIRoot(root)) {
+    throw new Error("This Form VIII root requires an assimilation rule that is not yet implemented.");
+  }
   const templates = config.templates;
   const verbs = SIGHAS.map((sighah) => {
     const inflect = (name, ending) => inflectVerbStem(instantiateMazidTemplate(root, templates[name], sighah).runs, ending);
@@ -749,6 +776,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, isSoundFormIVRoot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, isSoundFormIVRoot, isRegularFormVIIIRoot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
