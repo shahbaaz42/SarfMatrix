@@ -9,7 +9,7 @@ const {
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
-  buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot,
+  buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot, isRegularFormVIIIRoot,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
@@ -267,7 +267,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=form-vii-infial-phase-6"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=form-viii-iftial-phase-7"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -289,6 +289,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب التفعّل — تَفَعَّلَ / يَتَفَعَّلُ",
   "باب التفاعل — تَفَاعَلَ / يَتَفَاعَلُ",
   "باب الانفعال — اِنْفَعَلَ / يَنْفَعِلُ",
+  "باب الافتعال — اِفْتَعَلَ / يَفْتَعِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -729,9 +730,66 @@ for (const root of [["ق", "و", "ل"], ["م", "د", "د"], ["أ", "ك", "ل"]])
 assert.equal(buildExportPages(kasaraVII, "portrait").join("\n").includes("المصدر"), true);
 assert.equal(Buffer.from(buildDocx(kasaraVII, "portrait")).toString("utf8").includes("المصدر"), true);
 
+// Form VIII uses the shared declarative engine while retaining the inserted
+// derivational tāʾ and hamzat al-waṣl as non-radical structural runs.
+const formVIII = (root) => buildGeneratedSnapshot({ root, bab: "form-viii-iftial", babLabel: "باب الافتعال", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+const ijtamaaVIII = formVIII(["ج", "م", "ع"]);
+assert.equal(ijtamaaVIII.family, "mazid");
+assert.deepEqual(ijtamaaVIII.sections.section01.slice(0, 4).map((row) => row.past), ["اِجْتَمَعَ", "اِجْتَمَعَا", "اِجْتَمَعُوْا", "اِجْتَمَعَتْ"]);
+assert.deepEqual(ijtamaaVIII.sections.section01.slice(0, 4).map((row) => row.present), ["يَجْتَمِعُ", "يَجْتَمِعَانِ", "يَجْتَمِعُوْنَ", "تَجْتَمِعُ"]);
+assert.deepEqual(ijtamaaVIII.sections.section01.slice(0, 4).map((row) => row.passivePast), ["اُجْتُمِعَ", "اُجْتُمِعَا", "اُجْتُمِعُوْا", "اُجْتُمِعَتْ"]);
+assert.deepEqual(ijtamaaVIII.sections.section01.slice(0, 4).map((row) => row.passivePresent), ["يُجْتَمَعُ", "يُجْتَمَعَانِ", "يُجْتَمَعُوْنَ", "تُجْتَمَعُ"]);
+assert.equal(ijtamaaVIII.sections.section01.length, 14);
+for (const row of ijtamaaVIII.sections.section01) for (const key of ["past", "present", "passivePast", "passivePresent"]) assert.ok(row[key]);
+assert.equal(ijtamaaVIII.sections.section02.length, 14);
+assert.deepEqual(Object.values(ijtamaaVIII.sections.section02[0]).slice(1, 5), ["لَمْ يَجْتَمِعْ", "لَنْ يَجْتَمِعَ", "لَيَجْتَمِعَنَّ", "لَيَجْتَمِعَنْ"]);
+assert.equal(ijtamaaVIII.sections.section02.filter((row) => row.heavyEmphatic).length, SIGHAS.filter((s) => s.heavyEmphaticEnding !== null).length);
+assert.equal(ijtamaaVIII.sections.section02.filter((row) => row.lightEmphatic).length, SIGHAS.filter((s) => s.lightEmphaticEnding !== null).length);
+assert.equal(ijtamaaVIII.sections.section03.length, 14);
+assert.equal(ijtamaaVIII.sections.section03[0].imperative, "لِيَجْتَمِعْ");
+assert.deepEqual(ijtamaaVIII.sections.section03.slice(6, 12).map((row) => row.imperative), ["اِجْتَمِعْ", "اِجْتَمِعَا", "اِجْتَمِعُوْا", "اِجْتَمِعِيْ", "اِجْتَمِعَا", "اِجْتَمِعْنَ"]);
+assert.deepEqual([ijtamaaVIII.sections.section03[6].heavyImperative, ijtamaaVIII.sections.section03[6].lightImperative], ["اِجْتَمِعَنَّ", "اِجْتَمِعَنْ"]);
+assert.equal(ijtamaaVIII.sections.section04.masdar[0].values[0], "اِجْتِمَاع");
+assert.deepEqual(ijtamaaVIII.sections.section04.activeParticiple.map((row) => row.values[0]), ["مُجْتَمِعٌ", "مُجْتَمِعًا", "مُجْتَمِعٍ"]);
+assert.deepEqual(ijtamaaVIII.sections.section04.passiveParticiple.map((row) => row.values[0]), ["مُجْتَمَعٌ", "مُجْتَمَعًا", "مُجْتَمَعٍ"]);
+for (const key of ["activeParticiple", "passiveParticiple"]) assert.deepEqual(ijtamaaVIII.sections.section04[key].map((row) => row.values.length), [6, 6, 6]);
+assert.deepEqual(runPairs(ijtamaaVIII.sections.section01[0].presentation.past), [["اِ", null], ["جْ", 1], ["تَ", null], ["مَ", 2], ["عَ", 3]]);
+assert.deepEqual(runPairs(ijtamaaVIII.sections.section01[0].presentation.present), [["يَ", null], ["جْ", 1], ["تَ", null], ["مِ", 2], ["عُ", 3]]);
+assert.deepEqual(runPairs(ijtamaaVIII.sections.section01[0].presentation.passivePast), [["اُ", null], ["جْ", 1], ["تُ", null], ["مِ", 2], ["عَ", 3]]);
+assert.deepEqual(runPairs(ijtamaaVIII.sections.section01[0].presentation.passivePresent), [["يُ", null], ["جْ", 1], ["تَ", null], ["مَ", 2], ["عُ", 3]]);
+assert.deepEqual(runPairs(ijtamaaVIII.sections.section03[6].presentation.imperative), [["اِ", null], ["جْ", 1], ["تَ", null], ["مِ", 2], ["عْ", 3]]);
+assert.deepEqual(runPairs(ijtamaaVIII.sections.section04.masdar[0].presentations[0]), [["اِ", null], ["جْ", 1], ["تِ", null], ["مَ", 2], ["ا", null], ["ع", 3]]);
+for (const key of ["activeParticiple", "passiveParticiple"]) {
+  const runs = runPairs(ijtamaaVIII.sections.section04[key][0].presentations[0]);
+  assert.deepEqual(runs.slice(0, 3).map((pair) => pair[1]), [null, 1, null]);
+  assert.deepEqual(runs.filter((pair) => pair[1]).map((pair) => pair[1]), [1, 2, 3]);
+}
+// Repeated glyphs cannot acquire radical identity from character matching.
+assert.deepEqual(runPairs(formVIII(["ج", "م", "ج"]).sections.section01[0].presentation.past).filter((pair) => pair[1]).map((pair) => pair[1]), [1, 2, 3]);
+for (const text of [ijtamaaVIII.sections.section01[0].past, ijtamaaVIII.sections.section03[6].imperative, ijtamaaVIII.sections.section04.masdar[0].values[0]]) {
+  assert.equal(/[أإ]/u.test(text), false);
+  assert.equal(/[\u200c\u200d]/u.test(text), false);
+}
+assert.equal(isRegularFormVIIIRoot(["ج", "م", "ع"]), true);
+for (const first of ["ت", "د", "ز", "ص", "ط", "ظ"]) {
+  assert.equal(isRegularFormVIIIRoot([first, "ك", "ب"]), false);
+  assert.throws(() => formVIII([first, "ك", "ب"]), /requires an assimilation rule/);
+}
+for (const root of [["ق", "و", "ل"], ["م", "د", "د"], ["أ", "ك", "ل"]]) assert.throws(() => formVIII(root), /الصحيح السالم/);
+assert.equal(buildExportPages(ijtamaaVIII, "portrait").join("\n").includes("المصدر"), true);
+assert.equal(Buffer.from(buildDocx(ijtamaaVIII, "portrait")).toString("utf8").includes("المصدر"), true);
+
 // Exercise the same top-level family dispatch used by the browser's Generate
 // submit handler, including semantic R1/R2/R3 order from the three UI fields.
 const browserDispatch = (root, bab) => dispatchGeneration({ root, bab, babLabel: bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: false });
+const ijtamaaVIIIDispatch = browserDispatch(["ج", "م", "ع"], "form-viii-iftial");
+assert.deepEqual(ijtamaaVIIIDispatch.sections.section01[0], {
+  ...ijtamaaVIIIDispatch.sections.section01[0],
+  past: "اِجْتَمَعَ", present: "يَجْتَمِعُ", passivePast: "اُجْتُمِعَ", passivePresent: "يُجْتَمَعُ",
+});
+for (const section of [ijtamaaVIIIDispatch.sections.section01, ijtamaaVIIIDispatch.sections.section02, ijtamaaVIIIDispatch.sections.section03]) assert.ok(section.length > 0);
+for (const section of Object.values(ijtamaaVIIIDispatch.sections.section04)) assert.ok(section.length > 0);
+assert.throws(() => browserDispatch(["ص", "ب", "ر"], "form-viii-iftial"), /requires an assimilation rule/);
 const kharajaIV = browserDispatch(["خ", "ر", "ج"], "form-iv-ifal");
 assert.deepEqual(kharajaIV.root, ["خ", "ر", "ج"]);
 assert.deepEqual(kharajaIV.sections.section01[0], {
