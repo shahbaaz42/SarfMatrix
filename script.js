@@ -373,7 +373,7 @@ function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transforma
         if (!r1 || r1.radicalIndex !== 1) throw new Error("Form VIII tāʾ must follow R1");
         // The infix's vowel moves onto the visible, doubled R1. Its origin is
         // retained by transformation metadata rather than a fake fourth run.
-        runs[runs.length - 1] = morphologyRun(`${root[0]}${SHADDA}${marks}`, 1);
+        runs[runs.length - 1] = morphologyRun(`${transformation.surfaceRadical?.text ?? root[0]}${SHADDA}${marks}`, 1);
       } else runs.push(literal(`${transformation?.replacement ?? LETTERS.TA}${marks}`));
     } else runs.push(literal(value));
   }
@@ -397,19 +397,49 @@ const FORM_VIII_PHASE_A_RULES = deepFreeze({
   "ط": { ruleId: "form8-ta-ta-assimilation", babId: "form-viii-iftial", ruleType: "ibdal-idgham", replacement: "ط", assimilates: true },
 });
 
+// Phase B1 extends the same structural rule table.  Alternatives are paths of
+// phonological data only: presentation layers can localize their explanation
+// without the morphology engine containing explanatory prose.
+const FORM_VIII_PHASE_B1_RULES = deepFreeze({
+  "ذ": {
+    ruleId: "form8-dhal-ta-dal-assimilation", babId: "form-viii-iftial", ruleType: "ibdal-idgham",
+    replacement: "د", assimilates: true, surfaceRadicalText: "د",
+    defaultPath: ["ذْت", "ذْد", "دْد", "دّ"],
+    stageOperations: ["ibdal", "regressive-assimilation", "idgham"],
+    acceptedAlternatives: [{ variantId: "assimilate-to-dhal", path: ["ذْت", "ذْد", "ذْذ", "ذّ"], resultSequence: "ذّ" }],
+  },
+  "ظ": {
+    ruleId: "form8-za-ta-to-emphatic-ta", babId: "form-viii-iftial", ruleType: "ibdal",
+    replacement: "ط", assimilates: false,
+    defaultPath: ["ظْت", "ظْط"],
+    acceptedAlternatives: [
+      { variantId: "assimilate-to-za", path: ["ظْت", "ظْط", "ظْظ", "ظّ"], resultSequence: "ظّ" },
+      { variantId: "assimilate-to-emphatic-ta", path: ["ظْت", "ظْط", "طْط", "طّ"], resultSequence: "طّ" },
+    ],
+  },
+});
+
+const FORM_VIII_TRANSFORMATION_RULES = deepFreeze({ ...FORM_VIII_PHASE_A_RULES, ...FORM_VIII_PHASE_B1_RULES });
+
 function formVIIITransformation(root) {
   const first = String(root[0]).normalize("NFC").replace(/\p{M}/gu, "");
-  const rule = FORM_VIII_PHASE_A_RULES[first];
+  const rule = FORM_VIII_TRANSFORMATION_RULES[first];
   if (!rule) return null;
   const originalSequence = `${first}${SUKUN}${LETTERS.TA}`;
   const intermediateSequence = `${first}${SUKUN}${rule.replacement}`;
-  const resultSequence = rule.assimilates ? `${first}${SHADDA}` : intermediateSequence;
+  const resultSequence = rule.assimilates ? `${rule.surfaceRadicalText ?? first}${SHADDA}` : intermediateSequence;
+  const defaultPath = rule.defaultPath ?? (rule.assimilates
+    ? [originalSequence, intermediateSequence, resultSequence]
+    : [originalSequence, resultSequence]);
   return deepFreeze({
-    ...rule, originalSequence, resultSequence,
-    affectedElement: { kind: "derivational", elementId: "form8Ta", underlying: LETTERS.TA, radicalIndex: null, assimilatedIntoRadicalIndex: rule.assimilates ? 1 : null },
-    stages: rule.assimilates
-      ? [{ operation: "ibdal", input: originalSequence, output: intermediateSequence }, { operation: "idgham", input: intermediateSequence, output: resultSequence }]
-      : [{ operation: "ibdal", input: originalSequence, output: resultSequence }],
+    ...rule, originalSequence, intermediateSequences: defaultPath.slice(1, -1), resultSequence,
+    defaultPath, acceptedAlternatives: rule.acceptedAlternatives ?? [],
+    originalRadical: { text: first, radicalIndex: 1 },
+    surfaceRadical: { text: rule.surfaceRadicalText ?? first, radicalIndex: 1, shadda: Boolean(rule.assimilates) },
+    affectedElement: { kind: "derivational", elementId: "form8Ta", underlying: LETTERS.TA, surface: rule.replacement, radicalIndex: null, assimilatedIntoRadicalIndex: rule.assimilates ? 1 : null },
+    stages: defaultPath.slice(0, -1).map((input, index) => ({
+      operation: rule.stageOperations?.[index] ?? (index === 0 ? "ibdal" : "idgham"), input, output: defaultPath[index + 1],
+    })),
   });
 }
 
@@ -434,7 +464,13 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
     const intermediateForm = transformation.assimilates
       ? instantiateMazidTemplate(root, templates.activePast, SIGHAS[0], { ...transformation, assimilates: false }).text + FATHA
       : null;
-    return { ...transformation, underlyingForm, resultForm, formStages: intermediateForm ? [underlyingForm, intermediateForm, resultForm] : [underlyingForm, resultForm] };
+    const acceptedAlternatives = transformation.acceptedAlternatives.map((alternative) => ({
+      ...alternative,
+      resultForm: instantiateMazidTemplate(root, templates.activePast, SIGHAS[0], {
+        ...transformation, assimilates: true, surfaceRadical: { text: alternative.resultSequence[0] },
+      }).text + FATHA,
+    }));
+    return { ...transformation, acceptedAlternatives, underlyingForm, resultForm, formStages: intermediateForm ? [underlyingForm, intermediateForm, resultForm] : [underlyingForm, resultForm] };
   })() : null;
   const verbs = SIGHAS.map((sighah) => {
     const inflect = (name, ending) => inflectVerbStem(instantiateMazidTemplate(root, templates[name], sighah, transformation).runs, ending);
@@ -815,6 +851,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
