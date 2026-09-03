@@ -10,7 +10,7 @@ const {
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
   buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot, isRegularFormVIIIRoot,
-  FORM_VIII_PHASE_A_RULES, formVIIITransformation,
+  FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, formVIIITransformation,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, FOOTER } = require("./export.js");
 
@@ -268,7 +268,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=form-viii-special-phase-a"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=form-viii-special-phase-b1"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -774,7 +774,7 @@ for (const text of [ijtamaaVIII.sections.section01[0].past, ijtamaaVIII.sections
 assert.equal(isRegularFormVIIIRoot(["ج", "م", "ع"]), true);
 for (const first of ["ت", "ث", "د", "ذ", "ز", "ص", "ض", "ط", "ظ"]) {
   assert.equal(isRegularFormVIIIRoot([first, "ك", "ب"]), false);
-  if (["ت", "ث", "ذ", "ظ"].includes(first)) assert.throws(() => formVIII([first, "ك", "ب"]), /requires an assimilation rule/);
+  if (["ت", "ث"].includes(first)) assert.throws(() => formVIII([first, "ك", "ب"]), /requires an assimilation rule/);
 }
 for (const root of [["ق", "و", "ل"], ["م", "د", "د"], ["أ", "ك", "ل"]]) assert.throws(() => formVIII(root), /الصحيح السالم/);
 assert.equal(buildExportPages(ijtamaaVIII, "portrait").join("\n").includes("المصدر"), true);
@@ -834,6 +834,70 @@ for (const root of [["ج", "م", "ع"], ["ج", "ن", "ب"]]) {
   assert.equal(regular.transformation, null);
 }
 assert.equal(formVIII(["ج", "ن", "ب"]).sections.section01[0].past, "اِجْتَنَبَ");
+
+// Form VIII Phase B1 uses the same templates and inflection engines for ذ and
+// ظ.  Only the structural R1/form8Ta junction and its metadata differ.
+const phaseB1Cases = [
+  {
+    root: ["ذ", "ك", "ر"],
+    core: ["اِدَّكَرَ", "يَدَّكِرُ", "اُدُّكِرَ", "يُدَّكَرُ", "اِدَّكِرْ", "اِدِّكَار", "مُدَّكِرٌ", "مُدَّكَرٌ"],
+  },
+  {
+    root: ["ظ", "ل", "م"],
+    core: ["اِظْطَلَمَ", "يَظْطَلِمُ", "اُظْطُلِمَ", "يُظْطَلَمُ", "اِظْطَلِمْ", "اِظْطِلَام", "مُظْطَلِمٌ", "مُظْطَلَمٌ"],
+  },
+];
+assert.deepEqual(Object.keys(FORM_VIII_PHASE_B1_RULES).sort(), ["ذ", "ظ"]);
+for (const { root, core } of phaseB1Cases) {
+  const snapshot = formVIII(root);
+  assert.deepEqual([
+    snapshot.sections.section01[0].past, snapshot.sections.section01[0].present,
+    snapshot.sections.section01[0].passivePast, snapshot.sections.section01[0].passivePresent,
+    snapshot.sections.section03[6].imperative, snapshot.sections.section04.masdar[0].values[0],
+    snapshot.sections.section04.activeParticiple[0].values[0], snapshot.sections.section04.passiveParticiple[0].values[0],
+  ], core);
+  assert.deepEqual([snapshot.sections.section01.length, snapshot.sections.section02.length, snapshot.sections.section03.length], [14, 14, 14]);
+  for (const section of [snapshot.sections.section01, snapshot.sections.section02, snapshot.sections.section03]) {
+    for (const row of section) for (const value of Object.values(row.presentation)) {
+      if (value.text) assert.deepEqual(value.runs.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1, 2, 3]);
+    }
+  }
+  for (const key of ["activeParticiple", "passiveParticiple"]) {
+    assert.deepEqual(snapshot.sections.section04[key].map((row) => row.values.length), [6, 6, 6]);
+    for (const row of snapshot.sections.section04[key]) for (const value of row.presentations) {
+      assert.deepEqual(value.runs.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1, 2, 3]);
+    }
+  }
+  assert.equal(snapshot.transformation.originalRadical.text, root[0]);
+  assert.equal(snapshot.transformation.originalRadical.radicalIndex, 1);
+  assert.equal(snapshot.transformation.affectedElement.elementId, "form8Ta");
+  assert.equal(snapshot.transformation.affectedElement.radicalIndex, null);
+  assert.equal(snapshot.transformation.resultForm, core[0]);
+  assert.equal(dispatchGeneration({ root, bab: "form-viii-iftial", babLabel: "باب الافتعال", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true }).sections.section01[0].past, core[0]);
+  const exportSnapshot = updateSnapshotColour(snapshot, false);
+  assert.equal(buildExportPages(exportSnapshot, "portrait").join("\n").includes(core[0]), true);
+  assert.equal(Buffer.from(buildDocx(exportSnapshot, "portrait")).toString("utf8").includes(core[0]), true);
+}
+const dhalVIII = formVIII(["ذ", "ك", "ر"]);
+assert.deepEqual(dhalVIII.transformation.defaultPath, ["ذْت", "ذْد", "دْد", "دّ"]);
+assert.deepEqual(dhalVIII.transformation.acceptedAlternatives[0].path, ["ذْت", "ذْد", "ذْذ", "ذّ"]);
+assert.equal(dhalVIII.transformation.acceptedAlternatives[0].resultForm, "اِذَّكَرَ");
+assert.deepEqual(dhalVIII.transformation.stages.map(({ operation }) => operation), ["ibdal", "regressive-assimilation", "idgham"]);
+assert.deepEqual(dhalVIII.transformation.surfaceRadical, { text: "د", radicalIndex: 1, shadda: true });
+assert.equal(dhalVIII.transformation.affectedElement.assimilatedIntoRadicalIndex, 1);
+const dhalPastRuns = dhalVIII.sections.section01[0].presentation.past.runs;
+assert.equal(dhalPastRuns.find((run) => run.radicalIndex === 1).text, "دَّ");
+assert.equal(dhalVIII.sections.section01[0].past.includes("دد"), false);
+assert.deepEqual(dhalPastRuns.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1, 2, 3]);
+
+const zaVIII = formVIII(["ظ", "ل", "م"]);
+assert.deepEqual(zaVIII.transformation.defaultPath, ["ظْت", "ظْط"]);
+assert.deepEqual(zaVIII.transformation.acceptedAlternatives.map(({ resultSequence }) => resultSequence), ["ظّ", "طّ"]);
+assert.deepEqual(zaVIII.transformation.acceptedAlternatives.map(({ resultForm }) => resultForm), ["اِظَّلَمَ", "اِطَّلَمَ"]);
+const zaPastRuns = zaVIII.sections.section01[0].presentation.past.runs;
+assert.deepEqual(zaPastRuns.slice(1, 3).map(({ text, radicalIndex }) => [text, radicalIndex]), [["ظْ", 1], ["طَ", null]]);
+assert.equal(zaVIII.sections.section01[0].past.includes("ظّ"), false);
+assert.equal(zaVIII.sections.section01[0].past.includes("طّ"), false);
 
 // Exercise the same top-level family dispatch used by the browser's Generate
 // submit handler, including semantic R1/R2/R3 order from the three UI fields.
