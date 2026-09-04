@@ -268,7 +268,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=form-viii-tha-b3"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=form-x-regular-sound"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -292,6 +292,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الانفعال — اِنْفَعَلَ / يَنْفَعِلُ",
   "باب الافتعال — اِفْتَعَلَ / يَفْتَعِلُ",
   "باب الافعِلال — اِفْعَلَّ / يَفْعَلُّ",
+  "باب الاستفعال — اِسْتَفْعَلَ / يَسْتَفْعِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1073,6 +1074,33 @@ assert.deepEqual({ radicalIndex: expandedCopy.radicalIndex, kind: expandedCopy.k
 assert.equal(browserDispatch(["ح", "م", "ر"], "form-ix-ifilal").sections.section01[0].past, "اِحْمَرَّ");
 assert.equal(buildExportPages(formIX, "portrait")[0].includes("الفعل الماضي المجهول"), false);
 assert.ok(buildDocx(formIX, "landscape").length > 1000);
+
+// Form X uses the shared sound-root inflection engines while preserving each
+// prefixed derivational element as an independently identifiable, uncoloured run.
+const formX = dispatchGeneration({ root: ["غ", "ف", "ر"], bab: "form-x-istifal", babLabel: MAZID_BAB_CONFIG["form-x-istifal"].label, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+assert.deepEqual(formX.sections.section01.map(({ past }) => past), ["اِسْتَغْفَرَ", "اِسْتَغْفَرَا", "اِسْتَغْفَرُوا", "اِسْتَغْفَرَتْ", "اِسْتَغْفَرَتَا", "اِسْتَغْفَرْنَ", "اِسْتَغْفَرْتَ", "اِسْتَغْفَرْتُمَا", "اِسْتَغْفَرْتُمْ", "اِسْتَغْفَرْتِ", "اِسْتَغْفَرْتُمَا", "اِسْتَغْفَرْتُنَّ", "اِسْتَغْفَرْتُ", "اِسْتَغْفَرْنَا"]);
+assert.deepEqual(formX.sections.section01.map(({ present }) => present), ["يَسْتَغْفِرُ", "يَسْتَغْفِرَانِ", "يَسْتَغْفِرُونَ", "تَسْتَغْفِرُ", "تَسْتَغْفِرَانِ", "يَسْتَغْفِرْنَ", "تَسْتَغْفِرُ", "تَسْتَغْفِرَانِ", "تَسْتَغْفِرُونَ", "تَسْتَغْفِرِينَ", "تَسْتَغْفِرَانِ", "تَسْتَغْفِرْنَ", "أَسْتَغْفِرُ", "نَسْتَغْفِرُ"]);
+assert.deepEqual(formX.sections.section01.map(({ passivePast }) => passivePast), ["اُسْتُغْفِرَ", "اُسْتُغْفِرَا", "اُسْتُغْفِرُوا", "اُسْتُغْفِرَتْ", "اُسْتُغْفِرَتَا", "اُسْتُغْفِرْنَ", "اُسْتُغْفِرْتَ", "اُسْتُغْفِرْتُمَا", "اُسْتُغْفِرْتُمْ", "اُسْتُغْفِرْتِ", "اُسْتُغْفِرْتُمَا", "اُسْتُغْفِرْتُنَّ", "اُسْتُغْفِرْتُ", "اُسْتُغْفِرْنَا"]);
+assert.deepEqual(formX.sections.section01.map(({ passivePresent }) => passivePresent), ["يُسْتَغْفَرُ", "يُسْتَغْفَرَانِ", "يُسْتَغْفَرُونَ", "تُسْتَغْفَرُ", "تُسْتَغْفَرَانِ", "يُسْتَغْفَرْنَ", "تُسْتَغْفَرُ", "تُسْتَغْفَرَانِ", "تُسْتَغْفَرُونَ", "تُسْتَغْفَرِينَ", "تُسْتَغْفَرَانِ", "تُسْتَغْفَرْنَ", "أُسْتَغْفَرُ", "نُسْتَغْفَرُ"]);
+assert.deepEqual(formX.sections.section02[0], { ...formX.sections.section02[0], majzumPresent: "لَمْ يَسْتَغْفِرْ", mansubPresent: "لَنْ يَسْتَغْفِرَ", heavyEmphatic: "لَيَسْتَغْفِرَنَّ", lightEmphatic: "لَيَسْتَغْفِرَنْ" });
+assert.deepEqual(formX.sections.section03.slice(6, 12).map(({ imperative }) => imperative), ["اِسْتَغْفِرْ", "اِسْتَغْفِرَا", "اِسْتَغْفِرُوا", "اِسْتَغْفِرِي", "اِسْتَغْفِرَا", "اِسْتَغْفِرْنَ"]);
+assert.equal(formX.sections.section03[0].imperative, "لِيَسْتَغْفِرْ");
+assert.equal(formX.sections.section03[13].imperative, "لِنَسْتَغْفِرْ");
+assert.deepEqual(formX.sections.section04.masdar[0].values, ["اِسْتِغْفَار"]);
+assert.equal(formX.sections.section04.activeParticiple[0].values[0], "مُسْتَغْفِرٌ");
+assert.equal(formX.sections.section04.passiveParticiple[0].values[0], "مُسْتَغْفَرٌ");
+assert.equal(formX.sections.section04.activeParticiple.length, 3);
+assert.equal(formX.sections.section04.passiveParticiple.length, 3);
+for (const key of ["activeParticiple", "passiveParticiple"]) assert.equal(formX.sections.section04[key].every(({ values }) => values.length === 6), true);
+const pastRunsX = formX.sections.section01[0].presentation.past.runs;
+assert.deepEqual(pastRunsX.slice(0, 3).map(({ elementId, radicalIndex }) => [elementId, radicalIndex]), [["form10.hamzatWasl", null], ["form10.sin", null], ["form10.ta", null]]);
+assert.deepEqual(pastRunsX.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.deepEqual(formX.sections.section01[0].presentation.present.runs.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.deepEqual(formX.sections.section04.masdar[0].presentations[0].runs.find(({ elementId }) => elementId === "form10.masdarAlif").radicalIndex, null);
+assert.deepEqual(formX.sections.section04.activeParticiple[0].presentations[0].runs.find(({ elementId }) => elementId === "form10.participleMim").radicalIndex, null);
+for (const root of [["و", "ع", "د"], ["ق", "و", "م"], ["ه", "د", "ي"], ["أ", "ذ", "ن"], ["م", "د", "د"]]) assert.throws(() => dispatchGeneration({ root, bab: "form-x-istifal", majzumParticle: "لَمْ", mansubParticle: "لَنْ" }), /الصحيح السالم/);
+assert.equal(buildExportPages(formX, "portrait").join("").includes('<span style="color:#C62828">غْ</span>'), true);
+assert.ok(buildDocx(formX, "landscape").length > 1000);
 
 const scriptSource = fs.readFileSync("script.js", "utf8");
 assert.equal(scriptSource.includes("splitRootRuns"), false);
