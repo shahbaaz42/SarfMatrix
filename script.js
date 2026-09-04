@@ -140,6 +140,10 @@ const MAZID_BAB_CONFIG = Object.freeze({
       passiveParticiple: Object.freeze([["literal", "مُ"], ["radical", 1, "ْ"], ["derivational", "form8Ta", "َ"], ["radical", 2, "َ"], ["radical", 3]]),
     }),
   }),
+  "form-ix-ifilal": Object.freeze({
+    family: "mazid", form: 9, label: "باب الافعِلال — اِفْعَلَّ / يَفْعَلُّ",
+    availability: Object.freeze({ passivePast: "suppressed", passivePresent: "suppressed", theoreticalPassive: true, activeParticiple: "available", passiveParticiple: "suppressed" }),
+  }),
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
@@ -340,8 +344,8 @@ function generateZarfForms([first, second, third], bab) {
 
 // Presentation metadata is composed at the same structural points as the
 // morphology itself. It never searches a completed word for matching letters.
-function morphologyRun(text, radicalIndex = null) {
-  return Object.freeze({ text, radicalIndex });
+function morphologyRun(text, radicalIndex = null, metadata = {}) {
+  return Object.freeze({ text, radicalIndex, ...metadata });
 }
 
 function morphologyValue(...parts) {
@@ -353,14 +357,15 @@ function morphologyValue(...parts) {
     // (for example Form V's person prefix and derivational tāʾ) must remain
     // separately identifiable structural runs even though both are uncoloured.
     if (previous && part.radicalIndex !== null && previous.radicalIndex === part.radicalIndex) {
-      runs[runs.length - 1] = morphologyRun(previous.text + part.text, part.radicalIndex);
-    } else runs.push(morphologyRun(part.text, part.radicalIndex));
+      runs[runs.length - 1] = morphologyRun(previous.text + part.text, part.radicalIndex, Object.fromEntries(Object.entries(previous).filter(([key]) => !["text", "radicalIndex"].includes(key))));
+    } else runs.push(morphologyRun(part.text, part.radicalIndex, Object.fromEntries(Object.entries(part).filter(([key]) => !["text", "radicalIndex"].includes(key)))));
   }
   return Object.freeze({ text: runs.map(({ text }) => text).join(""), runs: Object.freeze(runs) });
 }
 
 function literal(text) { return morphologyRun(text, null); }
 function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index); }
+function derivationalCopy(root, marks = "") { return morphologyRun(`${root[2]}${marks}`, null, { kind: "derivational-copy", sourceRadicalIndex: 3 }); }
 
 function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transformation = null) {
   const runs = [];
@@ -462,10 +467,65 @@ function isRegularFormVIIIRoot(root) {
   return !FORM_VIII_SPECIAL_R1.has(first);
 }
 
+// Form IX selects between its doubled and unfolded R3 allomorphs before the
+// shared person ending is attached.  The extra consonant is derivational, not
+// a quadriliteral root radical, and remains visible in run metadata.
+function buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
+  const availability = MAZID_BAB_CONFIG[bab].availability;
+  const contracted = (prefix, r2Vowel = FATHA) => [literal(prefix), radical(root, 1, SUKUN), radical(root, 2, r2Vowel), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null } })];
+  const expanded = (prefix, r2Vowel = FATHA, r3Vowel = FATHA) => [literal(prefix), radical(root, 1, SUKUN), radical(root, 2, r2Vowel), radical(root, 3, r3Vowel), derivationalCopy(root)];
+  const attach = (stem, ending) => {
+    const { marks, remainder } = splitInitialMarks(ending);
+    const last = stem.at(-1);
+    const metadata = Object.fromEntries(Object.entries(last).filter(([key]) => !["text", "radicalIndex"].includes(key)));
+    return morphologyValue(stem.slice(0, -1), morphologyRun(last.text + marks, last.radicalIndex, metadata), literal(remainder));
+  };
+  const withParticle = (particle, value) => morphologyValue(literal(`${particle} `), value.runs);
+  const ixEnding = (ending) => ending?.replaceAll(`${WAW}${SUKUN}`, WAW).replaceAll(`${YA}${SUKUN}`, YA);
+  const presentPrefix = (s) => `${s.presentPrefix}${FATHA}`;
+  const pastExpanded = new Set(["3fp", "2ms", "2md", "2mp", "2fs", "2fd", "2fp", "1s", "1p"]);
+  const femininePlural = (s) => s.gender === "feminine" && s.number === "plural";
+  const directImperativeEndings = { "2ms": SUKUN, "2md": FATHA + ALIF, "2mp": DAMMA + WAW + SUKUN + ALIF, "2fs": KASRA + YA + SUKUN, "2fd": FATHA + ALIF, "2fp": SUKUN + NUN + FATHA };
+  const verbs = SIGHAS.map((s) => {
+    const pastStem = pastExpanded.has(s.id) ? expanded(`${ALIF}${KASRA}`) : contracted(`${ALIF}${KASRA}`);
+    const ordinaryPresentStem = femininePlural(s) ? expanded(presentPrefix(s), FATHA, KASRA) : contracted(presentPrefix(s));
+    const past = attach(pastStem, ixEnding(s.pastEnding));
+    const present = attach(ordinaryPresentStem, ixEnding(s.presentEnding));
+    const majzum = femininePlural(s) ? attach(ordinaryPresentStem, s.majzumEnding) : attach(contracted(presentPrefix(s)), s.majzumEnding === SUKUN ? FATHA : ixEnding(s.majzumEnding));
+    const mansub = attach(ordinaryPresentStem, ixEnding(s.mansubEnding));
+    const heavyStem = femininePlural(s) ? expanded(presentPrefix(s), FATHA, KASRA) : contracted(presentPrefix(s));
+    const heavy = attach([literal(`${LAM}${FATHA}`), ...heavyStem], s.heavyEmphaticEnding);
+    const light = s.lightEmphaticEnding === null ? morphologyValue() : attach([literal(`${LAM}${FATHA}`), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
+    let imperative = morphologyValue(), heavyImperative = morphologyValue(), lightImperative = morphologyValue();
+    if (s.person === 2) {
+      const directStem = ["2ms", "2fp"].includes(s.id) ? expanded(`${ALIF}${KASRA}`, FATHA, KASRA) : contracted(`${ALIF}${KASRA}`);
+      imperative = attach(directStem, ixEnding(directImperativeEndings[s.id]));
+      heavyImperative = attach(["2fp"].includes(s.id) ? expanded(`${ALIF}${KASRA}`, FATHA, KASRA) : contracted(`${ALIF}${KASRA}`), s.heavyEmphaticEnding);
+      lightImperative = s.lightEmphaticEnding === null ? morphologyValue() : attach(contracted(`${ALIF}${KASRA}`), s.lightEmphaticEnding);
+    } else {
+      imperative = attach([literal(`${LAM}${KASRA}`), ...ordinaryPresentStem], s.majzumEnding === SUKUN ? FATHA : ixEnding(s.majzumEnding));
+      heavyImperative = attach([literal(`${LAM}${KASRA}`), ...heavyStem], s.heavyEmphaticEnding);
+      lightImperative = s.lightEmphaticEnding === null ? morphologyValue() : attach([literal(`${LAM}${KASRA}`), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
+    }
+    const jussiveVariant = femininePlural(s) ? null : attach(expanded(presentPrefix(s), FATHA, KASRA), SUKUN);
+    const imperativeVariant = s.id === "2ms" ? attach(contracted(`${ALIF}${KASRA}`), FATHA) : null;
+    return { pronoun: s.pronoun, past, present, majzum: withParticle(majzumParticle, majzum), mansub: withParticle(mansubParticle, mansub), heavy, light, imperative, heavyImperative, lightImperative, jussiveVariant, imperativeVariant };
+  });
+  const empty = morphologyValue();
+  const section01 = verbs.map((v) => ({ pronoun: v.pronoun, past: v.past.text, present: v.present.text, passivePast: null, passivePresent: null, presentation: { past: v.past, present: v.present, passivePast: empty, passivePresent: empty } }));
+  const section02 = verbs.map((v) => ({ pronoun: v.pronoun, majzumPresent: v.majzum.text, mansubPresent: v.mansub.text, heavyEmphatic: v.heavy.text || null, lightEmphatic: v.light.text || null, variants: v.jussiveVariant ? { majzumPresent: [{ value: withParticle(majzumParticle, v.jussiveVariant).text, presentation: withParticle(majzumParticle, v.jussiveVariant) }] } : {}, presentation: { majzumPresent: v.majzum, mansubPresent: v.mansub, heavyEmphatic: v.heavy, lightEmphatic: v.light } }));
+  const section03 = verbs.map((v) => ({ pronoun: v.pronoun, imperative: v.imperative.text || null, heavyImperative: v.heavyImperative.text || null, lightImperative: v.lightImperative.text || null, variants: v.imperativeVariant ? { imperative: [{ value: v.imperativeVariant.text, presentation: v.imperativeVariant }] } : {}, presentation: { imperative: v.imperative, heavyImperative: v.heavyImperative, lightImperative: v.lightImperative } }));
+  const masdar = morphologyValue(literal(`${ALIF}${KASRA}`), radical(root, 1, SUKUN), radical(root, 2, KASRA), radical(root, 3, FATHA), literal(ALIF), derivationalCopy(root));
+  const participleStem = [literal(`${MIM}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null } })];
+  const nominalRows = NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => attach(participleStem, form[key]).text), presentations: NOMINAL_INFLECTIONS.map((form) => attach(participleStem, form[key])) }));
+  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle, transformation: { kind: "r3-stem-alternation", derivationalElement: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null }, stems: ["contracted", "expanded"] }, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows, passiveParticiple: [] } } });
+}
+
 function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
   const config = MAZID_BAB_CONFIG[bab];
   if (!config) throw new Error(`Unknown Mazīd Bāb: ${bab}`);
   if (!isSoundFormIVRoot(root)) throw new Error(`${config.label} متاح حاليًا للجذر الصحيح السالم فقط.`);
+  if (config.form === 9) return buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   const transformation = config.form === 8 ? formVIIITransformation(root) : null;
   if (config.form === 8 && !isRegularFormVIIIRoot(root) && !transformation) {
     throw new Error("This Form VIII root requires an assimilation rule that is not yet implemented.");
@@ -779,7 +839,9 @@ if (typeof document !== "undefined") {
     const generatedSnapshot = generatedState.get();
     const { section01, section02, section03, section04 } = generatedSnapshot.sections;
     const cell = (text, presentation) => ({ text, presentation });
-    replaceTableRows(sectionBodies[0], section01.map(({ pronoun, past, present, passivePast, passivePresent, presentation }) => [pronoun, cell(past, presentation.past), cell(present, presentation.present), cell(passivePast, presentation.passivePast), cell(passivePresent, presentation.passivePresent)]));
+    const passiveSuppressed = generatedSnapshot.availability?.passivePast === "suppressed";
+    document.querySelectorAll("#section-01-table th:nth-child(n+4)").forEach((heading) => { heading.hidden = passiveSuppressed; });
+    replaceTableRows(sectionBodies[0], section01.map(({ pronoun, past, present, passivePast, passivePresent, presentation }) => [pronoun, cell(past, presentation.past), cell(present, presentation.present), ...(passiveSuppressed ? [] : [cell(passivePast, presentation.passivePast), cell(passivePresent, presentation.passivePresent)])]));
     replaceTableRows(sectionBodies[1], section02.map(({ pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic, presentation }) => [pronoun, cell(majzumPresent, presentation.majzumPresent), cell(mansubPresent, presentation.mansubPresent), cell(heavyEmphatic, presentation.heavyEmphatic), cell(lightEmphatic, presentation.lightEmphatic)]));
     replaceTableRows(sectionBodies[2], section03.map(({ pronoun, imperative, heavyImperative, lightImperative, presentation }) => [pronoun, cell(imperative, presentation.imperative), cell(heavyImperative, presentation.heavyImperative), cell(lightImperative, presentation.lightImperative)]));
     const derivedRows = (rows) => rows.map(({ label, values, presentations }) => [label, ...values.map((value, index) => cell(value, presentations[index]))]);
@@ -790,6 +852,7 @@ if (typeof document !== "undefined") {
     replaceTableRows(derivedBodies.masdar, mazid ? derivedRows(section04.masdar) : []);
     replaceTableRows(derivedBodies.activeParticiple, derivedRows(section04.activeParticiple));
     replaceTableRows(derivedBodies.passiveParticiple, derivedRows(section04.passiveParticiple));
+    document.querySelector("#passive-participle-card").hidden = generatedSnapshot.availability?.passiveParticiple === "suppressed";
     // Mazīd snapshots intentionally omit the Mujarrad-only elative and zarf
     // collections. Render their hidden tables as empty instead of attempting
     // to map undefined values.
@@ -864,6 +927,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildFormIXSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
