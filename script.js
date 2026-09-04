@@ -435,8 +435,44 @@ const FORM_VIII_PHASE_B2_RULES = deepFreeze({
   },
 });
 
+// Phase B3 retains the ordinary junction for initial thāʾ.  The two attested
+// assimilated realizations remain language-neutral variant metadata and never
+// replace the generated default.
+const FORM_VIII_PHASE_B3_RULES = deepFreeze({
+  "ث": {
+    ruleId: "form8-tha-junction-variants", babId: "form-viii-iftial", ruleType: "retention",
+    replacement: "ت", assimilates: false, defaultPath: ["ثْت"], stageOperations: [],
+    acceptedAlternatives: [
+      {
+        variantId: "derivational-ta-to-tha", path: ["ثْت", "ثْث", "ثّ"], resultSequence: "ثّ",
+        stages: [
+          { operation: "ibdal", target: { kind: "derivational", elementId: "form8Ta", radicalIndex: null }, underlying: "ت", surface: "ث", input: "ثْت", output: "ثْث" },
+          { operation: "idgham", input: "ثْث", output: "ثّ" },
+        ],
+        ibdal: { target: { kind: "derivational", elementId: "form8Ta", radicalIndex: null }, underlying: "ت", surface: "ث" },
+        idgham: { input: "ثْث", output: "ثّ" },
+        underlyingRadical: "ث", surfaceRadical: "ث",
+        visibleElement: { text: "ث", radicalIndex: 1, underlyingRadical: "ث", surfaceRadical: "ث", shadda: true },
+        absorbedElement: { kind: "derivational", elementId: "form8Ta", radicalIndex: null, underlying: "ت", surfaceBeforeIdgham: "ث", assimilatedIntoRadicalIndex: 1 },
+      },
+      {
+        variantId: "lexical-tha-to-ta", path: ["ثْت", "تْت", "تّ"], resultSequence: "تّ",
+        stages: [
+          { operation: "ibdal", target: { kind: "radical", radicalIndex: 1 }, underlying: "ث", surface: "ت", input: "ثْت", output: "تْت" },
+          { operation: "idgham", input: "تْت", output: "تّ" },
+        ],
+        ibdal: { target: { kind: "radical", radicalIndex: 1 }, underlying: "ث", surface: "ت" },
+        idgham: { input: "تْت", output: "تّ" },
+        underlyingRadical: "ث", surfaceRadical: "ت",
+        visibleElement: { text: "ت", radicalIndex: 1, underlyingRadical: "ث", surfaceRadical: "ت", shadda: true },
+        absorbedElement: { kind: "derivational", elementId: "form8Ta", radicalIndex: null, underlying: "ت", surfaceBeforeIdgham: "ت", assimilatedIntoRadicalIndex: 1 },
+      },
+    ],
+  },
+});
+
 const FORM_VIII_TRANSFORMATION_RULES = deepFreeze({
-  ...FORM_VIII_PHASE_A_RULES, ...FORM_VIII_PHASE_B1_RULES, ...FORM_VIII_PHASE_B2_RULES,
+  ...FORM_VIII_PHASE_A_RULES, ...FORM_VIII_PHASE_B1_RULES, ...FORM_VIII_PHASE_B2_RULES, ...FORM_VIII_PHASE_B3_RULES,
 });
 
 function formVIIITransformation(root) {
@@ -927,6 +963,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildFormIXSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildFormIXSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
