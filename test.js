@@ -268,7 +268,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=form-x-regular-sound"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=ifawlal-regular-sound"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -293,6 +293,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الافتعال — اِفْتَعَلَ / يَفْتَعِلُ",
   "باب الافعِلال — اِفْعَلَّ / يَفْعَلُّ",
   "باب الاستفعال — اِسْتَفْعَلَ / يَسْتَفْعِلُ",
+  "باب الافعوعال — اِفْعَوْعَلَ / يَفْعَوْعِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1101,6 +1102,49 @@ assert.deepEqual(formX.sections.section04.activeParticiple[0].presentations[0].r
 for (const root of [["و", "ع", "د"], ["ق", "و", "م"], ["ه", "د", "ي"], ["أ", "ذ", "ن"], ["م", "د", "د"]]) assert.throws(() => dispatchGeneration({ root, bab: "form-x-istifal", majzumParticle: "لَمْ", mansubParticle: "لَنْ" }), /الصحيح السالم/);
 assert.equal(buildExportPages(formX, "portrait").join("").includes('<span style="color:#C62828">غْ</span>'), true);
 assert.ok(buildDocx(formX, "landscape").length > 1000);
+
+// Bāb al-ifʿawʿāl (modern Form XII) copies R2 as an uncoloured derivational
+// consonant and otherwise uses the shared regular-sound finite/nominal engines.
+const ifawlal = dispatchGeneration({ root: ["ع", "ش", "ب"], bab: "bab-al-ifawlal", babLabel: MAZID_BAB_CONFIG["bab-al-ifawlal"].label, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+assert.equal(MAZID_BAB_CONFIG["bab-al-ifawlal"].modernFormNumber, 12);
+assert.deepEqual(ifawlal.sections.section01.map(({ past }) => past), ["اِعْشَوْشَبَ", "اِعْشَوْشَبَا", "اِعْشَوْشَبُوا", "اِعْشَوْشَبَتْ", "اِعْشَوْشَبَتَا", "اِعْشَوْشَبْنَ", "اِعْشَوْشَبْتَ", "اِعْشَوْشَبْتُمَا", "اِعْشَوْشَبْتُمْ", "اِعْشَوْشَبْتِ", "اِعْشَوْشَبْتُمَا", "اِعْشَوْشَبْتُنَّ", "اِعْشَوْشَبْتُ", "اِعْشَوْشَبْنَا"]);
+assert.deepEqual(ifawlal.sections.section01.map(({ present }) => present), ["يَعْشَوْشِبُ", "يَعْشَوْشِبَانِ", "يَعْشَوْشِبُونَ", "تَعْشَوْشِبُ", "تَعْشَوْشِبَانِ", "يَعْشَوْشِبْنَ", "تَعْشَوْشِبُ", "تَعْشَوْشِبَانِ", "تَعْشَوْشِبُونَ", "تَعْشَوْشِبِينَ", "تَعْشَوْشِبَانِ", "تَعْشَوْشِبْنَ", "أَعْشَوْشِبُ", "نَعْشَوْشِبُ"]);
+assert.deepEqual(ifawlal.sections.section02[0], { ...ifawlal.sections.section02[0], majzumPresent: "لَمْ يَعْشَوْشِبْ", mansubPresent: "لَنْ يَعْشَوْشِبَ", heavyEmphatic: "لَيَعْشَوْشِبَنَّ", lightEmphatic: "لَيَعْشَوْشِبَنْ" });
+assert.equal(ifawlal.sections.section02.filter(({ heavyEmphatic }) => heavyEmphatic).length, 14);
+assert.equal(ifawlal.sections.section02.filter(({ lightEmphatic }) => lightEmphatic).length, 8);
+assert.deepEqual(ifawlal.sections.section03.slice(6, 12).map(({ imperative }) => imperative), ["اِعْشَوْشِبْ", "اِعْشَوْشِبَا", "اِعْشَوْشِبُوا", "اِعْشَوْشِبِي", "اِعْشَوْشِبَا", "اِعْشَوْشِبْنَ"]);
+assert.deepEqual(ifawlal.sections.section03.slice(6, 12).map(({ heavyImperative }) => heavyImperative), ["اِعْشَوْشِبَنَّ", "اِعْشَوْشِبَانِّ", "اِعْشَوْشِبُنَّ", "اِعْشَوْشِبِنَّ", "اِعْشَوْشِبَانِّ", "اِعْشَوْشِبْنَانِّ"]);
+assert.equal(ifawlal.sections.section03[0].imperative, "لِيَعْشَوْشِبْ");
+assert.equal(ifawlal.sections.section03[0].heavyImperative, "لِيَعْشَوْشِبَنَّ");
+assert.equal(ifawlal.sections.section03[0].lightImperative, "لِيَعْشَوْشِبَنْ");
+assert.deepEqual(ifawlal.sections.section04.masdar[0].values, ["اِعْشِيشَاب"]);
+assert.equal(ifawlal.sections.section04.activeParticiple[0].values[0], "مُعْشَوْشِبٌ");
+assert.deepEqual(ifawlal.sections.section04.activeParticiple.map(({ values }) => values.length), [6, 6, 6]);
+assert.equal(ifawlal.sections.section01.every(({ passivePast, passivePresent }) => passivePast === null && passivePresent === null), true);
+assert.deepEqual(ifawlal.sections.section04.passiveParticiple, []);
+assert.deepEqual(ifawlal.availability, { passivePast: "suppressed", passivePresent: "suppressed", activeParticiple: "available", passiveParticiple: "suppressed" });
+const ifawlalPastRuns = ifawlal.sections.section01[0].presentation.past.runs;
+assert.deepEqual(ifawlalPastRuns.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.deepEqual(ifawlalPastRuns.find(({ elementId }) => elementId === "form12.r2Copy"), { text: "شَ", radicalIndex: null, kind: "derivational-copy", sourceRadicalIndex: 2, elementId: "form12.r2Copy" });
+assert.equal(ifawlalPastRuns.find(({ elementId }) => elementId === "form12.waw").radicalIndex, null);
+for (const id of ["form12.masdarYa", "form12.masdarAlif"]) assert.equal(ifawlal.sections.section04.masdar[0].presentations[0].runs.find(({ elementId }) => elementId === id).radicalIndex, null);
+assert.equal(buildExportPages(ifawlal, "portrait")[0].includes("الفعل الماضي المجهول"), false);
+assert.equal(buildExportPages(ifawlal, "portrait").at(-1).includes("اسم المفعول"), false);
+assert.ok(buildDocx(ifawlal, "landscape").length > 1000);
+
+const khashina = dispatchGeneration({ root: ["خ", "ش", "ن"], bab: "bab-al-ifawlal", babLabel: MAZID_BAB_CONFIG["bab-al-ifawlal"].label, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+assert.deepEqual([khashina.sections.section01[0].past, khashina.sections.section01[0].present, khashina.sections.section01[5].present], ["اِخْشَوْشَنَ", "يَخْشَوْشِنُ", "يَخْشَوْشِنْنَ"]);
+assert.deepEqual([khashina.sections.section02[0].heavyEmphatic, khashina.sections.section02[0].lightEmphatic, khashina.sections.section02[5].heavyEmphatic], ["لَيَخْشَوْشِنَنَّ", "لَيَخْشَوْشِنَنْ", "لَيَخْشَوْشِنْنَانِّ"]);
+assert.deepEqual([khashina.sections.section03[6].imperative, khashina.sections.section03[6].heavyImperative], ["اِخْشَوْشِنْ", "اِخْشَوْشِنَنَّ"]);
+assert.deepEqual([khashina.sections.section04.masdar[0].values[0], khashina.sections.section04.activeParticiple[0].values[0]], ["اِخْشِيشَان", "مُخْشَوْشِنٌ"]);
+const finalNunRuns = khashina.sections.section02[0].presentation.heavyEmphatic.runs;
+assert.equal(finalNunRuns.find(({ radicalIndex }) => radicalIndex === 3).text, "نَ");
+assert.equal(finalNunRuns.at(-1).radicalIndex, null);
+const feminineNunRuns = khashina.sections.section02[5].presentation.heavyEmphatic.runs;
+assert.equal(feminineNunRuns.find(({ radicalIndex }) => radicalIndex === 3).text, "نْ");
+assert.equal(feminineNunRuns.at(-1).radicalIndex, null);
+assert.equal(feminineNunRuns.filter(({ radicalIndex }) => radicalIndex === 3).length, 1);
+for (const root of [["و", "ع", "د"], ["ق", "و", "م"], ["ه", "د", "ي"], ["أ", "ذ", "ن"], ["م", "د", "د"]]) assert.throws(() => dispatchGeneration({ root, bab: "bab-al-ifawlal", majzumParticle: "لَمْ", mansubParticle: "لَنْ" }), /الصحيح السالم/);
 
 const scriptSource = fs.readFileSync("script.js", "utf8");
 assert.equal(scriptSource.includes("splitRootRuns"), false);
