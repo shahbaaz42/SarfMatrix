@@ -176,6 +176,28 @@ const MAZID_BAB_CONFIG = Object.freeze({
       activeParticiple: Object.freeze([["derivational", "form12.participleMim", "ُ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivational", "form12.waw", "ْ"], ["copyRadical", 2, "ِ", "form12.r2Copy"], ["radical", 3]]),
     }),
   }),
+  "bab-al-ifawwal": Object.freeze({
+    family: "mazid", form: 13, modernFormNumber: 13, babId: "bab-al-ifawwal", patternId: "form13.regular-sound",
+    label: "باب الافعوّال — اِفْعَوَّلَ / يَفْعَوِّلُ",
+    rootClass: "sahih-salim", generationStatus: "implemented",
+    availability: Object.freeze({ activePast: "available", activePresent: "available", passivePast: "suppressed", passivePresent: "suppressed", masdar: "available", activeParticiple: "available", passiveParticiple: "suppressed" }),
+    eligibility: Object.freeze({ ruleId: "form13.regular-sound-only", deferredRootClasses: Object.freeze(["weak-r1", "hollow-r2", "defective-r3", "doubly-weak", "hamzated", "doubled", "lexical-exception"]) }),
+    transformation: Object.freeze({
+      ruleType: "derivational-waw-gemination", lexicalRadicalInGeminate: false,
+      underlyingElements: Object.freeze([
+        Object.freeze({ elementId: "form13.waw1", kind: "derivational", radicalIndex: null, state: "sukun" }),
+        Object.freeze({ elementId: "form13.waw2", kind: "derivational", radicalIndex: null, state: "vowelled" }),
+      ]),
+      surface: "waw-with-shaddah",
+    }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["derivational", "form13.hamzatWasl", "ِ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivationalGeminate", "form13.waw1", "form13.waw2", "َ"], ["radical", 3]]),
+      activePresent: Object.freeze([["personPrefix", "َ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivationalGeminate", "form13.waw1", "form13.waw2", "ِ"], ["radical", 3]]),
+      imperative: Object.freeze([["derivational", "form13.hamzatWasl", "ِ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivationalGeminate", "form13.waw1", "form13.waw2", "ِ"], ["radical", 3]]),
+      masdar: Object.freeze([["derivational", "form13.hamzatWasl", "ِ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["derivationalGeminate", "form13.waw1", "form13.waw2", "َ"], ["derivational", "form13.masdarAlif"], ["radical", 3]]),
+      activeParticiple: Object.freeze([["derivational", "form13.participleMim", "ُ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivationalGeminate", "form13.waw1", "form13.waw2", "ِ"], ["radical", 3]]),
+    }),
+  }),
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
@@ -412,6 +434,11 @@ const DERIVATIONAL_ELEMENTS = Object.freeze({
   "form12.masdarYa": LETTERS.YA,
   "form12.masdarAlif": LETTERS.ALIF,
   "form12.participleMim": LETTERS.MIM,
+  "form13.hamzatWasl": LETTERS.ALIF,
+  "form13.waw1": LETTERS.WAW,
+  "form13.waw2": LETTERS.WAW,
+  "form13.masdarAlif": LETTERS.ALIF,
+  "form13.participleMim": LETTERS.MIM,
 });
 
 function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transformation = null) {
@@ -420,6 +447,19 @@ function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transforma
     if (kind === "radical") runs.push(radical(root, value, marks));
     else if (kind === "copyRadical") runs.push(derivationalCopy(root, value, marks, elementId));
     else if (kind === "personPrefix") runs.push(literal(`${sighah.presentPrefix}${value}`));
+    else if (kind === "derivationalGeminate") {
+      const waw1 = value;
+      const waw2 = marks;
+      const vowel = elementId;
+      runs.push(morphologyRun(`${LETTERS.WAW}${SHADDA}${vowel}`, null, {
+        kind: "derivational-geminate", ruleType: "derivational-waw-gemination",
+        lexicalRadicalInGeminate: false,
+        underlying: Object.freeze([
+          Object.freeze({ elementId: waw1, kind: "derivational", text: `${LETTERS.WAW}${SUKUN}`, radicalIndex: null }),
+          Object.freeze({ elementId: waw2, kind: "derivational", text: `${LETTERS.WAW}${vowel}`, radicalIndex: null }),
+        ]),
+      }));
+    }
     else if (kind === "derivational" && value === "form8Ta") {
       if (transformation?.assimilates) {
         const r1 = runs.at(-1);
@@ -617,9 +657,9 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
     throw new Error("This Form VIII root requires an assimilation rule that is not yet implemented.");
   }
   const templates = config.templates;
-  // Forms X and XII use the conventional unmarked long wāw/yā spelling;
+  // Forms X, XII, and XIII use the conventional unmarked long wāw/yā spelling;
   // the shared person inventory itself remains unchanged.
-  const ending = (value) => [10, 12].includes(config.form) && value !== null
+  const ending = (value) => [10, 12, 13].includes(config.form) && value !== null
     ? value.replaceAll(`${WAW}${SUKUN}`, WAW).replaceAll(`${YA}${SUKUN}`, YA)
     : value;
   const transformationMetadata = transformation ? (() => {
@@ -932,6 +972,7 @@ if (typeof document !== "undefined") {
     const { section01, section02, section03, section04 } = generatedSnapshot.sections;
     const cell = (text, presentation) => ({ text, presentation });
     const passiveSuppressed = generatedSnapshot.availability?.passivePast === "suppressed";
+    document.querySelector("#section-01-heading").textContent = passiveSuppressed ? "القسم 01 — المرفوع" : "القسم 01 — المرفوع والمجهول";
     document.querySelectorAll("#section-01-table th:nth-child(n+4)").forEach((heading) => { heading.hidden = passiveSuppressed; });
     replaceTableRows(sectionBodies[0], section01.map(({ pronoun, past, present, passivePast, passivePresent, presentation }) => [pronoun, cell(past, presentation.past), cell(present, presentation.present), ...(passiveSuppressed ? [] : [cell(passivePast, presentation.passivePast), cell(passivePresent, presentation.passivePresent)])]));
     replaceTableRows(sectionBodies[1], section02.map(({ pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic, presentation }) => [pronoun, cell(majzumPresent, presentation.majzumPresent), cell(mansubPresent, presentation.mansubPresent), cell(heavyEmphatic, presentation.heavyEmphatic), cell(lightEmphatic, presentation.lightEmphatic)]));

@@ -21,6 +21,12 @@
   });
   const DERIVED_TITLES = Object.freeze({ masdar: "المصدر", activeParticiple: "اسم الفاعل", passiveParticiple: "اسم المفعول", elative: "اسم التفضيل", zarf: "اسم الظرف" });
 
+  function sectionTitle(snapshot, key) {
+    return key === "section01" && snapshot.availability?.passivePast === "suppressed"
+      ? "القسم 01 — المرفوع"
+      : SECTION_TITLES[key];
+  }
+
   function derivedKeys(snapshot) { return snapshot.family === "mazid" ? ["masdar", "activeParticiple", ...(snapshot.availability?.passiveParticiple === "suppressed" ? [] : ["passiveParticiple"])] : ["activeParticiple", "passiveParticiple", "elative", "zarf"]; }
 
   function escapeXml(value) {
@@ -99,7 +105,7 @@
         pageShell(snapshot, derivedHtml(snapshot, derivedKeys(snapshot)), "landscape section04-page"),
       ];
     }
-    return ["section01", "section02", "section03"].map((key) => pageShell(snapshot, `<h1>${SECTION_TITLES[key]}</h1>${htmlTable(key === "section01" && snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key], sectionRows(snapshot, key), snapshot)}`, `${key}-page`)).concat([
+    return ["section01", "section02", "section03"].map((key) => pageShell(snapshot, `<h1>${sectionTitle(snapshot, key)}</h1>${htmlTable(key === "section01" && snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key], sectionRows(snapshot, key), snapshot)}`, `${key}-page`)).concat([
       pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, derivedKeys(snapshot))}`, "section04-page"),
     ]);
   }
@@ -238,7 +244,7 @@
       body += wordMetadata(snapshot) + wordTable(verbs.headings, verbs.rows, snapshot);
       body += pageBreak() + wordMetadata(snapshot) + wordDerived(snapshot, derivedKeys(snapshot));
     } else {
-      ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); const headings = key === "section01" && snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key]; body += wordMetadata(snapshot) + wordHeading(SECTION_TITLES[key]) + wordTable(headings, sectionRows(snapshot, key), snapshot); });
+      ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); const headings = key === "section01" && snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key]; body += wordMetadata(snapshot) + wordHeading(sectionTitle(snapshot, key)) + wordTable(headings, sectionRows(snapshot, key), snapshot); });
       body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, derivedKeys(snapshot));
     }
     const orientation = layout === "landscape" ? 'w:w="15840" w:h="12240" w:orient="landscape"' : 'w:w="12240" w:h="15840"';
@@ -279,7 +285,7 @@
     return name;
   }
 
-  const api = { SECTION_TITLES, FOOTER, HEADINGS, filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, createZip, download };
+  const api = { SECTION_TITLES, FOOTER, HEADINGS, sectionTitle, filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, createZip, download };
   if (typeof module !== "undefined") module.exports = api;
   globalScope.SarfExport = api;
 }(typeof window !== "undefined" ? window : globalThis));
