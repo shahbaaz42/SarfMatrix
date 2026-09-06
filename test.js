@@ -268,8 +268,8 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=ifawwal-regular-sound"></script>'), true);
-assert.equal(html.includes('<script src="export.js?v=ifawwal-regular-sound"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=ifilal-regular-sound"></script>'), true);
+assert.equal(html.includes('<script src="export.js?v=ifilal-regular-sound"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -296,6 +296,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الاستفعال — اِسْتَفْعَلَ / يَسْتَفْعِلُ",
   "باب الافعوعال — اِفْعَوْعَلَ / يَفْعَوْعِلُ",
   "باب الافعوّال — اِفْعَوَّلَ / يَفْعَوِّلُ",
+  "باب الافعيلال — اِفْعَالَّ / يَفْعَالُّ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1190,16 +1191,83 @@ assertForm13Structure(ifawwalSecondary.sections.section01[0].presentation.past, 
 for (const particle of MANSUB_PARTICLES) assert.equal(dispatchGeneration({ root: ["ج", "ل", "ذ"], bab: "bab-al-ifawwal", majzumParticle: "لَمْ", mansubParticle: particle }).sections.section02[0].mansubPresent, `${particle} يَجْلَوِّذَ`);
 for (const root of [["و", "ع", "د"], ["ق", "و", "م"], ["ه", "د", "ي"], ["أ", "ذ", "ن"], ["م", "د", "د"], ["د", "ن", "ن"]]) assert.throws(() => dispatchGeneration({ root, bab: "bab-al-ifawwal", majzumParticle: "لَمْ", mansubParticle: "لَنْ" }), /الصحيح السالم/);
 
+// Bāb al-ifʿīlāl: directly attested ح م ر fixture and all supported families.
+const ifilalConfig = MAZID_BAB_CONFIG["bab-al-ifilal"];
+const ifilal = dispatchGeneration({ root: ["ح", "م", "ر"], bab: "bab-al-ifilal", babLabel: ifilalConfig.label, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+assert.deepEqual([ifilalConfig.form, ifilalConfig.modernFormNumber, ifilalConfig.modernFormNumberRole, ifilalConfig.patternId], [11, 11, "compatibility", "form11.regular-sound"]);
+assert.deepEqual(ifilal.sections.section01.map(({ past }) => past), ["اِحْمَارَّ", "اِحْمَارَّا", "اِحْمَارُّوا", "اِحْمَارَّتْ", "اِحْمَارَّتَا", "اِحْمَارَرْنَ", "اِحْمَارَرْتَ", "اِحْمَارَرْتُمَا", "اِحْمَارَرْتُمْ", "اِحْمَارَرْتِ", "اِحْمَارَرْتُمَا", "اِحْمَارَرْتُنَّ", "اِحْمَارَرْتُ", "اِحْمَارَرْنَا"]);
+assert.deepEqual(ifilal.sections.section01.map(({ present }) => present), ["يَحْمَارُّ", "يَحْمَارَّانِ", "يَحْمَارُّونَ", "تَحْمَارُّ", "تَحْمَارَّانِ", "يَحْمَارِرْنَ", "تَحْمَارُّ", "تَحْمَارَّانِ", "تَحْمَارُّونَ", "تَحْمَارِّينَ", "تَحْمَارَّانِ", "تَحْمَارِرْنَ", "أَحْمَارُّ", "نَحْمَارُّ"]);
+assert.deepEqual(ifilal.sections.section02.map(({ majzumPresent }) => majzumPresent), ["لَمْ يَحْمَارَّ", "لَمْ يَحْمَارَّا", "لَمْ يَحْمَارُّوا", "لَمْ تَحْمَارَّ", "لَمْ تَحْمَارَّا", "لَمْ يَحْمَارِرْنَ", "لَمْ تَحْمَارَّ", "لَمْ تَحْمَارَّا", "لَمْ تَحْمَارُّوا", "لَمْ تَحْمَارِّي", "لَمْ تَحْمَارَّا", "لَمْ تَحْمَارِرْنَ", "لَمْ أَحْمَارَّ", "لَمْ نَحْمَارَّ"]);
+assert.deepEqual(ifilal.sections.section02.map(({ mansubPresent }) => mansubPresent), ["لَنْ يَحْمَارَّ", "لَنْ يَحْمَارَّا", "لَنْ يَحْمَارُّوا", "لَنْ تَحْمَارَّ", "لَنْ تَحْمَارَّا", "لَنْ يَحْمَارِرْنَ", "لَنْ تَحْمَارَّ", "لَنْ تَحْمَارَّا", "لَنْ تَحْمَارُّوا", "لَنْ تَحْمَارِّي", "لَنْ تَحْمَارَّا", "لَنْ تَحْمَارِرْنَ", "لَنْ أَحْمَارَّ", "لَنْ نَحْمَارَّ"]);
+assert.deepEqual(ifilal.sections.section03.slice(6, 12).map(({ imperative }) => imperative), ["اِحْمَارَّ", "اِحْمَارَّا", "اِحْمَارُّوا", "اِحْمَارِّي", "اِحْمَارَّا", "اِحْمَارِرْنَ"]);
+assert.deepEqual(ifilal.sections.section03.slice(0, 6).map(({ imperative }) => imperative), ["لِيَحْمَارَّ", "لِيَحْمَارَّا", "لِيَحْمَارُّوا", "لِتَحْمَارَّ", "لِتَحْمَارَّا", "لِيَحْمَارِرْنَ"]);
+assert.equal(ifilal.sections.section04.masdar[0].values[0], "اِحْمِيرَار");
+
+const assertFakkCopy = (presentation) => {
+  const finalRuns = presentation.runs.filter(({ text }) => text.startsWith("ر"));
+  assert.deepEqual(finalRuns.map(({ radicalIndex }) => radicalIndex), [3, null]);
+  assert.equal(finalRuns[1].kind, "derivational-copy");
+  assert.equal(finalRuns[1].sourceRadicalIndex, 3);
+  assert.equal(presentation.runs.some(({ radicalIndex }) => radicalIndex === 4), false);
+};
+assertFakkCopy(ifilal.sections.section01[6].presentation.past);
+assertFakkCopy(ifilal.sections.section01[5].presentation.present);
+const contractedPast = ifilal.sections.section01[0].presentation.past.runs.at(-1);
+assert.equal(contractedPast.radicalIndex, 3);
+assert.deepEqual({ kind: contractedPast.absorbed.kind, sourceRadicalIndex: contractedPast.absorbed.sourceRadicalIndex, radicalIndex: contractedPast.absorbed.radicalIndex }, { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null });
+const ifilalMasdarRuns = ifilal.sections.section04.masdar[0].presentations[0].runs;
+assert.deepEqual(ifilalMasdarRuns.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.deepEqual(ifilalMasdarRuns.at(-1), { text: "ر", radicalIndex: null, kind: "derivational-copy", sourceRadicalIndex: 3, elementId: "form11.r3Copy" });
+for (const id of ["form11.hamzatWasl", "form11.masdarYa", "form11.masdarAlif"]) assert.equal(ifilalMasdarRuns.find(({ elementId }) => elementId === id).radicalIndex, null);
+
+const jussiveAlternatives = ifilal.sections.section02[0].variants.majzumPresent;
+assert.deepEqual(jussiveAlternatives.map(({ value }) => value), ["لَمْ يَحْمَارُّ", "لَمْ يَحْمَارِّ", "لَمْ يَحْمَارِرْ"]);
+assertFakkCopy(jussiveAlternatives[2].presentation);
+assert.deepEqual(ifilal.sections.section03[6].variants.imperative.map(({ value }) => value), ["اِحْمَارُّ", "اِحْمَارِّ", "اِحْمَارِرْ"]);
+assert.deepEqual(ifilal.sections.section03[0].variants.imperative.map(({ value }) => value), ["لِيَحْمَارُّ", "لِيَحْمَارِّ", "لِيَحْمَارِرْ"]);
+for (const rule of [ifilal.sections.section02[0].rules.majzumPresent, ifilal.sections.section03[6].rules.imperative, ifilal.sections.section03[0].rules.imperative]) {
+  assert.equal(rule.default, "preserve-idgham-with-fatha");
+  assert.equal(rule.preference, "al-afsah");
+  assert.deepEqual(rule.acceptedAlternatives, ["preserve-idgham-with-damma", "preserve-idgham-with-kasra", "fakk-al-idgham"]);
+}
+assert.deepEqual(ifilal.availability, { activePast: "available", activePresent: "available", passivePast: "suppressed", passivePresent: "suppressed", jussive: "available", subjunctive: "available", heavyEmphasis: "suppressed", lightEmphasis: "suppressed", imperative: "available", lamAlAmr: "available", heavyImperative: "suppressed", lightImperative: "suppressed", heavyLamAlAmr: "suppressed", lightLamAlAmr: "suppressed", masdar: "available", activeParticiple: "suppressed", passiveParticiple: "suppressed" });
+assert.equal(ifilal.sections.section01.every(({ passivePast, passivePresent }) => passivePast === null && passivePresent === null), true);
+assert.equal(ifilal.sections.section02.every(({ heavyEmphatic, lightEmphatic }) => heavyEmphatic === null && lightEmphatic === null), true);
+assert.equal(ifilal.sections.section03.every(({ heavyImperative, lightImperative }) => heavyImperative === null && lightImperative === null), true);
+assert.deepEqual(ifilal.sections.section04.activeParticiple, []);
+assert.deepEqual(ifilal.sections.section04.passiveParticiple, []);
+for (const particle of MANSUB_PARTICLES) assert.equal(dispatchGeneration({ root: ["ح", "م", "ر"], bab: "bab-al-ifilal", majzumParticle: "لَمْ", mansubParticle: particle }).sections.section02[0].mansubPresent, `${particle} يَحْمَارَّ`);
+for (const root of [["أ", "ك", "ل"], ["و", "ع", "د"], ["ق", "و", "م"], ["ه", "د", "ي"], ["م", "د", "د"]]) assert.throws(() => dispatchGeneration({ root, bab: "bab-al-ifilal", majzumParticle: "لَمْ", mansubParticle: "لَنْ" }), /الصحيح السالم/);
+
 assert.equal(sectionTitle(formIX, "section01"), "القسم 01 — المرفوع");
 assert.equal(sectionTitle(ifawlal, "section01"), "القسم 01 — المرفوع");
 assert.equal(sectionTitle(ifawwal, "section01"), "القسم 01 — المرفوع");
+assert.equal(sectionTitle(ifilal, "section01"), "القسم 01 — المرفوع");
+assert.equal(sectionTitle(ifilal, "section02"), "القسم 02 — المجزوم والمنصوب");
 assert.equal(sectionTitle(formX, "section01"), "القسم 01 — المرفوع والمجهول");
-for (const snapshot of [formIX, ifawlal, ifawwal]) assert.equal(buildExportPages(snapshot, "portrait")[0].includes("القسم 01 — المرفوع</h1>"), true);
+for (const snapshot of [formIX, ifawlal, ifawwal, ifilal]) assert.equal(buildExportPages(snapshot, "portrait")[0].includes("القسم 01 — المرفوع</h1>"), true);
 assert.equal(buildExportPages(formX, "portrait")[0].includes("القسم 01 — المرفوع والمجهول"), true);
 assert.equal(buildExportPages(ifawwal, "portrait").join("").includes("اسم المفعول"), false);
 assert.equal(buildExportPages(ifawwal, "portrait").join("").includes("color:#C62828\">وَّ"), false);
 assert.ok(buildDocx(ifawwal, "portrait").length > 1000);
 assert.ok(buildDocx(ifawwal, "landscape").length > 1000);
+const ifilalPortrait = buildExportPages(ifilal, "portrait").join("");
+assert.equal(ifilalPortrait.includes(ifilalConfig.label), true);
+assert.equal(ifilalPortrait.includes("المصدر"), true);
+for (const suppressedHeading of ["لام تأكيد با نون تأكيد ثقيلة", "لام تأكيد با نون تأكيد خفيفة", "اسم الفاعل", "اسم المفعول"]) assert.equal(ifilalPortrait.includes(suppressedHeading), false);
+assert.equal(buildExportPages(ifilal, "landscape")[0].match(/الضمير/g).length, 1);
+assert.equal(landscapeVerbTable(ifilal).headings.length, 6);
+for (const layout of ["portrait", "landscape"]) {
+  const docx = buildDocx(ifilal, layout);
+  assert.ok(docx.length > 1000);
+  assert.equal(Buffer.from(docx).subarray(0, 2).toString(), "PK");
+  const docxXml = Buffer.from(docx).toString("utf8");
+  assert.equal(docxXml.includes(ifilalConfig.label), true);
+  assert.equal(docxXml.includes("القسم 01 — المرفوع"), layout === "portrait");
+  assert.equal(docxXml.includes("C62828"), true);
+  assert.equal(docxXml.includes("<w:tblGrid>"), true);
+  assert.equal(docxXml.includes("اسم الفاعل"), false);
+}
 
 const scriptSource = fs.readFileSync("script.js", "utf8");
 assert.equal(scriptSource.includes("splitRootRuns"), false);

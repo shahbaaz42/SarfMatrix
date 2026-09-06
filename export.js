@@ -22,12 +22,24 @@
   const DERIVED_TITLES = Object.freeze({ masdar: "المصدر", activeParticiple: "اسم الفاعل", passiveParticiple: "اسم المفعول", elative: "اسم التفضيل", zarf: "اسم الظرف" });
 
   function sectionTitle(snapshot, key) {
-    return key === "section01" && snapshot.availability?.passivePast === "suppressed"
-      ? "القسم 01 — المرفوع"
-      : SECTION_TITLES[key];
+    if (key === "section01" && snapshot.availability?.passivePast === "suppressed") return "القسم 01 — المرفوع";
+    if (key === "section02" && snapshot.availability?.heavyEmphasis === "suppressed" && snapshot.availability?.lightEmphasis === "suppressed") return "القسم 02 — المجزوم والمنصوب";
+    return SECTION_TITLES[key];
   }
 
-  function derivedKeys(snapshot) { return snapshot.family === "mazid" ? ["masdar", "activeParticiple", ...(snapshot.availability?.passiveParticiple === "suppressed" ? [] : ["passiveParticiple"])] : ["activeParticiple", "passiveParticiple", "elative", "zarf"]; }
+  function derivedKeys(snapshot) { return snapshot.family === "mazid" ? ["masdar", ...(snapshot.availability?.activeParticiple === "suppressed" ? [] : ["activeParticiple"]), ...(snapshot.availability?.passiveParticiple === "suppressed" ? [] : ["passiveParticiple"])] : ["activeParticiple", "passiveParticiple", "elative", "zarf"]; }
+
+  function sectionFields(snapshot, key) {
+    if (key === "section02") return ["majzumPresent", "mansubPresent", ...(snapshot.availability?.heavyEmphasis === "suppressed" ? [] : ["heavyEmphatic"]), ...(snapshot.availability?.lightEmphasis === "suppressed" ? [] : ["lightEmphatic"])];
+    if (key === "section03") return ["imperative", ...(snapshot.availability?.heavyImperative === "suppressed" && snapshot.availability?.heavyLamAlAmr === "suppressed" ? [] : ["heavyImperative"]), ...(snapshot.availability?.lightImperative === "suppressed" && snapshot.availability?.lightLamAlAmr === "suppressed" ? [] : ["lightImperative"])];
+    return [];
+  }
+
+  function sectionHeadings(snapshot, key) {
+    if (key === "section01") return snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key];
+    const fields = sectionFields(snapshot, key);
+    return [HEADINGS[key][0], ...fields.map((field) => HEADINGS[key][key === "section02" ? ["majzumPresent", "mansubPresent", "heavyEmphatic", "lightEmphatic"].indexOf(field) + 1 : ["imperative", "heavyImperative", "lightImperative"].indexOf(field) + 1])];
+  }
 
   function escapeXml(value) {
     return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -55,16 +67,15 @@
   function sectionRows(snapshot, key) {
     const rows = snapshot.sections[key];
     if (key === "section01") return rows.map((row) => [row.pronoun, morphologyCell(row.past, row.presentation.past), morphologyCell(row.present, row.presentation.present), ...(snapshot.availability?.passivePast === "suppressed" ? [] : [morphologyCell(row.passivePast, row.presentation.passivePast), morphologyCell(row.passivePresent, row.presentation.passivePresent)])]);
-    if (key === "section02") return rows.map((row) => [row.pronoun, morphologyCell(row.majzumPresent, row.presentation.majzumPresent), morphologyCell(row.mansubPresent, row.presentation.mansubPresent), morphologyCell(row.heavyEmphatic, row.presentation.heavyEmphatic), morphologyCell(row.lightEmphatic, row.presentation.lightEmphatic)]);
-    return rows.map((row) => [row.pronoun, morphologyCell(row.imperative, row.presentation.imperative), morphologyCell(row.heavyImperative, row.presentation.heavyImperative), morphologyCell(row.lightImperative, row.presentation.lightImperative)]);
+    return rows.map((row) => [row.pronoun, ...sectionFields(snapshot, key).map((field) => morphologyCell(row[field], row.presentation[field]))]);
   }
 
   function landscapeVerbTable(snapshot) {
-    const headings = [HEADINGS.section01[0], ...HEADINGS.section01.slice(1, snapshot.availability?.passivePast === "suppressed" ? 3 : undefined), ...HEADINGS.section02.slice(1), ...HEADINGS.section03.slice(1)];
+    const headings = [HEADINGS.section01[0], ...sectionHeadings(snapshot, "section01").slice(1), ...sectionHeadings(snapshot, "section02").slice(1), ...sectionHeadings(snapshot, "section03").slice(1)];
     const rows = snapshot.sections.section01.map((one, index) => {
       const two = snapshot.sections.section02[index];
       const three = snapshot.sections.section03[index];
-      return [one.pronoun, morphologyCell(one.past, one.presentation.past), morphologyCell(one.present, one.presentation.present), ...(snapshot.availability?.passivePast === "suppressed" ? [] : [morphologyCell(one.passivePast, one.presentation.passivePast), morphologyCell(one.passivePresent, one.presentation.passivePresent)]), morphologyCell(two.majzumPresent, two.presentation.majzumPresent), morphologyCell(two.mansubPresent, two.presentation.mansubPresent), morphologyCell(two.heavyEmphatic, two.presentation.heavyEmphatic), morphologyCell(two.lightEmphatic, two.presentation.lightEmphatic), morphologyCell(three.imperative, three.presentation.imperative), morphologyCell(three.heavyImperative, three.presentation.heavyImperative), morphologyCell(three.lightImperative, three.presentation.lightImperative)];
+      return [one.pronoun, morphologyCell(one.past, one.presentation.past), morphologyCell(one.present, one.presentation.present), ...(snapshot.availability?.passivePast === "suppressed" ? [] : [morphologyCell(one.passivePast, one.presentation.passivePast), morphologyCell(one.passivePresent, one.presentation.passivePresent)]), ...sectionFields(snapshot, "section02").map((field) => morphologyCell(two[field], two.presentation[field])), ...sectionFields(snapshot, "section03").map((field) => morphologyCell(three[field], three.presentation[field]))];
     });
     return { headings, rows };
   }
@@ -105,7 +116,7 @@
         pageShell(snapshot, derivedHtml(snapshot, derivedKeys(snapshot)), "landscape section04-page"),
       ];
     }
-    return ["section01", "section02", "section03"].map((key) => pageShell(snapshot, `<h1>${sectionTitle(snapshot, key)}</h1>${htmlTable(key === "section01" && snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key], sectionRows(snapshot, key), snapshot)}`, `${key}-page`)).concat([
+    return ["section01", "section02", "section03"].map((key) => pageShell(snapshot, `<h1>${sectionTitle(snapshot, key)}</h1>${htmlTable(sectionHeadings(snapshot, key), sectionRows(snapshot, key), snapshot)}`, `${key}-page`)).concat([
       pageShell(snapshot, `<h1>${SECTION_TITLES.section04}</h1>${derivedHtml(snapshot, derivedKeys(snapshot))}`, "section04-page"),
     ]);
   }
@@ -244,7 +255,7 @@
       body += wordMetadata(snapshot) + wordTable(verbs.headings, verbs.rows, snapshot);
       body += pageBreak() + wordMetadata(snapshot) + wordDerived(snapshot, derivedKeys(snapshot));
     } else {
-      ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); const headings = key === "section01" && snapshot.availability?.passivePast === "suppressed" ? HEADINGS[key].slice(0, 3) : HEADINGS[key]; body += wordMetadata(snapshot) + wordHeading(sectionTitle(snapshot, key)) + wordTable(headings, sectionRows(snapshot, key), snapshot); });
+      ["section01", "section02", "section03"].forEach((key, index) => { if (index) body += pageBreak(); body += wordMetadata(snapshot) + wordHeading(sectionTitle(snapshot, key)) + wordTable(sectionHeadings(snapshot, key), sectionRows(snapshot, key), snapshot); });
       body += pageBreak() + wordMetadata(snapshot) + wordHeading(SECTION_TITLES.section04) + wordDerived(snapshot, derivedKeys(snapshot));
     }
     const orientation = layout === "landscape" ? 'w:w="15840" w:h="12240" w:orient="landscape"' : 'w:w="12240" w:h="15840"';
