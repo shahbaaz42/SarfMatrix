@@ -201,13 +201,14 @@ const MAZID_BAB_CONFIG = Object.freeze({
   "bab-al-ifilal": Object.freeze({
     family: "mazid", form: 11, modernFormNumber: 11, modernFormNumberRole: "compatibility", babId: "bab-al-ifilal", patternId: "form11.regular-sound",
     label: "باب الافعيلال — اِفْعَالَّ / يَفْعَالُّ",
+    activeParticiplePattern: "مُفْعَالّ",
     rootClass: "sahih-salim", generationStatus: "implemented",
     availability: Object.freeze({
       activePast: "available", activePresent: "available", passivePast: "suppressed", passivePresent: "suppressed",
-      jussive: "available", subjunctive: "available", heavyEmphasis: "suppressed", lightEmphasis: "suppressed",
-      imperative: "available", lamAlAmr: "available", heavyImperative: "suppressed", lightImperative: "suppressed",
-      heavyLamAlAmr: "suppressed", lightLamAlAmr: "suppressed",
-      masdar: "available", activeParticiple: "suppressed", passiveParticiple: "suppressed",
+      jussive: "available", subjunctive: "available", heavyEmphasis: "available", lightEmphasis: "available",
+      imperative: "available", lamAlAmr: "available", heavyImperative: "available", lightImperative: "available",
+      heavyLamAlAmr: "available", lightLamAlAmr: "available",
+      masdar: "available", activeParticiple: "available", passiveParticiple: "suppressed",
     }),
     eligibility: Object.freeze({ ruleId: "form11.regular-sound-only", deferredRootClasses: Object.freeze(["weak-r1", "hollow-r2", "defective-r3", "doubly-weak", "hamzated", "doubled", "lexical-exception"]) }),
     transformation: Object.freeze({ ruleType: "derivational-copy-idgham", sourceRadicalIndex: 3, radicalIndex: null, affectedElement: "form11.r3Copy" }),
@@ -733,20 +734,33 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
       if (singularSound.has(s.id)) imperativeVariants = alternatives(presentPrefix(s), `${LAM}${KASRA}`, "");
       if (singularSound.has(s.id)) imperativeRule = rule("form11.lam-al-amr-final-geminate");
     }
+    const emphasisStem = femininePlural(s) ? expanded(presentPrefix(s), KASRA) : contracted(presentPrefix(s));
+    const heavy = attach(emphasisStem, s.heavyEmphaticEnding);
+    const light = s.lightEmphaticEnding === null ? empty : attach(contracted(presentPrefix(s)), s.lightEmphaticEnding);
+    let heavyImperative = empty;
+    let lightImperative = empty;
+    if (s.person === 2) {
+      const emphaticStem = femininePlural(s) ? expanded(`${ALIF}${KASRA}`, KASRA) : contracted(`${ALIF}${KASRA}`);
+      heavyImperative = attach(emphaticStem, s.heavyEmphaticEnding);
+      if (s.lightEmphaticEnding !== null) lightImperative = attach(contracted(`${ALIF}${KASRA}`), s.lightEmphaticEnding);
+    } else {
+      heavyImperative = attach([literal(`${LAM}${KASRA}`), ...emphasisStem], s.heavyEmphaticEnding);
+      if (s.lightEmphaticEnding !== null) lightImperative = attach([literal(`${LAM}${KASRA}`), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
+    }
     const majzumVariants = singularSound.has(s.id) ? alternatives(presentPrefix(s), majzumParticle) : [];
-    return { s, past, present, majzum: withParticle(majzumParticle, majzum), mansub: withParticle(mansubParticle, mansub), imperative, majzumVariants, imperativeVariants, imperativeRule };
+    return { s, past, present, majzum: withParticle(majzumParticle, majzum), mansub: withParticle(mansubParticle, mansub), heavy, light, imperative, heavyImperative, lightImperative, majzumVariants, imperativeVariants, imperativeRule };
   });
   const section01 = verbs.map(({ s, past, present }) => ({ pronoun: s.pronoun, past: past.text, present: present.text, passivePast: null, passivePresent: null, presentation: { past, present, passivePast: empty, passivePresent: empty } }));
-  const section02 = verbs.map(({ s, majzum, mansub, majzumVariants }) => ({
-    pronoun: s.pronoun, majzumPresent: majzum.text, mansubPresent: mansub.text, heavyEmphatic: null, lightEmphatic: null,
+  const section02 = verbs.map(({ s, majzum, mansub, heavy, light, majzumVariants }) => ({
+    pronoun: s.pronoun, majzumPresent: majzum.text, mansubPresent: mansub.text, heavyEmphatic: heavy.text, lightEmphatic: light.text || null,
     variants: majzumVariants.length ? { majzumPresent: majzumVariants } : {},
     rules: majzumVariants.length ? { majzumPresent: rule("form11.jussive-final-geminate") } : {},
-    presentation: { majzumPresent: majzum, mansubPresent: mansub, heavyEmphatic: empty, lightEmphatic: empty },
+    presentation: { majzumPresent: majzum, mansubPresent: mansub, heavyEmphatic: heavy, lightEmphatic: light },
   }));
-  const section03 = verbs.map(({ s, imperative, imperativeVariants, imperativeRule }) => ({
-    pronoun: s.pronoun, imperative: imperative.text || null, heavyImperative: null, lightImperative: null,
+  const section03 = verbs.map(({ s, imperative, heavyImperative, lightImperative, imperativeVariants, imperativeRule }) => ({
+    pronoun: s.pronoun, imperative: imperative.text || null, heavyImperative: heavyImperative.text || null, lightImperative: lightImperative.text || null,
     variants: imperativeVariants.length ? { imperative: imperativeVariants } : {}, rules: imperativeRule ? { imperative: imperativeRule } : {},
-    presentation: { imperative, heavyImperative: empty, lightImperative: empty },
+    presentation: { imperative, heavyImperative, lightImperative },
   }));
   const masdar = morphologyValue(
     morphologyRun(`${ALIF}${KASRA}`, null, { kind: "derivational", elementId: "form11.hamzatWasl" }),
@@ -755,11 +769,22 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
     radical(root, 3, FATHA), morphologyRun(ALIF, null, { kind: "derivational", elementId: "form11.masdarAlif" }),
     derivationalCopy(root, 3, "", "form11.r3Copy"),
   );
+  const participleStem = [
+    morphologyRun(`${MIM}${DAMMA}`, null, { kind: "derivational", elementId: "form11.participleMim" }),
+    radical(root, 1, SUKUN), radical(root, 2, FATHA),
+    morphologyRun(ALIF, null, { kind: "derivational", elementId: "form11.medialAlif" }),
+    morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { ...copyMetadata, underlyingVowel: KASRA } }),
+  ];
+  const nominalRows = NOMINAL_CASES.map(({ key, label }) => ({
+    label,
+    values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(participleStem, literal(form[key])).text),
+    presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(participleStem, literal(form[key]))),
+  }));
   return deepFreeze({
     root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle,
     transformation: { ...config.transformation, rules: [rule("form11.final-copy-idgham"), rule("form11.final-copy-fakk-before-consonantal-subject-ending"), rule("form11.nun-niswa-fakk")] },
     presentation: { colourRootLetters: Boolean(colourRootLetters) },
-    sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: [], passiveParticiple: [] } },
+    sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows, passiveParticiple: [] } },
   });
 }
 
