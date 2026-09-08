@@ -213,6 +213,29 @@ const MAZID_BAB_CONFIG = Object.freeze({
     eligibility: Object.freeze({ ruleId: "form11.regular-sound-only", deferredRootClasses: Object.freeze(["weak-r1", "hollow-r2", "defective-r3", "doubly-weak", "hamzated", "doubled", "lexical-exception"]) }),
     transformation: Object.freeze({ ruleType: "derivational-copy-idgham", sourceRadicalIndex: 3, radicalIndex: null, affectedElement: "form11.r3Copy" }),
   }),
+  "bab-al-ifanlal": Object.freeze({
+    family: "mazid", form: 14, modernFormNumber: 14, modernFormNumberRole: "compatibility", babId: "bab-al-ifanlal", patternId: "form14.regular-sound",
+    label: "باب الافعنلال — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
+    traditionalTaxonomy: "الثلاثي الملحق بالفعل الرباعي المزيد فيه بحرفين",
+    activeParticiplePattern: "مُفْعَنْلِل",
+    rootClass: "sahih-salim", generationStatus: "implemented",
+    availability: Object.freeze({
+      activePast: "available", activePresent: "available", passivePast: "suppressed", passivePresent: "suppressed",
+      jussive: "available", subjunctive: "available", heavyEmphasis: "available", lightEmphasis: "available",
+      imperative: "available", lamAlAmr: "available", heavyImperative: "available", lightImperative: "available",
+      heavyLamAlAmr: "available", lightLamAlAmr: "available",
+      masdar: "available", activeParticiple: "available", passiveParticiple: "suppressed",
+    }),
+    eligibility: Object.freeze({ ruleId: "form14.regular-sound-only", deferredRootClasses: Object.freeze(["weak-r1", "hollow-r2", "defective-r3", "doubly-weak", "hamzated", "doubled", "lexical-exception"]) }),
+    transformation: Object.freeze({ ruleType: "derivational-copy-insertion", sourceRadicalIndex: 3, radicalIndex: null, affectedElement: "form14.r3Copy", contraction: "prohibited" }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["derivational", "form14.hamzatWasl", "ِ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivational", "form14.insertedNun", "ْ"], ["radical", 3, "َ"], ["copyRadical", 3, "", "form14.r3Copy"]]),
+      activePresent: Object.freeze([["grammaticalPersonPrefix", "َ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivational", "form14.insertedNun", "ْ"], ["radical", 3, "ِ"], ["copyRadical", 3, "", "form14.r3Copy"]]),
+      imperative: Object.freeze([["derivational", "form14.hamzatWasl", "ِ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivational", "form14.insertedNun", "ْ"], ["radical", 3, "ِ"], ["copyRadical", 3, "", "form14.r3Copy"]]),
+      masdar: Object.freeze([["derivational", "form14.hamzatWasl", "ِ"], ["radical", 1, "ْ"], ["radical", 2, "ِ"], ["derivational", "form14.insertedNun", "ْ"], ["radical", 3, "َ"], ["derivational", "form14.masdarAlif"], ["copyRadical", 3, "", "form14.r3Copy"]]),
+      activeParticiple: Object.freeze([["derivational", "form14.participleMim", "ُ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivational", "form14.insertedNun", "ْ"], ["radical", 3, "ِ"], ["copyRadical", 3, "", "form14.r3Copy"]]),
+    }),
+  }),
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
@@ -433,6 +456,7 @@ function morphologyValue(...parts) {
 }
 
 function literal(text) { return morphologyRun(text, null); }
+function grammatical(text) { return morphologyRun(text, null, { kind: "grammatical" }); }
 function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index); }
 function derivationalCopy(root, sourceRadicalIndex = 3, marks = "", elementId = null) {
   return morphologyRun(`${root[sourceRadicalIndex - 1]}${marks}`, null, { kind: "derivational-copy", sourceRadicalIndex, ...(elementId ? { elementId } : {}) });
@@ -454,6 +478,10 @@ const DERIVATIONAL_ELEMENTS = Object.freeze({
   "form13.waw2": LETTERS.WAW,
   "form13.masdarAlif": LETTERS.ALIF,
   "form13.participleMim": LETTERS.MIM,
+  "form14.hamzatWasl": LETTERS.ALIF,
+  "form14.insertedNun": LETTERS.NUN,
+  "form14.masdarAlif": LETTERS.ALIF,
+  "form14.participleMim": LETTERS.MIM,
 });
 
 function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transformation = null) {
@@ -462,6 +490,7 @@ function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transforma
     if (kind === "radical") runs.push(radical(root, value, marks));
     else if (kind === "copyRadical") runs.push(derivationalCopy(root, value, marks, elementId));
     else if (kind === "personPrefix") runs.push(literal(`${sighah.presentPrefix}${value}`));
+    else if (kind === "grammaticalPersonPrefix") runs.push(grammatical(`${sighah.presentPrefix}${value}`));
     else if (kind === "derivationalGeminate") {
       const waw1 = value;
       const waw2 = marks;
@@ -819,12 +848,13 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
     return { ...transformation, acceptedAlternatives, underlyingForm, resultForm, formStages: intermediateForm ? [underlyingForm, intermediateForm, resultForm] : [underlyingForm, resultForm] };
   })() : config.transformation ?? null;
   const verbs = SIGHAS.map((sighah) => {
+    const addition = (text) => config.form === 14 ? grammatical(text) : literal(text);
     const inflect = (name, value) => inflectVerbStem(instantiateMazidTemplate(root, templates[name], sighah, transformation).runs, ending(value));
     const present = instantiateMazidTemplate(root, templates.activePresent, sighah, transformation);
-    const emphatic = (key) => sighah[key] === null ? morphologyValue() : inflectVerbStem([literal(`${LAM}${FATHA}`), ...present.runs], ending(sighah[key]));
+    const emphatic = (key) => sighah[key] === null ? morphologyValue() : inflectVerbStem([addition(`${LAM}${FATHA}`), ...present.runs], ending(sighah[key]));
     const imperative = (key) => {
       if (sighah[key] === null) return morphologyValue();
-      const stem = sighah.person === 2 ? instantiateMazidTemplate(root, templates.imperative, sighah, transformation).runs : [literal(`${LAM}${KASRA}`), ...present.runs];
+      const stem = sighah.person === 2 ? instantiateMazidTemplate(root, templates.imperative, sighah, transformation).runs : [addition(`${LAM}${KASRA}`), ...present.runs];
       return inflectVerbStem(stem, ending(sighah[key]));
     };
     const majzum = inflectVerbStem(present.runs, ending(sighah.majzumEnding));
@@ -834,14 +864,15 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
       past: inflect("activePast", sighah.pastEnding), present: inflect("activePresent", sighah.presentEnding),
       passivePast: config.availability?.passivePast === "suppressed" ? morphologyValue() : inflect("passivePast", sighah.pastEnding),
       passivePresent: config.availability?.passivePresent === "suppressed" ? morphologyValue() : inflect("passivePresent", sighah.presentEnding),
-      majzumPresent: morphologyValue(literal(`${majzumParticle} `), majzum.runs), mansubPresent: morphologyValue(literal(`${mansubParticle} `), mansub.runs),
+      majzumPresent: morphologyValue(addition(`${majzumParticle} `), majzum.runs), mansubPresent: morphologyValue(addition(`${mansubParticle} `), mansub.runs),
       heavyEmphatic: emphatic("heavyEmphaticEnding"), lightEmphatic: emphatic("lightEmphaticEnding"),
       imperative: imperative("majzumEnding"), heavyImperative: imperative("heavyEmphaticEnding"), lightImperative: imperative("lightEmphaticEnding"),
     };
   });
   const nominalRows = (template) => {
     const stem = instantiateMazidTemplate(root, template, SIGHAS[0], transformation).runs;
-    return NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, literal(form[key])).text), presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, literal(form[key]))) }));
+    const nominalEnding = (text) => config.form === 14 ? grammatical(text) : literal(text);
+    return NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, nominalEnding(form[key])).text), presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, nominalEnding(form[key]))) }));
   };
   const section01 = verbs.map((v) => ({ pronoun: v.pronoun, past: v.past.text, present: v.present.text, passivePast: v.passivePast.text || null, passivePresent: v.passivePresent.text || null, presentation: { past: v.past, present: v.present, passivePast: v.passivePast, passivePresent: v.passivePresent } }));
   const section02 = verbs.map((v) => ({ pronoun: v.pronoun, majzumPresent: v.majzumPresent.text, mansubPresent: v.mansubPresent.text, heavyEmphatic: v.heavyEmphatic.text || null, lightEmphatic: v.lightEmphatic.text || null, presentation: { majzumPresent: v.majzumPresent, mansubPresent: v.mansubPresent, heavyEmphatic: v.heavyEmphatic, lightEmphatic: v.lightEmphatic } }));
@@ -864,8 +895,10 @@ function inflectVerbStem(stemRuns, ending) {
   const { marks, remainder } = splitInitialMarks(ending);
   const runs = [...stemRuns];
   const finalRadical = runs.pop();
-  if (!finalRadical || finalRadical.radicalIndex !== 3) throw new Error("Verb stem must end with the third radical");
-  return morphologyValue(runs, morphologyRun(finalRadical.text + marks, finalRadical.radicalIndex), literal(remainder));
+  if (!finalRadical || (finalRadical.radicalIndex !== 3 && finalRadical.sourceRadicalIndex !== 3)) throw new Error("Verb stem must end with the third radical or its derivational copy");
+  const metadata = Object.fromEntries(Object.entries(finalRadical).filter(([key]) => !["text", "radicalIndex"].includes(key)));
+  const suffix = finalRadical.elementId === "form14.r3Copy" ? grammatical(remainder) : literal(remainder);
+  return morphologyValue(runs, morphologyRun(finalRadical.text + marks, finalRadical.radicalIndex, metadata), suffix);
 }
 
 function presentStemValue(root, config, sighah) {
