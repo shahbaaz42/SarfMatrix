@@ -236,6 +236,21 @@ const MAZID_BAB_CONFIG = Object.freeze({
       activeParticiple: Object.freeze([["derivational", "form14.participleMim", "ُ"], ["radical", 1, "ْ"], ["radical", 2, "َ"], ["derivational", "form14.insertedNun", "ْ"], ["radical", 3, "ِ"], ["copyRadical", 3, "", "form14.r3Copy"]]),
     }),
   }),
+  "bab-al-ifanla": Object.freeze({
+    family: "mazid", form: 15, modernFormNumber: 15, modernFormNumberRole: "compatibility", babId: "bab-al-ifanla", patternId: "form15.derivational-weak-final",
+    label: "باب الافعنلاء — اِفْعَنْلَى / يَفْعَنْلِي",
+    traditionalName: "باب الافعنلاء", traditionalTaxonomy: "الثلاثي الملحق بالفعل الرباعي المزيد فيه بحرفين",
+    pastPattern: "اِفْعَنْلَى", presentPattern: "يَفْعَنْلِي", masdarPattern: "اِفْعِنْلَاء", activeParticiplePattern: "مُفْعَنْلِي",
+    rootClass: "sahih-salim", generationStatus: "implemented",
+    availability: Object.freeze({
+      activePast: "available", activePresent: "available", passivePast: "suppressed", passivePresent: "suppressed",
+      jussive: "available", subjunctive: "available", heavyEmphasis: "available", lightEmphasis: "available",
+      imperative: "available", lamAlAmr: "available", heavyImperative: "available", lightImperative: "available",
+      heavyLamAlAmr: "available", lightLamAlAmr: "available", masdar: "available", activeParticiple: "available", passiveParticiple: "suppressed",
+    }),
+    eligibility: Object.freeze({ ruleId: "form15.regular-sound-only", deferredRootClasses: Object.freeze(["weak-r1", "hollow-r2", "defective-r3", "doubly-weak", "hamzated", "doubled", "lexical-exception"]) }),
+    transformation: Object.freeze({ ruleType: "derivational-weak-final", affectedElement: "ifanla.finalYa", underlying: "ي", radicalIndex: null }),
+  }),
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
@@ -817,12 +832,81 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   });
 }
 
+// Reusable structural operation for a non-lexical weak-final element.  A
+// deletion is kept on the value as metadata rather than emitted as an empty
+// presentation run.
+function transformDerivationalWeakFinal(surfaceValue, ruleId, kind = "derivational") {
+  const record = Object.freeze({ elementId: "ifanla.finalYa", kind: "derivational", underlyingValue: YA, surfaceValue, radicalIndex: null, ruleId });
+  return Object.freeze({ run: surfaceValue ? morphologyRun(surfaceValue, null, { kind, elementId: "ifanla.finalYa", transformation: record }) : null, record });
+}
+
+function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
+  const config = MAZID_BAB_CONFIG[bab];
+  const empty = morphologyValue();
+  const stem = (prefix, r2Vowel = FATHA, r3Marks = "") => [
+    grammatical(prefix), radical(root, 1, SUKUN), radical(root, 2, r2Vowel),
+    morphologyRun(`${NUN}${SUKUN}`, null, { kind: "derivational", elementId: "ifanla.insertedNun" }), radical(root, 3, r3Marks),
+  ];
+  const value = (prefix, descriptor, r2Vowel = FATHA) => {
+    if (!descriptor) return empty;
+    const [r3Marks, yaSurface, suffix = "", ruleId = "ifanla.final-ya.retain", yaKind = "derivational"] = descriptor;
+    const transformed = transformDerivationalWeakFinal(yaSurface, ruleId, yaKind);
+    const base = morphologyValue(stem(prefix, r2Vowel, r3Marks), transformed.run, suffix ? grammatical(suffix) : null);
+    return Object.freeze({ ...base, transformations: Object.freeze([transformed.record]), deletedElements: Object.freeze(yaSurface ? [] : [transformed.record]) });
+  };
+  const particle = (text, form) => {
+    const base = morphologyValue(grammatical(`${text} `), form.runs);
+    return Object.freeze({ ...base, transformations: form.transformations, deletedElements: form.deletedElements });
+  };
+  const prefixes = SIGHAS.map((s) => `${s.presentPrefix}${FATHA}`);
+  const P = [
+    [FATHA, ALIF_MAQSURA,"","ifanla.final-ya.to-maqsura"], [FATHA,`${YA}${FATHA}`,ALIF,"ifanla.final-ya.restore-before-consonant-suffix"], [FATHA,"",`${WAW}${SUKUN}${ALIF}`,"ifanla.final-ya.delete-before-waw"],
+    [FATHA,"",`${TA}${SUKUN}`,"ifanla.final-ya.delete-before-feminine-ta"], [FATHA,"",`${TA}${FATHA}${ALIF}`,"ifanla.final-ya.delete-before-feminine-ta"], [FATHA,`${YA}${SUKUN}`,`${NUN}${FATHA}`,"ifanla.final-ya.restore-before-consonant-suffix"],
+    [FATHA,`${YA}${SUKUN}`,`${TA}${FATHA}`,"ifanla.final-ya.restore-before-consonant-suffix"], [FATHA,`${YA}${SUKUN}`,`${TA}${DAMMA}${MIM}${FATHA}${ALIF}`,"ifanla.final-ya.restore-before-consonant-suffix"], [FATHA,`${YA}${SUKUN}`,`${TA}${DAMMA}${MIM}${SUKUN}`,"ifanla.final-ya.restore-before-consonant-suffix"],
+    [FATHA,`${YA}${SUKUN}`,`${TA}${KASRA}`,"ifanla.final-ya.restore-before-consonant-suffix"], [FATHA,`${YA}${SUKUN}`,`${TA}${DAMMA}${MIM}${FATHA}${ALIF}`,"ifanla.final-ya.restore-before-consonant-suffix"], [FATHA,`${YA}${SUKUN}`,`${TA}${DAMMA}${NUN}${SHADDA}${FATHA}`,"ifanla.final-ya.restore-before-consonant-suffix"],
+    [FATHA,`${YA}${SUKUN}`,`${TA}${DAMMA}`,"ifanla.final-ya.restore-before-consonant-suffix"], [FATHA,`${YA}${SUKUN}`,`${NUN}${FATHA}${ALIF}`,"ifanla.final-ya.restore-before-consonant-suffix"],
+  ];
+  const I = [
+    [KASRA,YA], [KASRA,`${YA}${FATHA}`,`${ALIF}${NUN}${KASRA}`], [DAMMA,"",`${WAW}${NUN}${FATHA}`,"ifanla.final-ya.delete-before-waw"], [KASRA,YA], [KASRA,`${YA}${FATHA}`,`${ALIF}${NUN}${KASRA}`], [KASRA,YA,`${NUN}${FATHA}`,"ifanla.final-ya.retain-before-niswah"],
+    [KASRA,YA], [KASRA,`${YA}${FATHA}`,`${ALIF}${NUN}${KASRA}`], [DAMMA,"",`${WAW}${NUN}${FATHA}`,"ifanla.final-ya.delete-before-waw"], [KASRA,"",`${YA}${NUN}${FATHA}`,"ifanla.final-ya.delete-before-2fs-ending","grammatical"], [KASRA,`${YA}${FATHA}`,`${ALIF}${NUN}${KASRA}`], [KASRA,YA,`${NUN}${FATHA}`,"ifanla.final-ya.retain-before-niswah"], [KASRA,YA], [KASRA,YA],
+  ];
+  const J = I.map((d, i) => [0,3,6,12,13].includes(i) ? [KASRA,"","","ifanla.final-ya.delete-jussive"] : [2,8].includes(i) ? [DAMMA,"",`${WAW}${ALIF}`,"ifanla.final-ya.delete-before-waw"] : i === 9 ? [KASRA,YA,"","ifanla.final-ya.delete-before-2fs-ending","grammatical"] : i === 5 || i === 11 ? [KASRA,YA,`${NUN}${FATHA}`,"ifanla.final-ya.retain-before-niswah"] : [KASRA,`${YA}${FATHA}`,ALIF,"ifanla.final-ya.retain"]);
+  const S = I.map((d, i) => [0,3,6,12,13].includes(i) ? [KASRA,`${YA}${FATHA}`,"","ifanla.final-ya.retain-subjunctive"] : [2,8].includes(i) ? [DAMMA,"",`${WAW}${ALIF}`,"ifanla.final-ya.delete-before-waw"] : i === 9 ? [KASRA,YA,"","ifanla.final-ya.delete-before-2fs-ending","grammatical"] : i === 5 || i === 11 ? [KASRA,YA,`${NUN}${FATHA}`,"ifanla.final-ya.retain-before-niswah"] : [KASRA,`${YA}${FATHA}`,ALIF,"ifanla.final-ya.retain"]);
+  const H = SIGHAS.map((s, i) => [2,8].includes(i) ? [DAMMA,"",`${NUN}${SHADDA}${FATHA}`,"ifanla.emphasis.delete-plural-waw"] : i === 9 ? [KASRA,"",`${NUN}${SHADDA}${FATHA}`,"ifanla.emphasis.delete-2fs-ya"] : [5,11].includes(i) ? [KASRA,YA,`${NUN}${FATHA}${ALIF}${NUN}${SHADDA}${KASRA}`,"ifanla.emphasis.niswah-separator"] : [1,4,7,10].includes(i) ? [KASRA,`${YA}${FATHA}`,`${ALIF}${NUN}${SHADDA}${KASRA}`,"ifanla.final-ya.restore-before-emphasis"] : [KASRA,`${YA}${FATHA}`,`${NUN}${SHADDA}${FATHA}`,"ifanla.final-ya.restore-before-emphasis"]);
+  const L = H.map((d, i) => SIGHAS[i].lightEmphaticEnding === null ? null : [2,8].includes(i) ? [DAMMA,"",`${NUN}${SUKUN}`,"ifanla.emphasis.delete-plural-waw"] : i === 9 ? [KASRA,"",`${NUN}${SUKUN}`,"ifanla.emphasis.delete-2fs-ya"] : [KASRA,`${YA}${FATHA}`,`${NUN}${SUKUN}`,"ifanla.final-ya.restore-before-emphasis"]);
+  const forms = SIGHAS.map((s, i) => {
+    const past = value(`${ALIF}${KASRA}`, P[i]);
+    const present = value(prefixes[i], I[i]);
+    const majzum = particle(majzumParticle, value(prefixes[i], J[i]));
+    const mansub = particle(mansubParticle, value(prefixes[i], S[i]));
+    const heavy = value(`${LAM}${FATHA}${prefixes[i]}`, H[i]);
+    const light = value(`${LAM}${FATHA}${prefixes[i]}`, L[i]);
+    const direct = s.person === 2 ? value(`${ALIF}${KASRA}`, J[i]) : value(`${LAM}${KASRA}${prefixes[i]}`, J[i]);
+    const heavyImperative = s.person === 2 ? value(`${ALIF}${KASRA}`, H[i]) : value(`${LAM}${KASRA}${prefixes[i]}`, H[i]);
+    const lightImperative = s.person === 2 ? value(`${ALIF}${KASRA}`, L[i]) : value(`${LAM}${KASRA}${prefixes[i]}`, L[i]);
+    return { s, past, present, majzum, mansub, heavy, light, direct, heavyImperative, lightImperative };
+  });
+  const section01 = forms.map(({s,past,present}) => ({ pronoun:s.pronoun, past:past.text, present:present.text, passivePast:null, passivePresent:null, presentation:{past,present,passivePast:empty,passivePresent:empty} }));
+  const section02 = forms.map(({s,majzum,mansub,heavy,light}) => ({ pronoun:s.pronoun, majzumPresent:majzum.text, mansubPresent:mansub.text, heavyEmphatic:heavy.text, lightEmphatic:light.text || null, presentation:{majzumPresent:majzum,mansubPresent:mansub,heavyEmphatic:heavy,lightEmphatic:light} }));
+  const section03 = forms.map(({s,direct,heavyImperative,lightImperative}) => ({ pronoun:s.pronoun, imperative:direct.text || null, heavyImperative:heavyImperative.text || null, lightImperative:lightImperative.text || null, presentation:{imperative:direct,heavyImperative,lightImperative} }));
+  const hamza = transformDerivationalWeakFinal("ء", "ifanla.final-ya.to-masdar-hamza");
+  const masdar = morphologyValue(grammatical(`${ALIF}${KASRA}`),radical(root,1,SUKUN),radical(root,2,KASRA),morphologyRun(`${NUN}${SUKUN}`,null,{kind:"derivational",elementId:"ifanla.insertedNun"}),radical(root,3,FATHA),morphologyRun(ALIF,null,{kind:"derivational",elementId:"ifanla.masdarAlif"}),hamza.run);
+  const nominal = {
+    nominative:[[KASRATAN,"",""],[KASRA,YA,`${FATHA}${ALIF}${NUN}${KASRA}`],[DAMMA,"",`${WAW}${NUN}${FATHA}`],[KASRA,YA,`${FATHA}${TA_MARBUTA}${DAMMATAN}`],[KASRA,YA,`${FATHA}${TA}${FATHA}${ALIF}${NUN}${KASRA}`],[KASRA,YA,`${FATHA}${ALIF}${TA}${DAMMATAN}`]],
+    accusative:[[KASRA,YA,`${FATHATAN}${ALIF}`],[KASRA,YA,`${FATHA}${YA}${SUKUN}${NUN}${KASRA}`],[KASRA,YA,`${NUN}${FATHA}`],[KASRA,YA,`${FATHA}${TA_MARBUTA}${FATHATAN}`],[KASRA,YA,`${FATHA}${TA}${FATHA}${YA}${SUKUN}${NUN}${KASRA}`],[KASRA,YA,`${FATHA}${ALIF}${TA}${KASRATAN}`]],
+    genitive:[[KASRATAN,"",""],[KASRA,YA,`${FATHA}${YA}${SUKUN}${NUN}${KASRA}`],[KASRA,YA,`${NUN}${FATHA}`],[KASRA,YA,`${FATHA}${TA_MARBUTA}${KASRATAN}`],[KASRA,YA,`${FATHA}${TA}${FATHA}${YA}${SUKUN}${NUN}${KASRA}`],[KASRA,YA,`${FATHA}${ALIF}${TA}${KASRATAN}`]],
+  };
+  const nominalRows = NOMINAL_CASES.map(({key,label}) => { const presentations=nominal[key].map((descriptor,i)=>value(`${MIM}${DAMMA}`, [...descriptor, i === 0 && key !== "accusative" ? "ifanla.participle.indefinite-ya-deletion" : "ifanla.participle.ya-retention"], FATHA)); return {label,values:presentations.map(x=>x.text),presentations}; });
+  return deepFreeze({ root:[...root], bab, babLabel, family:"mazid", availability:config.availability, majzumParticle, mansubParticle, transformation:config.transformation, presentation:{colourRootLetters:Boolean(colourRootLetters)}, sections:{section01,section02,section03,section04:{masdar:[{label:"المصدر",values:[masdar.text],presentations:[masdar]}],activeParticiple:nominalRows,passiveParticiple:[]}} });
+}
+
 function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
   const config = MAZID_BAB_CONFIG[bab];
   if (!config) throw new Error(`Unknown Mazīd Bāb: ${bab}`);
   if (!isSoundFormIVRoot(root)) throw new Error(`${config.label} متاح حاليًا للجذر الصحيح السالم فقط.`);
   if (config.form === 9) return buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   if (config.form === 11) return buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
+  if (config.form === 15) return buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   const transformation = config.form === 8 ? formVIIITransformation(root) : null;
   if (config.form === 8 && !isRegularFormVIIIRoot(root) && !transformation) {
     throw new Error("This Form VIII root requires an assimilation rule that is not yet implemented.");
@@ -1248,6 +1332,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, buildFormIXSnapshot, buildFormXISnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }

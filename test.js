@@ -268,7 +268,7 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=ifanlal-phase-c"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=ifanla-phase-c"></script>'), true);
 assert.equal(html.includes('<script src="export.js?v=ifanlal-phase-c"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
@@ -298,6 +298,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الافعوّال — اِفْعَوَّلَ / يَفْعَوِّلُ",
   "باب الافعيلال — اِفْعَالَّ / يَفْعَالُّ",
   "باب الافعنلال — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
+  "باب الافعنلاء — اِفْعَنْلَى / يَفْعَنْلِي",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1361,3 +1362,34 @@ for (const layout of ["portrait", "landscape"]) {
   assert.equal(Buffer.from(docx).subarray(0, 2).toString(), "PK");
   assert.equal(Buffer.from(docx).toString("utf8").includes("<w:tblGrid>"), true);
 }
+
+// باب الافعنلاء (Frozen Phase C): derivational weak-final yāʾ is never R4.
+const ifanlaConfig = MAZID_BAB_CONFIG["bab-al-ifanla"];
+const ifanla = dispatchGeneration({ root:["س","ل","ق"], bab:"bab-al-ifanla", babLabel:ifanlaConfig.label, majzumParticle:"لَمْ", mansubParticle:"لَنْ", colourRootLetters:true });
+assert.deepEqual([ifanlaConfig.modernFormNumber,ifanlaConfig.modernFormNumberRole,ifanlaConfig.rootClass,ifanlaConfig.generationStatus],[15,"compatibility","sahih-salim","implemented"]);
+assert.equal(ifanlaConfig.traditionalTaxonomy,"الثلاثي الملحق بالفعل الرباعي المزيد فيه بحرفين");
+assert.deepEqual(ifanla.sections.section01.map(r=>r.past),["اِسْلَنْقَى","اِسْلَنْقَيَا","اِسْلَنْقَوْا","اِسْلَنْقَتْ","اِسْلَنْقَتَا","اِسْلَنْقَيْنَ","اِسْلَنْقَيْتَ","اِسْلَنْقَيْتُمَا","اِسْلَنْقَيْتُمْ","اِسْلَنْقَيْتِ","اِسْلَنْقَيْتُمَا","اِسْلَنْقَيْتُنَّ","اِسْلَنْقَيْتُ","اِسْلَنْقَيْنَا"]);
+assert.deepEqual(ifanla.sections.section01.map(r=>r.present),["يَسْلَنْقِي","يَسْلَنْقِيَانِ","يَسْلَنْقُونَ","تَسْلَنْقِي","تَسْلَنْقِيَانِ","يَسْلَنْقِينَ","تَسْلَنْقِي","تَسْلَنْقِيَانِ","تَسْلَنْقُونَ","تَسْلَنْقِينَ","تَسْلَنْقِيَانِ","تَسْلَنْقِينَ","أَسْلَنْقِي","نَسْلَنْقِي"]);
+assert.deepEqual(ifanla.sections.section02.map(r=>r.majzumPresent),["لَمْ يَسْلَنْقِ","لَمْ يَسْلَنْقِيَا","لَمْ يَسْلَنْقُوا","لَمْ تَسْلَنْقِ","لَمْ تَسْلَنْقِيَا","لَمْ يَسْلَنْقِينَ","لَمْ تَسْلَنْقِ","لَمْ تَسْلَنْقِيَا","لَمْ تَسْلَنْقُوا","لَمْ تَسْلَنْقِي","لَمْ تَسْلَنْقِيَا","لَمْ تَسْلَنْقِينَ","لَمْ أَسْلَنْقِ","لَمْ نَسْلَنْقِ"]);
+assert.deepEqual(ifanla.sections.section02.map(r=>r.mansubPresent),["لَنْ يَسْلَنْقِيَ","لَنْ يَسْلَنْقِيَا","لَنْ يَسْلَنْقُوا","لَنْ تَسْلَنْقِيَ","لَنْ تَسْلَنْقِيَا","لَنْ يَسْلَنْقِينَ","لَنْ تَسْلَنْقِيَ","لَنْ تَسْلَنْقِيَا","لَنْ تَسْلَنْقُوا","لَنْ تَسْلَنْقِي","لَنْ تَسْلَنْقِيَا","لَنْ تَسْلَنْقِينَ","لَنْ أَسْلَنْقِيَ","لَنْ نَسْلَنْقِيَ"]);
+assert.deepEqual(ifanla.sections.section02.map(r=>r.heavyEmphatic),["لَيَسْلَنْقِيَنَّ","لَيَسْلَنْقِيَانِّ","لَيَسْلَنْقُنَّ","لَتَسْلَنْقِيَنَّ","لَتَسْلَنْقِيَانِّ","لَيَسْلَنْقِينَانِّ","لَتَسْلَنْقِيَنَّ","لَتَسْلَنْقِيَانِّ","لَتَسْلَنْقُنَّ","لَتَسْلَنْقِنَّ","لَتَسْلَنْقِيَانِّ","لَتَسْلَنْقِينَانِّ","لَأَسْلَنْقِيَنَّ","لَنَسْلَنْقِيَنَّ"]);
+assert.deepEqual(ifanla.sections.section02.map(r=>r.lightEmphatic),["لَيَسْلَنْقِيَنْ",null,"لَيَسْلَنْقُنْ","لَتَسْلَنْقِيَنْ",null,null,"لَتَسْلَنْقِيَنْ",null,"لَتَسْلَنْقُنْ","لَتَسْلَنْقِنْ",null,null,"لَأَسْلَنْقِيَنْ","لَنَسْلَنْقِيَنْ"]);
+assert.deepEqual(ifanla.sections.section03.slice(6,12).map(r=>r.imperative),["اِسْلَنْقِ","اِسْلَنْقِيَا","اِسْلَنْقُوا","اِسْلَنْقِي","اِسْلَنْقِيَا","اِسْلَنْقِينَ"]);
+assert.deepEqual(ifanla.sections.section03.slice(6,12).map(r=>r.heavyImperative),["اِسْلَنْقِيَنَّ","اِسْلَنْقِيَانِّ","اِسْلَنْقُنَّ","اِسْلَنْقِنَّ","اِسْلَنْقِيَانِّ","اِسْلَنْقِينَانِّ"]);
+assert.deepEqual(ifanla.sections.section03.slice(6,12).map(r=>r.lightImperative),["اِسْلَنْقِيَنْ",null,"اِسْلَنْقُنْ","اِسْلَنْقِنْ",null,null]);
+assert.deepEqual(lamRows.map(i=>ifanla.sections.section03[i].imperative),["لِيَسْلَنْقِ","لِيَسْلَنْقِيَا","لِيَسْلَنْقُوا","لِتَسْلَنْقِ","لِتَسْلَنْقِيَا","لِيَسْلَنْقِينَ","لِأَسْلَنْقِ","لِنَسْلَنْقِ"]);
+assert.deepEqual(lamRows.map(i=>ifanla.sections.section03[i].heavyImperative),["لِيَسْلَنْقِيَنَّ","لِيَسْلَنْقِيَانِّ","لِيَسْلَنْقُنَّ","لِتَسْلَنْقِيَنَّ","لِتَسْلَنْقِيَانِّ","لِيَسْلَنْقِينَانِّ","لِأَسْلَنْقِيَنَّ","لِنَسْلَنْقِيَنَّ"]);
+assert.deepEqual(lamRows.map(i=>ifanla.sections.section03[i].lightImperative),["لِيَسْلَنْقِيَنْ",null,"لِيَسْلَنْقُنْ","لِتَسْلَنْقِيَنْ",null,null,"لِأَسْلَنْقِيَنْ","لِنَسْلَنْقِيَنْ"]);
+assert.equal(ifanla.sections.section04.masdar[0].values[0],"اِسْلِنْقَاء");
+assert.deepEqual(ifanla.sections.section04.activeParticiple.map(r=>r.values),[["مُسْلَنْقٍ","مُسْلَنْقِيَانِ","مُسْلَنْقُونَ","مُسْلَنْقِيَةٌ","مُسْلَنْقِيَتَانِ","مُسْلَنْقِيَاتٌ"],["مُسْلَنْقِيًا","مُسْلَنْقِيَيْنِ","مُسْلَنْقِينَ","مُسْلَنْقِيَةً","مُسْلَنْقِيَتَيْنِ","مُسْلَنْقِيَاتٍ"],["مُسْلَنْقٍ","مُسْلَنْقِيَيْنِ","مُسْلَنْقِينَ","مُسْلَنْقِيَةٍ","مُسْلَنْقِيَتَيْنِ","مُسْلَنْقِيَاتٍ"]]);
+const twoFs=ifanla.sections.section01[9].presentation.present, twoFp=ifanla.sections.section01[11].presentation.present;
+assert.equal(twoFs.text,twoFp.text); assert.equal(twoFs.runs.find(r=>r.text.startsWith("ي"))?.kind,"grammatical"); assert.equal(twoFp.runs.find(r=>r.elementId==="ifanla.finalYa")?.kind,"derivational");
+assert.equal(twoFs.deletedElements[0].surfaceValue,"");
+for(const section of Object.values(ifanla.sections).slice(0,3)) for(const row of section) for(const presentation of Object.values(row.presentation)) { assert.equal(presentation.runs.some(r=>r.radicalIndex===4),false); for(const run of presentation.runs.filter(r=>r.elementId==="ifanla.finalYa")) { assert.equal(run.radicalIndex,null); assert.equal("sourceRadicalIndex" in run,false); } }
+assert.equal(ifanla.sections.section01.every(r=>r.passivePast===null&&r.passivePresent===null),true); assert.deepEqual(ifanla.sections.section04.passiveParticiple,[]);
+for(const p of [...MAJZUM_PARTICLES]) assert.equal(dispatchGeneration({root:["س","ل","ق"],bab:"bab-al-ifanla",majzumParticle:p,mansubParticle:"لَنْ"}).sections.section02[0].majzumPresent,`${p} يَسْلَنْقِ`);
+for(const p of MANSUB_PARTICLES) assert.equal(dispatchGeneration({root:["س","ل","ق"],bab:"bab-al-ifanla",majzumParticle:"لَمْ",mansubParticle:p}).sections.section02[0].mansubPresent,`${p} يَسْلَنْقِيَ`);
+for(const root of [["و","ع","د"],["ق","و","م"],["ه","د","ي"],["و","ف","ي"],["أ","ك","ل"],["م","د","د"]]) assert.throws(()=>dispatchGeneration({root,bab:"bab-al-ifanla",majzumParticle:"لَمْ",mansubParticle:"لَنْ"}),/الصحيح السالم/);
+const harb=dispatchGeneration({root:["ح","ر","ب"],bab:"bab-al-ifanla",majzumParticle:"لَمْ",mansubParticle:"لَنْ"});
+assert.deepEqual([harb.sections.section01[0].past,harb.sections.section01[6].past,harb.sections.section01[2].past,harb.sections.section01[0].present,harb.sections.section01[2].present,harb.sections.section02[0].majzumPresent,harb.sections.section02[0].mansubPresent,harb.sections.section03[6].imperative,harb.sections.section02[0].heavyEmphatic,harb.sections.section02[2].heavyEmphatic,harb.sections.section02[0].lightEmphatic,harb.sections.section04.masdar[0].values[0],harb.sections.section04.activeParticiple[0].values[0],harb.sections.section04.activeParticiple[1].values[0]],["اِحْرَنْبَى","اِحْرَنْبَيْتَ","اِحْرَنْبَوْا","يَحْرَنْبِي","يَحْرَنْبُونَ","لَمْ يَحْرَنْبِ","لَنْ يَحْرَنْبِيَ","اِحْرَنْبِ","لَيَحْرَنْبِيَنَّ","لَيَحْرَنْبُنَّ","لَيَحْرَنْبِيَنْ","اِحْرِنْبَاء","مُحْرَنْبٍ","مُحْرَنْبِيًا"]);
+for(const layout of ["portrait","landscape"]) { const pages=buildExportPages(ifanla,layout).join(""); assert.equal(pages.includes("اسم المفعول"),false); assert.equal(pages.includes("ifanla.final-ya"),false); const docx=buildDocx(ifanla,layout); assert.ok(docx); }
