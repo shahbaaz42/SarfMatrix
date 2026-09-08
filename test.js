@@ -268,8 +268,8 @@ const populatedDerivedCells = ["nominative", "accusative", "genitive"]
 assert.equal(populatedDerivedCells, 49);
 
 const html = fs.readFileSync("index.html", "utf8");
-assert.equal(html.includes('<script src="script.js?v=ifilal-phase-e"></script>'), true);
-assert.equal(html.includes('<script src="export.js?v=ifilal-phase-e"></script>'), true);
+assert.equal(html.includes('<script src="script.js?v=ifanlal-phase-c"></script>'), true);
+assert.equal(html.includes('<script src="export.js?v=ifanlal-phase-c"></script>'), true);
 assert.equal((html.match(/class="result-section(?: derived-section)?"/g) || []).length, 4);
 assert.equal((html.match(/class="table-wrap"/g) || []).length, 8);
 assert.equal((html.match(/class="derived-card"/g) || []).length, 5);
@@ -297,6 +297,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الافعوعال — اِفْعَوْعَلَ / يَفْعَوْعِلُ",
   "باب الافعوّال — اِفْعَوَّلَ / يَفْعَوِّلُ",
   "باب الافعيلال — اِفْعَالَّ / يَفْعَالُّ",
+  "باب الافعنلال — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1302,3 +1303,61 @@ assert.match(scriptSource, /console\.error\("Sarf export failed"/);
 assert.match(scriptSource, /console\.error\("Sarf generation failed"/);
 
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions.");
+
+// باب الافعنلال (Phase C): the lexical R3 and its derivational copy remain distinct.
+const ifanlalConfig = MAZID_BAB_CONFIG["bab-al-ifanlal"];
+const ifanlal = dispatchGeneration({ root: ["ق", "ع", "س"], bab: "bab-al-ifanlal", babLabel: ifanlalConfig.label, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+assert.deepEqual([ifanlalConfig.form, ifanlalConfig.modernFormNumber, ifanlalConfig.modernFormNumberRole], [14, 14, "compatibility"]);
+assert.equal(ifanlalConfig.traditionalTaxonomy, "الثلاثي الملحق بالفعل الرباعي المزيد فيه بحرفين");
+assert.deepEqual(ifanlal.availability, { activePast: "available", activePresent: "available", passivePast: "suppressed", passivePresent: "suppressed", jussive: "available", subjunctive: "available", heavyEmphasis: "available", lightEmphasis: "available", imperative: "available", lamAlAmr: "available", heavyImperative: "available", lightImperative: "available", heavyLamAlAmr: "available", lightLamAlAmr: "available", masdar: "available", activeParticiple: "available", passiveParticiple: "suppressed" });
+assert.deepEqual(ifanlal.sections.section01.map((row) => row.past), ["اِقْعَنْسَسَ","اِقْعَنْسَسَا","اِقْعَنْسَسُوْا","اِقْعَنْسَسَتْ","اِقْعَنْسَسَتَا","اِقْعَنْسَسْنَ","اِقْعَنْسَسْتَ","اِقْعَنْسَسْتُمَا","اِقْعَنْسَسْتُمْ","اِقْعَنْسَسْتِ","اِقْعَنْسَسْتُمَا","اِقْعَنْسَسْتُنَّ","اِقْعَنْسَسْتُ","اِقْعَنْسَسْنَا"]);
+assert.deepEqual(ifanlal.sections.section01.map((row) => row.present), ["يَقْعَنْسِسُ","يَقْعَنْسِسَانِ","يَقْعَنْسِسُوْنَ","تَقْعَنْسِسُ","تَقْعَنْسِسَانِ","يَقْعَنْسِسْنَ","تَقْعَنْسِسُ","تَقْعَنْسِسَانِ","تَقْعَنْسِسُوْنَ","تَقْعَنْسِسِيْنَ","تَقْعَنْسِسَانِ","تَقْعَنْسِسْنَ","أَقْعَنْسِسُ","نَقْعَنْسِسُ"]);
+assert.deepEqual(ifanlal.sections.section02.map((row) => row.majzumPresent), ["لَمْ يَقْعَنْسِسْ","لَمْ يَقْعَنْسِسَا","لَمْ يَقْعَنْسِسُوْا","لَمْ تَقْعَنْسِسْ","لَمْ تَقْعَنْسِسَا","لَمْ يَقْعَنْسِسْنَ","لَمْ تَقْعَنْسِسْ","لَمْ تَقْعَنْسِسَا","لَمْ تَقْعَنْسِسُوْا","لَمْ تَقْعَنْسِسِيْ","لَمْ تَقْعَنْسِسَا","لَمْ تَقْعَنْسِسْنَ","لَمْ أَقْعَنْسِسْ","لَمْ نَقْعَنْسِسْ"]);
+assert.deepEqual(ifanlal.sections.section02.map((row) => row.mansubPresent), ["لَنْ يَقْعَنْسِسَ","لَنْ يَقْعَنْسِسَا","لَنْ يَقْعَنْسِسُوْا","لَنْ تَقْعَنْسِسَ","لَنْ تَقْعَنْسِسَا","لَنْ يَقْعَنْسِسْنَ","لَنْ تَقْعَنْسِسَ","لَنْ تَقْعَنْسِسَا","لَنْ تَقْعَنْسِسُوْا","لَنْ تَقْعَنْسِسِيْ","لَنْ تَقْعَنْسِسَا","لَنْ تَقْعَنْسِسْنَ","لَنْ أَقْعَنْسِسَ","لَنْ نَقْعَنْسِسَ"]);
+assert.deepEqual(ifanlal.sections.section02.map((row) => row.heavyEmphatic), ["لَيَقْعَنْسِسَنَّ","لَيَقْعَنْسِسَانِّ","لَيَقْعَنْسِسُنَّ","لَتَقْعَنْسِسَنَّ","لَتَقْعَنْسِسَانِّ","لَيَقْعَنْسِسْنَانِّ","لَتَقْعَنْسِسَنَّ","لَتَقْعَنْسِسَانِّ","لَتَقْعَنْسِسُنَّ","لَتَقْعَنْسِسِنَّ","لَتَقْعَنْسِسَانِّ","لَتَقْعَنْسِسْنَانِّ","لَأَقْعَنْسِسَنَّ","لَنَقْعَنْسِسَنَّ"]);
+assert.deepEqual(ifanlal.sections.section02.map((row) => row.lightEmphatic), ["لَيَقْعَنْسِسَنْ",null,"لَيَقْعَنْسِسُنْ","لَتَقْعَنْسِسَنْ",null,null,"لَتَقْعَنْسِسَنْ",null,"لَتَقْعَنْسِسُنْ","لَتَقْعَنْسِسِنْ",null,null,"لَأَقْعَنْسِسَنْ","لَنَقْعَنْسِسَنْ"]);
+assert.deepEqual(ifanlal.sections.section03.slice(6, 12).map((row) => row.imperative), ["اِقْعَنْسِسْ","اِقْعَنْسِسَا","اِقْعَنْسِسُوْا","اِقْعَنْسِسِيْ","اِقْعَنْسِسَا","اِقْعَنْسِسْنَ"]);
+assert.deepEqual(ifanlal.sections.section03.slice(6, 12).map((row) => row.heavyImperative), ["اِقْعَنْسِسَنَّ","اِقْعَنْسِسَانِّ","اِقْعَنْسِسُنَّ","اِقْعَنْسِسِنَّ","اِقْعَنْسِسَانِّ","اِقْعَنْسِسْنَانِّ"]);
+assert.deepEqual(ifanlal.sections.section03.slice(6, 12).map((row) => row.lightImperative), ["اِقْعَنْسِسَنْ",null,"اِقْعَنْسِسُنْ","اِقْعَنْسِسِنْ",null,null]);
+const lamRows = [0,1,2,3,4,5,12,13];
+assert.deepEqual(lamRows.map((i) => ifanlal.sections.section03[i].imperative), ["لِيَقْعَنْسِسْ","لِيَقْعَنْسِسَا","لِيَقْعَنْسِسُوْا","لِتَقْعَنْسِسْ","لِتَقْعَنْسِسَا","لِيَقْعَنْسِسْنَ","لِأَقْعَنْسِسْ","لِنَقْعَنْسِسْ"]);
+assert.deepEqual(lamRows.map((i) => ifanlal.sections.section03[i].heavyImperative), ["لِيَقْعَنْسِسَنَّ","لِيَقْعَنْسِسَانِّ","لِيَقْعَنْسِسُنَّ","لِتَقْعَنْسِسَنَّ","لِتَقْعَنْسِسَانِّ","لِيَقْعَنْسِسْنَانِّ","لِأَقْعَنْسِسَنَّ","لِنَقْعَنْسِسَنَّ"]);
+assert.deepEqual(lamRows.map((i) => ifanlal.sections.section03[i].lightImperative), ["لِيَقْعَنْسِسَنْ",null,"لِيَقْعَنْسِسُنْ","لِتَقْعَنْسِسَنْ",null,null,"لِأَقْعَنْسِسَنْ","لِنَقْعَنْسِسَنْ"]);
+assert.equal(ifanlal.sections.section04.masdar[0].values[0], "اِقْعِنْسَاس");
+assert.deepEqual(ifanlal.sections.section04.activeParticiple.map((row) => row.values[0]), ["مُقْعَنْسِسٌ","مُقْعَنْسِسًا","مُقْعَنْسِسٍ"]);
+assert.deepEqual(ifanlal.sections.section04.activeParticiple.map((row) => row.values.length), [6,6,6]);
+assert.equal(ifanlal.sections.section01.every((row) => row.passivePast === null && row.passivePresent === null), true);
+assert.deepEqual(ifanlal.sections.section04.passiveParticiple, []);
+for (const value of [...ifanlal.sections.section01.flatMap((row) => [row.past,row.present]), ...ifanlal.sections.section02.flatMap((row) => [row.majzumPresent,row.mansubPresent,row.heavyEmphatic,row.lightEmphatic]), ...ifanlal.sections.section03.flatMap((row) => [row.imperative,row.heavyImperative,row.lightImperative])].filter(Boolean)) assert.equal(value.includes("سّ"), false);
+for (const row of [...ifanlal.sections.section01, ...ifanlal.sections.section02, ...ifanlal.sections.section03]) for (const presentation of Object.values(row.presentation)) {
+  assert.equal(presentation.text, presentation.runs.map((run) => run.text).join(""));
+  assert.equal(presentation.runs.some((run) => run.radicalIndex === 4), false);
+}
+const primaryRuns = ifanlal.sections.section01[0].presentation.past.runs;
+assert.deepEqual(primaryRuns.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1,2,3]);
+assert.deepEqual(primaryRuns.find((run) => run.elementId === "form14.r3Copy"), { text: "سَ", radicalIndex: null, kind: "derivational-copy", sourceRadicalIndex: 3, elementId: "form14.r3Copy" });
+assert.equal(primaryRuns.find((run) => run.elementId === "form14.insertedNun").radicalIndex, null);
+const heavyFpRuns = ifanlal.sections.section02[5].presentation.heavyEmphatic.runs;
+assert.deepEqual(heavyFpRuns.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1,2,3]);
+assert.equal(heavyFpRuns.at(-1).radicalIndex, null);
+assert.equal(heavyFpRuns.at(-1).text, "نَانِّ");
+assert.deepEqual(ifanlal.sections.section02[0].variants, undefined);
+for (const particle of MANSUB_PARTICLES) assert.equal(dispatchGeneration({ root: ["ق","ع","س"], bab: "bab-al-ifanlal", majzumParticle: "لَمْ", mansubParticle: particle }).sections.section02[0].mansubPresent, `${particle} يَقْعَنْسِسَ`);
+for (const root of [["أ","ك","ل"],["و","ع","د"],["ق","و","م"],["ه","د","ي"],["م","د","د"]]) assert.throws(() => dispatchGeneration({ root, bab: "bab-al-ifanlal", majzumParticle: "لَمْ", mansubParticle: "لَنْ" }), /الصحيح السالم/);
+const secondary = dispatchGeneration({ root: ["س","ح","ك"], bab: "bab-al-ifanlal", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+assert.deepEqual([secondary.sections.section01[0].past,secondary.sections.section01[0].present,secondary.sections.section02[0].majzumPresent,secondary.sections.section02[0].mansubPresent,secondary.sections.section03[6].imperative,secondary.sections.section02[0].heavyEmphatic,secondary.sections.section02[0].lightEmphatic,secondary.sections.section04.masdar[0].values[0],secondary.sections.section04.activeParticiple[0].values[0]], ["اِسْحَنْكَكَ","يَسْحَنْكِكُ","لَمْ يَسْحَنْكِكْ","لَنْ يَسْحَنْكِكَ","اِسْحَنْكِكْ","لَيَسْحَنْكِكَنَّ","لَيَسْحَنْكِكَنْ","اِسْحِنْكَاك","مُسْحَنْكِكٌ"]);
+assert.deepEqual(secondary.sections.section01[0].presentation.past.runs.filter((run) => run.radicalIndex).map((run) => run.radicalIndex), [1,2,3]);
+assert.equal(secondary.sections.section01[0].presentation.past.runs.find((run) => run.elementId === "form14.r3Copy").text, "كَ");
+for (const colour of [false,true]) assert.equal(updateSnapshotColour(ifanlal, colour).sections.section01[0].past, "اِقْعَنْسَسَ");
+const ifanlalPortrait = buildExportPages(ifanlal, "portrait").join("");
+assert.equal(ifanlalPortrait.includes("اسم المفعول"), false);
+assert.equal(ifanlalPortrait.includes("قْ"), true);
+assert.equal(ifanlalPortrait.includes("form14.r3Copy"), false);
+assert.equal(buildExportPages(ifanlal, "landscape")[0].match(/الضمير/g).length, 1);
+for (const layout of ["portrait", "landscape"]) {
+  assert.ok(buildPdfDocument([tinyJpeg], layout).length > 500);
+  const docx = buildDocx(ifanlal, layout);
+  assert.ok(docx.length > 1000);
+  assert.equal(Buffer.from(docx).subarray(0, 2).toString(), "PK");
+  assert.equal(Buffer.from(docx).toString("utf8").includes("<w:tblGrid>"), true);
+}
