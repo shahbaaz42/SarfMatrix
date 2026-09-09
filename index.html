@@ -16,6 +16,14 @@
 
       <!-- The form is right-to-left so Arabic is entered and read naturally. -->
       <form id="sarf-form" class="generator" dir="rtl">
+        <div class="field family-field">
+          <label for="root-family">Root family</label>
+          <select id="root-family" name="root-family" required>
+            <option value="triliteral" selected>الثلاثي</option>
+            <option value="quadriliteral">الرباعي</option>
+          </select>
+        </div>
+
         <fieldset>
           <legend>Arabic root letters</legend>
           <div class="root-inputs">
@@ -31,6 +39,10 @@
               <label for="root-three">Third letter</label>
               <input id="root-three" name="root-three" type="text" placeholder="ل" required>
             </div>
+            <div id="root-four-field" class="field" hidden>
+              <label for="root-four">Fourth letter</label>
+              <input id="root-four" name="root-four" type="text" placeholder="ل" disabled>
+            </div>
           </div>
         </fieldset>
 
@@ -38,7 +50,7 @@
           <label for="bab">Bāb</label>
           <select id="bab" name="bab" required>
             <option value="" selected disabled>اختر الباب</option>
-            <optgroup label="ثلاثي مجرد">
+            <optgroup label="ثلاثي مجرد" data-root-family="triliteral">
             <option value="فَتَحَ-يَفْتَحُ">فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ</option>
             <option value="ضَرَبَ-يَضْرِبُ">ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ</option>
             <option value="نَصَرَ-يَنْصُرُ">نَصَرَ / يَنْصُرُ — فَعَلَ / يَفْعُلُ</option>
@@ -46,7 +58,7 @@
             <option value="كَرُمَ-يَكْرُمُ">كَرُمَ / يَكْرُمُ — فَعُلَ / يَفْعُلُ</option>
             <option value="حَسِبَ-يَحْسِبُ">حَسِبَ / يَحْسِبُ — فَعِلَ / يَفْعِلُ</option>
             </optgroup>
-            <optgroup label="ثلاثي مزيد فيه">
+            <optgroup label="ثلاثي مزيد فيه" data-root-family="triliteral">
               <option value="form-iv-ifal">باب الإفعال — أَفْعَلَ / يُفْعِلُ</option>
               <option value="form-ii-tafil">باب التفعيل — فَعَّلَ / يُفَعِّلُ</option>
               <option value="form-iii-mufaalah">باب المفاعلة — فَاعَلَ / يُفَاعِلُ</option>
@@ -60,9 +72,12 @@
               <option value="bab-al-ifawwal">باب الافعوّال — اِفْعَوَّلَ / يَفْعَوِّلُ</option>
               <option value="bab-al-ifilal">باب الافعيلال — اِفْعَالَّ / يَفْعَالُّ</option>
             </optgroup>
-            <optgroup label="الثلاثي الملحق بالفعل الرباعي المزيد فيه بحرفين">
+            <optgroup label="الثلاثي الملحق بالفعل الرباعي المزيد فيه بحرفين" data-root-family="triliteral">
               <option value="bab-al-ifanlal">باب الافعنلال — اِفْعَنْلَلَ / يَفْعَنْلِلُ</option>
               <option value="bab-al-ifanla">باب الافعنلاء — اِفْعَنْلَى / يَفْعَنْلِي</option>
+            </optgroup>
+            <optgroup label="الفعل الرباعي المجرد" data-root-family="quadriliteral" hidden disabled>
+              <option value="quadriliteral-form-i" disabled>فَعْلَلَ / يُفَعْلِلُ</option>
             </optgroup>
           </select>
         </div>

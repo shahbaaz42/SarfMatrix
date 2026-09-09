@@ -8,7 +8,7 @@
     section04: "القسم 04 — المشتقات",
   });
   const FOOTER = "Developed by Shahbaaz Ahmed | shahbaaz.education@gmail.com | © Shahbaaz Ahmed. All Rights Reserved.";
-  const ROOT_COLOURS = ["C62828", "1565C0", "2E7D32"];
+  const ROOT_COLOURS = ["C62828", "1565C0", "2E7D32", "8E44AD"];
   const HEADINGS = Object.freeze({
     section01: ["الضمير", "الفعل الماضي المرفوع", "الفعل المضارع المرفوع", "الفعل الماضي المجهول", "الفعل المضارع المجهول"],
     section02: ["الضمير", "مجزوم المضارع", "منصوب المضارع", "لام تأكيد با نون تأكيد ثقيلة", "لام تأكيد با نون تأكيد خفيفة"],
@@ -27,7 +27,12 @@
     return SECTION_TITLES[key];
   }
 
-  function derivedKeys(snapshot) { return snapshot.family === "mazid" ? ["masdar", ...(snapshot.availability?.activeParticiple === "suppressed" ? [] : ["activeParticiple"]), ...(snapshot.availability?.passiveParticiple === "suppressed" ? [] : ["passiveParticiple"])] : ["activeParticiple", "passiveParticiple", "elative", "zarf"]; }
+  function derivedKeys(snapshot) {
+    const capabilities = snapshot.capabilities ?? (snapshot.family === "mazid"
+      ? { masdar: true, activeParticiple: true, passiveParticiple: snapshot.availability?.passiveParticiple !== "suppressed" }
+      : { activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
+    return ["masdar", "activeParticiple", "passiveParticiple", "elative", "zarf"].filter((key) => capabilities[key] && snapshot.sections.section04[key]);
+  }
 
   function sectionFields(snapshot, key) {
     if (key === "section02") return ["majzumPresent", "mansubPresent", ...(snapshot.availability?.heavyEmphasis === "suppressed" ? [] : ["heavyEmphatic"]), ...(snapshot.availability?.lightEmphasis === "suppressed" ? [] : ["lightEmphatic"])];
@@ -296,7 +301,7 @@
     return name;
   }
 
-  const api = { SECTION_TITLES, FOOTER, HEADINGS, sectionTitle, filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, createZip, download };
+  const api = { SECTION_TITLES, FOOTER, HEADINGS, ROOT_COLOURS, sectionTitle, filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, createZip, download };
   if (typeof module !== "undefined") module.exports = api;
   globalScope.SarfExport = api;
 }(typeof window !== "undefined" ? window : globalThis));
