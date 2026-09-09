@@ -86,9 +86,11 @@ legend {
 
 .root-inputs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: 0.75rem;
 }
+
+.root-inputs > [hidden] { display: none; }
 
 .field {
   display: grid;
@@ -281,6 +283,7 @@ tbody td:first-child {
 .radical-1 { color: #c62828; }
 .radical-2 { color: #1565c0; }
 .radical-3 { color: #2e7d32; }
+.radical-4 { color: #8e44ad; }
 
 .export-panel {
   margin-top: 1.5rem;

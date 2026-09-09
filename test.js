@@ -11,8 +11,9 @@ const {
   generateElativeForms, generateZarfForms,
   buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot, isRegularFormVIIIRoot,
   FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, formVIIITransformation,
+  ROOT_FAMILIES, rootArchitecture, validateRoot, validateStructuralRuns, createArchitectureSnapshot, applyRootFamily,
 } = require("./script.js");
-const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, sectionTitle, FOOTER } = require("./export.js");
+const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, sectionTitle, FOOTER, ROOT_COLOURS } = require("./export.js");
 
 const activeCases = [
   {
@@ -279,7 +280,7 @@ for (const label of ["الفعل الماضي المرفوع", "الفعل ال�
 const babSelect = html.match(/<select id="bab"[\s\S]*?<\/select>/)[0];
 assert.equal(babSelect.includes('required'), true);
 assert.equal(babSelect.includes('<option value="" selected disabled>اختر الباب</option>'), true);
-assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG)]);
+assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG), "quadriliteral-form-i"]);
 assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map((match) => match[1]), [
   "اختر الباب",
   "فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ", "ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ",
@@ -299,6 +300,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الافعيلال — اِفْعَالَّ / يَفْعَالُّ",
   "باب الافعنلال — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
   "باب الافعنلاء — اِفْعَنْلَى / يَفْعَنْلِي",
+  "فَعْلَلَ / يُفَعْلِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1393,3 +1395,26 @@ for(const root of [["و","ع","د"],["ق","و","م"],["ه","د","ي"],["و","ف"
 const harb=dispatchGeneration({root:["ح","ر","ب"],bab:"bab-al-ifanla",majzumParticle:"لَمْ",mansubParticle:"لَنْ"});
 assert.deepEqual([harb.sections.section01[0].past,harb.sections.section01[6].past,harb.sections.section01[2].past,harb.sections.section01[0].present,harb.sections.section01[2].present,harb.sections.section02[0].majzumPresent,harb.sections.section02[0].mansubPresent,harb.sections.section03[6].imperative,harb.sections.section02[0].heavyEmphatic,harb.sections.section02[2].heavyEmphatic,harb.sections.section02[0].lightEmphatic,harb.sections.section04.masdar[0].values[0],harb.sections.section04.activeParticiple[0].values[0],harb.sections.section04.activeParticiple[1].values[0]],["اِحْرَنْبَى","اِحْرَنْبَيْتَ","اِحْرَنْبَوْا","يَحْرَنْبِي","يَحْرَنْبُونَ","لَمْ يَحْرَنْبِ","لَنْ يَحْرَنْبِيَ","اِحْرَنْبِ","لَيَحْرَنْبِيَنَّ","لَيَحْرَنْبُنَّ","لَيَحْرَنْبِيَنْ","اِحْرِنْبَاء","مُحْرَنْبٍ","مُحْرَنْبِيًا"]);
 for(const layout of ["portrait","landscape"]) { const pages=buildExportPages(ifanla,layout).join(""); assert.equal(pages.includes("اسم المفعول"),false); assert.equal(pages.includes("ifanla.final-ya"),false); const docx=buildDocx(ifanla,layout); assert.ok(docx); }
+
+// Four-root architecture only: genuine R4 is legal by arity, but generation remains unavailable.
+assert.deepEqual([rootArchitecture("triliteral").rootArity, rootArchitecture("quadriliteral").rootArity], [3, 4]);
+assert.deepEqual(validateRoot(["د", "ح", "ر", "ج"], "quadriliteral"), ["د", "ح", "ر", "ج"]);
+assert.throws(() => validateRoot(["د", "ح", "ر"], "quadriliteral"), /exactly 4/);
+assert.throws(() => validateRoot(["د", "حر", "ر", "ج"], "quadriliteral"), /one letter/);
+const genuineR4 = { kind: "radical", text: "ج", radicalIndex: 4 };
+assert.equal(validateStructuralRuns([genuineR4], 4), true);
+assert.throws(() => validateStructuralRuns([genuineR4], 3), /not lexical/);
+const protectedCopy = { kind: "derivational-copy", text: "ر", radicalIndex: null, sourceRadicalIndex: 3 };
+assert.equal(validateStructuralRuns([protectedCopy], 3), true);
+assert.throws(() => validateStructuralRuns([{ ...protectedCopy, radicalIndex: 4 }], 3), /must reference/);
+const architectureSnapshot = createArchitectureSnapshot({ rootFamily: "quadriliteral", root: ["د", "ح", "ر", "ج"] });
+assert.deepEqual([architectureSnapshot.rootArity, architectureSnapshot.finalRadicalIndex, architectureSnapshot.root.join(""), Object.isFrozen(architectureSnapshot)], [4, 4, "دحرج", true]);
+assert.equal(filenameFor(architectureSnapshot, "pdf"), "Sarf_دحرج.pdf");
+assert.match(css, /\.radical-4\s*\{\s*color:\s*#8e44ad/i);
+assert.deepEqual(ROOT_COLOURS, ["C62828", "1565C0", "2E7D32", "8E44AD"]);
+const familyState = createGeneratedStateStore(); familyState.generate(snapshotOptions);
+const rootFour = { value: "ج", disabled: false, required: true }, rootFourField = { hidden: false };
+const groups = ["triliteral", "quadriliteral"].map((rootFamily) => ({ dataset: { rootFamily } }));
+applyRootFamily("triliteral", { rootFour, rootFourField, babSelect: { value: "x", querySelectorAll: () => groups }, generatedState: familyState });
+assert.deepEqual([rootFour.value, rootFour.disabled, rootFour.required, rootFourField.hidden, familyState.get()], ["", true, false, true, null]);
+assert.throws(() => dispatchGeneration({ ...snapshotOptions, rootFamily: "quadriliteral", root: ["د", "ح", "ر", "ج"] }), /not implemented/);

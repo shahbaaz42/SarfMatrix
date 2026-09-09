@@ -31,6 +31,34 @@ const MAJZUM_PARTICLES = Object.freeze(["لَمْ", "لَمَّا", "لَا"]);
 // whitespace is deliberately normalized; builders add the one separator.
 const MANSUB_PARTICLES = Object.freeze(["لَنْ", "أَنْ", "كَيْ", "إِذَنْ"]);
 
+const ROOT_FAMILIES = Object.freeze({
+  triliteral: Object.freeze({ rootArity: 3, finalRadicalIndex: 3 }),
+  quadriliteral: Object.freeze({ rootArity: 4, finalRadicalIndex: 4 }),
+});
+const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
+function rootArchitecture(rootFamily = "triliteral") {
+  const architecture = ROOT_FAMILIES[rootFamily];
+  if (!architecture) throw new Error(`Unknown root family: ${rootFamily}`);
+  return architecture;
+}
+function validateRoot(root, rootFamily = "triliteral") {
+  const { rootArity } = rootArchitecture(rootFamily);
+  if (!Array.isArray(root) || root.length !== rootArity) throw new Error(`Root must contain exactly ${rootArity} radicals`);
+  if (root.some((value) => typeof value !== "string" || [...value.trim()].length !== 1)) throw new Error("Each radical must be exactly one letter");
+  return Object.freeze(root.map((value) => value.trim()));
+}
+function validateStructuralRuns(runs, rootArity = 3) {
+  if (![3, 4].includes(rootArity)) throw new Error("Unsupported root arity");
+  for (const run of runs) {
+    if (run.kind === "radical" && (!Number.isInteger(run.radicalIndex) || run.radicalIndex < 1 || run.radicalIndex > rootArity)) throw new Error("radicalIndex is not lexical for this root arity");
+    if (run.kind === "derivational-copy" && (run.radicalIndex !== null || !Number.isInteger(run.sourceRadicalIndex) || run.sourceRadicalIndex < 1 || run.sourceRadicalIndex > rootArity)) throw new Error("Derivational copies must reference lexical radicals");
+  }
+  return true;
+}
+function createArchitectureSnapshot({ rootFamily, root, capabilities = {} }) {
+  return deepFreeze({ rootFamily, ...rootArchitecture(rootFamily), root: [...validateRoot(root, rootFamily)], capabilities: { ...capabilities } });
+}
+
 // The Bāb-dependent vowels are transcribed from the workbook's hidden Q1:U7 table.
 const BAB_CONFIG = Object.freeze({
   "فَتَحَ-يَفْتَحُ": Object.freeze({ pastMiddleVowel: HARAKAT.FATHA, presentMiddleVowel: HARAKAT.FATHA, imperativeInitialVowel: HARAKAT.KASRA, zarfMiddleVowel: HARAKAT.FATHA }),
@@ -1078,7 +1106,7 @@ function nominalCaseRows(forms, structuralCases) {
   }));
 }
 
-function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
+function buildTriliteralSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
   if (MAZID_BAB_CONFIG[bab]) return buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   const stableRoot = [...root];
   const active = generateActiveForms(stableRoot, bab);
@@ -1121,6 +1149,17 @@ function buildGeneratedSnapshot({ root, bab, babLabel, majzumParticle, mansubPar
   });
 }
 
+function buildGeneratedSnapshot(options) {
+  const rootFamily = options.rootFamily ?? "triliteral";
+  const root = validateRoot(options.root, rootFamily);
+  if (rootFamily === "quadriliteral") throw new Error("Quadriliteral morphology is not implemented yet");
+  const snapshot = buildTriliteralSnapshot({ ...options, root });
+  const capabilities = snapshot.family === "mazid"
+    ? { passive: snapshot.availability?.passivePast !== "suppressed", masdar: true, activeParticiple: snapshot.availability?.activeParticiple !== "suppressed", passiveParticiple: snapshot.availability?.passiveParticiple !== "suppressed", elative: false, zarf: false }
+    : { ...TRILITERAL_CAPABILITIES };
+  return deepFreeze({ ...snapshot, rootFamily, rootArity: 3, finalRadicalIndex: 3, capabilities });
+}
+
 // This is the single dispatch boundary used by the browser submit handler and
 // by non-DOM consumers. Keeping the family decision behind this boundary makes
 // browser-path regressions testable without duplicating the click-handler logic.
@@ -1131,6 +1170,7 @@ function dispatchGeneration(options) {
 function updateSnapshotParticles(snapshot, majzumParticle, mansubParticle) {
   return buildGeneratedSnapshot({
     root: snapshot.root,
+    rootFamily: snapshot.rootFamily,
     bab: snapshot.bab,
     babLabel: snapshot.babLabel,
     majzumParticle,
@@ -1164,9 +1204,27 @@ function createGeneratedStateStore() {
   });
 }
 
+function applyRootFamily(rootFamily, { rootFour, rootFourField, babSelect, generatedState }) {
+  const quadriliteral = rootFamily === "quadriliteral";
+  rootArchitecture(rootFamily);
+  rootFourField.hidden = !quadriliteral;
+  rootFour.disabled = !quadriliteral;
+  rootFour.required = quadriliteral;
+  if (!quadriliteral) rootFour.value = "";
+  babSelect.value = "";
+  for (const group of babSelect.querySelectorAll("optgroup[data-root-family]")) {
+    const active = group.dataset.rootFamily === rootFamily;
+    group.hidden = !active;
+    group.disabled = !active || quadriliteral;
+  }
+  generatedState.invalidate();
+}
+
 if (typeof document !== "undefined") {
   const form = document.querySelector("#sarf-form");
-  const rootInputs = ["#root-one", "#root-two", "#root-three"].map((selector) => document.querySelector(selector));
+  const rootInputs = ["#root-one", "#root-two", "#root-three", "#root-four"].map((selector) => document.querySelector(selector));
+  const rootFamilySelect = document.querySelector("#root-family");
+  const rootFourField = document.querySelector("#root-four-field");
   const babSelect = document.querySelector("#bab");
   const particleSelect = document.querySelector("#majzum-particle");
   const mansubParticleSelect = document.querySelector("#mansub-particle");
@@ -1249,11 +1307,11 @@ if (typeof document !== "undefined") {
     replaceTableRows(sectionBodies[1], section02.map(({ pronoun, majzumPresent, mansubPresent, heavyEmphatic, lightEmphatic, presentation }) => [pronoun, cell(majzumPresent, presentation.majzumPresent), cell(mansubPresent, presentation.mansubPresent), ...(heavyEmphasisSuppressed ? [] : [cell(heavyEmphatic, presentation.heavyEmphatic)]), ...(lightEmphasisSuppressed ? [] : [cell(lightEmphatic, presentation.lightEmphatic)])]));
     replaceTableRows(sectionBodies[2], section03.map(({ pronoun, imperative, heavyImperative, lightImperative, presentation }) => [pronoun, cell(imperative, presentation.imperative), ...(heavyImperativeSuppressed ? [] : [cell(heavyImperative, presentation.heavyImperative)]), ...(lightImperativeSuppressed ? [] : [cell(lightImperative, presentation.lightImperative)])]));
     const derivedRows = (rows) => rows.map(({ label, values, presentations }) => [label, ...values.map((value, index) => cell(value, presentations[index]))]);
-    const mazid = generatedSnapshot.family === "mazid";
-    document.querySelector("#masdar-card").hidden = !mazid;
-    document.querySelector("#elative-card").hidden = mazid;
-    document.querySelector("#zarf-card").hidden = mazid;
-    replaceTableRows(derivedBodies.masdar, mazid ? derivedRows(section04.masdar) : []);
+    const capabilities = generatedSnapshot.capabilities;
+    document.querySelector("#masdar-card").hidden = !capabilities.masdar || !section04.masdar;
+    document.querySelector("#elative-card").hidden = !capabilities.elative;
+    document.querySelector("#zarf-card").hidden = !capabilities.zarf;
+    replaceTableRows(derivedBodies.masdar, capabilities.masdar && section04.masdar ? derivedRows(section04.masdar) : []);
     replaceTableRows(derivedBodies.activeParticiple, derivedRows(section04.activeParticiple));
     replaceTableRows(derivedBodies.passiveParticiple, derivedRows(section04.passiveParticiple));
     document.querySelector("#passive-participle-card").hidden = generatedSnapshot.availability?.passiveParticiple === "suppressed";
@@ -1270,7 +1328,8 @@ if (typeof document !== "undefined") {
     try {
       generatedState.generate({
         // DOM order is semantic radical order even though the form is RTL.
-        root: rootInputs.map((input) => input.value.trim()),
+        rootFamily: rootFamilySelect.value,
+        root: rootInputs.slice(0, rootArchitecture(rootFamilySelect.value).rootArity).map((input) => input.value.trim()),
         bab: babSelect.value,
         babLabel: babSelect.options[babSelect.selectedIndex].text,
         majzumParticle: particleSelect.value,
@@ -1288,6 +1347,10 @@ if (typeof document !== "undefined") {
   });
 
   for (const control of [...rootInputs, babSelect]) control.addEventListener(control === babSelect ? "change" : "input", invalidateGeneratedState);
+  rootFamilySelect.addEventListener("change", () => {
+    applyRootFamily(rootFamilySelect.value, { rootFour: rootInputs[3], rootFourField, babSelect, generatedState });
+    setExportAvailable(false);
+  });
 
   for (const select of [particleSelect, mansubParticleSelect]) {
     select.addEventListener("change", () => {
@@ -1326,6 +1389,7 @@ if (typeof document !== "undefined") {
 if (typeof module !== "undefined") {
   module.exports = {
     BAB_CONFIG, MAZID_BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
+    ROOT_FAMILIES, rootArchitecture, validateRoot, validateStructuralRuns, createArchitectureSnapshot, applyRootFamily,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
     buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent, buildImperative,
     buildActiveParticipleStem, buildPassiveParticipleStem, inflectNominalStem, nominalCaseRows,
