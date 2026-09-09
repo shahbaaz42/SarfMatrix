@@ -16,6 +16,14 @@
 
       <!-- The form is right-to-left so Arabic is entered and read naturally. -->
       <form id="sarf-form" class="generator" dir="rtl">
+        <div class="field family-field">
+          <label for="root-family">Root family</label>
+          <select id="root-family" name="root-family" required>
+            <option value="triliteral" selected>الثلاثي</option>
+            <option value="quadriliteral">الرباعي</option>
+          </select>
+        </div>
+
         <fieldset>
           <legend>Arabic root letters</legend>
           <div class="root-inputs">
@@ -37,14 +45,6 @@
             </div>
           </div>
         </fieldset>
-
-        <div class="field family-field">
-          <label for="root-family">Root family</label>
-          <select id="root-family" name="root-family" required>
-            <option value="triliteral" selected>الثلاثي</option>
-            <option value="quadriliteral">الرباعي</option>
-          </select>
-        </div>
 
         <div class="field bab-field">
           <label for="bab">Bāb</label>
