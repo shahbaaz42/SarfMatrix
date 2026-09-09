@@ -1273,6 +1273,13 @@ function applyRootFamily(rootFamily, { rootFour, rootFourField, babSelect, gener
     const active = group.dataset.rootFamily === rootFamily;
     group.hidden = !active;
     group.disabled = !active;
+    // Some browsers do not recalculate an option's inherited disabled state when
+    // a disabled optgroup is re-enabled. Keep each option's own state in sync so
+    // the newly active family can always be selected.
+    for (const option of group.querySelectorAll("option")) {
+      option.hidden = !active;
+      option.disabled = !active;
+    }
   }
   generatedState.invalidate();
 }
@@ -1408,6 +1415,8 @@ if (typeof document !== "undefined") {
     applyRootFamily(rootFamilySelect.value, { rootFour: rootInputs[3], rootFourField, babSelect, generatedState });
     setExportAvailable(false);
   });
+
+  applyRootFamily(rootFamilySelect.value, { rootFour: rootInputs[3], rootFourField, babSelect, generatedState });
 
   for (const select of [particleSelect, mansubParticleSelect]) {
     select.addEventListener("change", () => {

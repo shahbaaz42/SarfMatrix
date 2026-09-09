@@ -1415,9 +1415,35 @@ assert.match(css, /\.radical-4\s*\{\s*color:\s*#8e44ad/i);
 assert.deepEqual(ROOT_COLOURS, ["C62828", "1565C0", "2E7D32", "8E44AD"]);
 const familyState = createGeneratedStateStore(); familyState.generate(snapshotOptions);
 const rootFour = { value: "ج", disabled: false, required: true }, rootFourField = { hidden: false };
-const groups = ["triliteral", "quadriliteral"].map((rootFamily) => ({ dataset: { rootFamily } }));
-applyRootFamily("triliteral", { rootFour, rootFourField, babSelect: { value: "x", querySelectorAll: () => groups }, generatedState: familyState });
+const makeGroup = (rootFamily, values) => {
+  const options = values.map((value) => ({ value, hidden: false, disabled: false }));
+  return { dataset: { rootFamily }, options, querySelectorAll: (selector) => selector === "option" ? options : [] };
+};
+const triliteralValues = [...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG)];
+const groups = [makeGroup("triliteral", triliteralValues), makeGroup("quadriliteral", ["quadriliteral-form-i"])];
+const domBabSelect = {
+  value: "x",
+  querySelectorAll: (selector) => selector === "optgroup[data-root-family]" ? groups : [],
+  select(value) {
+    const option = groups.flatMap((group) => group.options).find((candidate) => candidate.value === value);
+    if (!option || option.hidden || option.disabled) return false;
+    this.value = value;
+    return true;
+  },
+};
+applyRootFamily("triliteral", { rootFour, rootFourField, babSelect: domBabSelect, generatedState: familyState });
 assert.deepEqual([rootFour.value, rootFour.disabled, rootFour.required, rootFourField.hidden, familyState.get()], ["", true, false, true, null]);
+assert.deepEqual(groups[0].options.map(({ hidden, disabled }) => [hidden, disabled]), triliteralValues.map(() => [false, false]));
+assert.equal(domBabSelect.select(triliteralValues[0]), true);
+applyRootFamily("quadriliteral", { rootFour, rootFourField, babSelect: domBabSelect, generatedState: familyState });
+assert.deepEqual([rootFour.disabled, rootFour.required, rootFourField.hidden, domBabSelect.value], [false, true, false, ""]);
+assert.deepEqual(groups[0].options.map(({ hidden, disabled }) => [hidden, disabled]), triliteralValues.map(() => [true, true]));
+assert.deepEqual(groups[1].options.map(({ hidden, disabled }) => [hidden, disabled]), [[false, false]]);
+assert.equal(domBabSelect.select("quadriliteral-form-i"), true);
+applyRootFamily("triliteral", { rootFour, rootFourField, babSelect: domBabSelect, generatedState: familyState });
+assert.equal(domBabSelect.value, "");
+assert.deepEqual(groups[0].options.map(({ hidden, disabled }) => [hidden, disabled]), triliteralValues.map(() => [false, false]));
+assert.equal(domBabSelect.select(triliteralValues.at(-1)), true);
 const quadrConfig = QUADRILITERAL_BAB_CONFIG["quadriliteral-form-i"];
 assert.deepEqual([quadrConfig.rootFamily, quadrConfig.rootArity, quadrConfig.finalRadicalIndex, quadrConfig.generationStatus], ["quadriliteral", 4, 4, "implemented"]);
 assert.equal(isSoundQuadriliteralRoot(["د","ح","ر","ج"]), true);
