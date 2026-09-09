@@ -1423,10 +1423,12 @@ assert.deepEqual([quadrConfig.rootFamily, quadrConfig.rootArity, quadrConfig.fin
 assert.equal(isSoundQuadriliteralRoot(["د","ح","ر","ج"]), true);
 assert.equal(isSoundQuadriliteralRoot(["و","س","و","س"]), false);
 assert.equal(isSoundQuadriliteralRoot(["ز","ل","ز","ل"]), true); // repeated lexical positions remain valid
+assert.equal(isSoundQuadriliteralRoot(["ز","ل","ل","ق"]), false); // adjacent doubling awaits idghām/fakk rules
 const quadrOptions = { rootFamily:"quadriliteral", root:["د","ح","ر","ج"], bab:"quadriliteral-form-i", babLabel:"فَعْلَلَ / يُفَعْلِلُ", majzumParticle:"لَمْ", mansubParticle:"لَنْ", colourRootLetters:true };
 const quadr = dispatchGeneration(quadrOptions);
 assert.match(html, /<option value="quadriliteral-form-i">فَعْلَلَ \/ يُفَعْلِلُ<\/option>/);
 assert.deepEqual([quadr.rootFamily,quadr.rootArity,quadr.finalRadicalIndex,quadr.root,quadr.config.id,quadr.capabilities], ["quadriliteral",4,4,["د","ح","ر","ج"],"quadriliteral-form-i",{passive:true,masdar:true,activeParticiple:true,passiveParticiple:true,elative:false,zarf:false}]);
+assert.deepEqual(quadr.passiveEligibility,{eligible:true,source:"lexeme-map"});
 assert.deepEqual(quadr.sections.section01.map(r=>r.past),["دَحْرَجَ","دَحْرَجَا","دَحْرَجُوا","دَحْرَجَتْ","دَحْرَجَتَا","دَحْرَجْنَ","دَحْرَجْتَ","دَحْرَجْتُمَا","دَحْرَجْتُمْ","دَحْرَجْتِ","دَحْرَجْتُمَا","دَحْرَجْتُنَّ","دَحْرَجْتُ","دَحْرَجْنَا"]);
 assert.deepEqual(quadr.sections.section01.map(r=>r.present),["يُدَحْرِجُ","يُدَحْرِجَانِ","يُدَحْرِجُونَ","تُدَحْرِجُ","تُدَحْرِجَانِ","يُدَحْرِجْنَ","تُدَحْرِجُ","تُدَحْرِجَانِ","تُدَحْرِجُونَ","تُدَحْرِجِينَ","تُدَحْرِجَانِ","تُدَحْرِجْنَ","أُدَحْرِجُ","نُدَحْرِجُ"]);
 assert.deepEqual(quadr.sections.section02.map(r=>r.majzumPresent),["لَمْ يُدَحْرِجْ","لَمْ يُدَحْرِجَا","لَمْ يُدَحْرِجُوا","لَمْ تُدَحْرِجْ","لَمْ تُدَحْرِجَا","لَمْ يُدَحْرِجْنَ","لَمْ تُدَحْرِجْ","لَمْ تُدَحْرِجَا","لَمْ تُدَحْرِجُوا","لَمْ تُدَحْرِجِي","لَمْ تُدَحْرِجَا","لَمْ تُدَحْرِجْنَ","لَمْ أُدَحْرِجْ","لَمْ نُدَحْرِجْ"]);
@@ -1446,7 +1448,16 @@ for (const value of [quadr.sections.section01[0].presentation.past,quadr.section
   const r4=value.runs.find(run=>run.radicalIndex===4); assert.ok(r4); assert.equal(r4.kind,"radical"); assert.equal("sourceRadicalIndex" in r4,false); validateStructuralRuns(value.runs,4);
 }
 assert.throws(()=>dispatchGeneration({...quadrOptions,root:["د","ح","ر"]}),/exactly 4/);
+assert.throws(()=>dispatchGeneration({...quadrOptions,root:["ز","ل","ل","ق"]}),/الإدغام والفك/);
 for(const root of [["و","س","و","س"],["د","ح","ر","أ"]]) assert.throws(()=>dispatchGeneration({...quadrOptions,root}),/الصحيح السالم/);
+const zalzala=dispatchGeneration({...quadrOptions,root:["ز","ل","ز","ل"]});
+assert.equal(zalzala.sections.section01[0].past,"زَلْزَلَ");
+assert.equal(zalzala.sections.section01.every(row=>row.passivePast===null&&row.passivePresent===null),true);
+assert.deepEqual(zalzala.sections.section04.passiveParticiple,[]);
+assert.deepEqual(zalzala.availability,{passivePast:"suppressed",passivePresent:"suppressed",masdar:"available",activeParticiple:"available",passiveParticiple:"suppressed"});
+assert.deepEqual(zalzala.capabilities,{passive:false,masdar:true,activeParticiple:true,passiveParticiple:false,elative:false,zarf:false});
+assert.deepEqual(zalzala.passiveEligibility,{eligible:false,source:"unverified-lexeme"});
+for(const layout of ["portrait","landscape"]){const pages=buildExportPages(zalzala,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("اسم المفعول"),false); assert.ok(buildDocx(zalzala,layout));}
 for(const particle of MAJZUM_PARTICLES) assert.ok(dispatchGeneration({...quadrOptions,majzumParticle:particle}).sections.section02[0].majzumPresent.startsWith(`${particle} `));
 for(const particle of MANSUB_PARTICLES) assert.ok(dispatchGeneration({...quadrOptions,mansubParticle:particle}).sections.section02[0].mansubPresent.startsWith(`${particle} `));
 for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadr,layout).join(""); assert.match(pages,/الجذر: دحرج/); assert.match(pages,/#8E44AD/); assert.ok(buildDocx(quadr,layout)); assert.ok(buildPdfDocument([tinyJpeg],layout).length>500);}

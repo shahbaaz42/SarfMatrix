@@ -36,7 +36,8 @@ const ROOT_FAMILIES = Object.freeze({
   quadriliteral: Object.freeze({ rootArity: 4, finalRadicalIndex: 4 }),
 });
 const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
-const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: false, zarf: false });
+const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
+const QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES = Object.freeze(new Set(["دحرج"]));
 function rootArchitecture(rootFamily = "triliteral") {
   const architecture = ROOT_FAMILIES[rootFamily];
   if (!architecture) throw new Error(`Unknown root family: ${rootFamily}`);
@@ -294,7 +295,7 @@ const QUADRILITERAL_BAB_CONFIG = Object.freeze({
     generationStatus: "implemented", capabilities: QUADRILITERAL_CAPABILITIES,
     normalizeLongLetterSpelling: true,
     eligibility: Object.freeze({ ruleId: "quadriliteral-mujarrad.regular-sound-only", deferredRootClasses: Object.freeze(["weak", "hamzated", "lexical-exception"]) }),
-    availability: Object.freeze({ passivePast: "available", passivePresent: "available", masdar: "available", activeParticiple: "available", passiveParticiple: "available" }),
+    availability: Object.freeze({ passivePast: "lexical-metadata-required", passivePresent: "lexical-metadata-required", masdar: "available", activeParticiple: "available", passiveParticiple: "lexical-metadata-required" }),
     templates: Object.freeze({
       activePast: Object.freeze([["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"َ"],["radical",4]]),
       activePresent: Object.freeze([["personPrefix","ُ"],["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"ِ"],["radical",4]]),
@@ -602,7 +603,12 @@ function isSoundQuadriliteralRoot(root) {
   const bare = root.map((letter) => String(letter).normalize("NFC").replace(/\p{M}/gu, ""));
   const weak = new Set(["ا", "و", "ي", "ى"]);
   return bare.length === 4 && bare.every((letter) => /^\p{Script=Arabic}$/u.test(letter))
-    && !bare.some((letter) => weak.has(letter) || letter.includes("ء") || /[أإآؤئ]/u.test(letter));
+    && !bare.some((letter) => weak.has(letter) || letter.includes("ء") || /[أإآؤئ]/u.test(letter))
+    && !bare.some((letter, index) => index > 0 && letter === bare[index - 1]);
+}
+
+function quadriliteralPassiveEligible(root) {
+  return QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES.has(root.join(""));
 }
 
 const FORM_VIII_SPECIAL_R1 = new Set(["ت", "ث", "د", "ذ", "ز", "ص", "ض", "ط", "ظ"]);
@@ -1197,8 +1203,12 @@ function buildGeneratedSnapshot(options) {
   if (rootFamily === "quadriliteral") {
     const config = QUADRILITERAL_BAB_CONFIG[options.bab];
     if (!config) throw new Error(`Unknown quadriliteral Bāb: ${options.bab}`);
-    const snapshot = buildMazidSnapshot({ ...options, root }, config, "quadriliteral-mujarrad");
-    return deepFreeze({ ...snapshot, rootFamily, rootArity: 4, finalRadicalIndex: 4, capabilities: { ...config.capabilities } });
+    if (root.some((letter, index) => index > 0 && letter === root[index - 1])) throw new Error("الجذور الرباعية ذات الحرفين المتجاورين المتماثلين مؤجلة حتى تنفيذ أحكام الإدغام والفك.");
+    const passiveEligible = quadriliteralPassiveEligible(root);
+    const resolvedConfig = { ...config, availability: { ...config.availability, passivePast: passiveEligible ? "available" : "suppressed", passivePresent: passiveEligible ? "available" : "suppressed", passiveParticiple: passiveEligible ? "available" : "suppressed" } };
+    const snapshot = buildMazidSnapshot({ ...options, root }, resolvedConfig, "quadriliteral-mujarrad");
+    const capabilities = { ...config.capabilities, passive: passiveEligible, passiveParticiple: passiveEligible };
+    return deepFreeze({ ...snapshot, rootFamily, rootArity: 4, finalRadicalIndex: 4, passiveEligibility: { eligible: passiveEligible, source: passiveEligible ? "lexeme-map" : "unverified-lexeme" }, capabilities });
   }
   const snapshot = buildTriliteralSnapshot({ ...options, root });
   const capabilities = snapshot.family === "mazid"
