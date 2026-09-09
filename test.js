@@ -280,7 +280,7 @@ for (const label of ["الفعل الماضي المرفوع", "الفعل ال�
 const babSelect = html.match(/<select id="bab"[\s\S]*?<\/select>/)[0];
 assert.equal(babSelect.includes('required'), true);
 assert.equal(babSelect.includes('<option value="" selected disabled>اختر الباب</option>'), true);
-assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG), "quadriliteral-form-i"]);
+assert.deepEqual([...babSelect.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]), ["", ...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG), ...Object.keys(QUADRILITERAL_BAB_CONFIG)]);
 assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map((match) => match[1]), [
   "اختر الباب",
   "فَتَحَ / يَفْتَحُ — فَعَلَ / يَفْعَلُ", "ضَرَبَ / يَضْرِبُ — فَعَلَ / يَفْعِلُ",
@@ -301,6 +301,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الافعنلال — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
   "باب الافعنلاء — اِفْعَنْلَى / يَفْعَنْلِي",
   "فَعْلَلَ / يُفَعْلِلُ",
+  "باب التفعلل — تَفَعْلَلَ / يَتَفَعْلَلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1305,7 +1306,6 @@ assert.match(scriptSource, /await window\.SarfExport\.download/);
 assert.match(scriptSource, /console\.error\("Sarf export failed"/);
 assert.match(scriptSource, /console\.error\("Sarf generation failed"/);
 
-console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions.");
 
 // باب الافعنلال (Phase C): the lexical R3 and its derivational copy remain distinct.
 const ifanlalConfig = MAZID_BAB_CONFIG["bab-al-ifanlal"];
@@ -1420,7 +1420,7 @@ const makeGroup = (rootFamily, values) => {
   return { dataset: { rootFamily }, options, querySelectorAll: (selector) => selector === "option" ? options : [] };
 };
 const triliteralValues = [...Object.keys(BAB_CONFIG), ...Object.keys(MAZID_BAB_CONFIG)];
-const groups = [makeGroup("triliteral", triliteralValues), makeGroup("quadriliteral", ["quadriliteral-form-i"])];
+const groups = [makeGroup("triliteral", triliteralValues), makeGroup("quadriliteral", ["quadriliteral-form-i"]), makeGroup("quadriliteral", ["quadriliteral-tafaul"])];
 const domBabSelect = {
   value: "x",
   querySelectorAll: (selector) => selector === "optgroup[data-root-family]" ? groups : [],
@@ -1438,7 +1438,7 @@ assert.equal(domBabSelect.select(triliteralValues[0]), true);
 applyRootFamily("quadriliteral", { rootFour, rootFourField, babSelect: domBabSelect, generatedState: familyState });
 assert.deepEqual([rootFour.disabled, rootFour.required, rootFourField.hidden, domBabSelect.value], [false, true, false, ""]);
 assert.deepEqual(groups[0].options.map(({ hidden, disabled }) => [hidden, disabled]), triliteralValues.map(() => [true, true]));
-assert.deepEqual(groups[1].options.map(({ hidden, disabled }) => [hidden, disabled]), [[false, false]]);
+assert.deepEqual(groups.slice(1).flatMap(group => group.options).map(({ hidden, disabled }) => [hidden, disabled]), [[false, false], [false, false]]);
 assert.equal(domBabSelect.select("quadriliteral-form-i"), true);
 applyRootFamily("triliteral", { rootFour, rootFourField, babSelect: domBabSelect, generatedState: familyState });
 assert.equal(domBabSelect.value, "");
@@ -1487,3 +1487,76 @@ for(const layout of ["portrait","landscape"]){const pages=buildExportPages(zalza
 for(const particle of MAJZUM_PARTICLES) assert.ok(dispatchGeneration({...quadrOptions,majzumParticle:particle}).sections.section02[0].majzumPresent.startsWith(`${particle} `));
 for(const particle of MANSUB_PARTICLES) assert.ok(dispatchGeneration({...quadrOptions,mansubParticle:particle}).sections.section02[0].mansubPresent.startsWith(`${particle} `));
 for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadr,layout).join(""); assert.match(pages,/الجذر: دحرج/); assert.match(pages,/#8E44AD/); assert.ok(buildDocx(quadr,layout)); assert.ok(buildPdfDocument([tinyJpeg],layout).length>500);}
+
+// باب التفعلل — regular sound quadriliteral augmented V1.
+const tafaulConfig = QUADRILITERAL_BAB_CONFIG["quadriliteral-tafaul"];
+assert.deepEqual({
+  id: tafaulConfig.id, rootFamily: tafaulConfig.rootFamily, rootArity: tafaulConfig.rootArity,
+  finalRadicalIndex: tafaulConfig.finalRadicalIndex, morphologyCategory: tafaulConfig.morphologyCategory,
+  traditionalCategory: tafaulConfig.traditionalCategory, traditionalName: tafaulConfig.traditionalName,
+  snapshotFamily: tafaulConfig.snapshotFamily,
+}, { id:"quadriliteral-tafaul", rootFamily:"quadriliteral", rootArity:4, finalRadicalIndex:4, morphologyCategory:"augmented", traditionalCategory:"الرباعي المزيد فيه بحرف", traditionalName:"باب التفعلل", snapshotFamily:"quadriliteral-augmented" });
+assert.match(html, /<optgroup label="الفعل الرباعي المزيد فيه" data-root-family="quadriliteral" hidden disabled>[\s\S]*?<option value="quadriliteral-tafaul">باب التفعلل — تَفَعْلَلَ \/ يَتَفَعْلَلُ<\/option>/);
+assert.equal((html.match(/<option value="" selected disabled>اختر الباب<\/option>/g)||[]).length,1);
+
+const tafaulOptions={...quadrOptions,bab:"quadriliteral-tafaul",babLabel:"باب التفعلل — تَفَعْلَلَ / يَتَفَعْلَلُ"};
+const tafaul=dispatchGeneration(tafaulOptions);
+assert.deepEqual([tafaul.rootFamily,tafaul.rootArity,tafaul.finalRadicalIndex,tafaul.family,tafaul.config.id,tafaul.config.morphologyCategory,tafaul.config.traditionalCategory], ["quadriliteral",4,4,"quadriliteral-augmented","quadriliteral-tafaul","augmented","الرباعي المزيد فيه بحرف"]);
+assert.deepEqual(tafaul.passiveEligibility,{eligible:false,source:"unverified-lexeme"});
+assert.deepEqual(tafaul.capabilities,{passive:false,masdar:true,activeParticiple:true,passiveParticiple:false,elative:false,zarf:false});
+assert.deepEqual(tafaul.sections.section01.map(r=>r.past),["تَدَحْرَجَ","تَدَحْرَجَا","تَدَحْرَجُوا","تَدَحْرَجَتْ","تَدَحْرَجَتَا","تَدَحْرَجْنَ","تَدَحْرَجْتَ","تَدَحْرَجْتُمَا","تَدَحْرَجْتُمْ","تَدَحْرَجْتِ","تَدَحْرَجْتُمَا","تَدَحْرَجْتُنَّ","تَدَحْرَجْتُ","تَدَحْرَجْنَا"]);
+assert.deepEqual(tafaul.sections.section01.map(r=>r.present),["يَتَدَحْرَجُ","يَتَدَحْرَجَانِ","يَتَدَحْرَجُونَ","تَتَدَحْرَجُ","تَتَدَحْرَجَانِ","يَتَدَحْرَجْنَ","تَتَدَحْرَجُ","تَتَدَحْرَجَانِ","تَتَدَحْرَجُونَ","تَتَدَحْرَجِينَ","تَتَدَحْرَجَانِ","تَتَدَحْرَجْنَ","أَتَدَحْرَجُ","نَتَدَحْرَجُ"]);
+assert.deepEqual(tafaul.sections.section02.map(r=>r.majzumPresent),["لَمْ يَتَدَحْرَجْ","لَمْ يَتَدَحْرَجَا","لَمْ يَتَدَحْرَجُوا","لَمْ تَتَدَحْرَجْ","لَمْ تَتَدَحْرَجَا","لَمْ يَتَدَحْرَجْنَ","لَمْ تَتَدَحْرَجْ","لَمْ تَتَدَحْرَجَا","لَمْ تَتَدَحْرَجُوا","لَمْ تَتَدَحْرَجِي","لَمْ تَتَدَحْرَجَا","لَمْ تَتَدَحْرَجْنَ","لَمْ أَتَدَحْرَجْ","لَمْ نَتَدَحْرَجْ"]);
+assert.deepEqual(tafaul.sections.section02.map(r=>r.mansubPresent),["لَنْ يَتَدَحْرَجَ","لَنْ يَتَدَحْرَجَا","لَنْ يَتَدَحْرَجُوا","لَنْ تَتَدَحْرَجَ","لَنْ تَتَدَحْرَجَا","لَنْ يَتَدَحْرَجْنَ","لَنْ تَتَدَحْرَجَ","لَنْ تَتَدَحْرَجَا","لَنْ تَتَدَحْرَجُوا","لَنْ تَتَدَحْرَجِي","لَنْ تَتَدَحْرَجَا","لَنْ تَتَدَحْرَجْنَ","لَنْ أَتَدَحْرَجَ","لَنْ نَتَدَحْرَجَ"]);
+assert.deepEqual(tafaul.sections.section02.map(r=>r.heavyEmphatic),["لَيَتَدَحْرَجَنَّ","لَيَتَدَحْرَجَانِّ","لَيَتَدَحْرَجُنَّ","لَتَتَدَحْرَجَنَّ","لَتَتَدَحْرَجَانِّ","لَيَتَدَحْرَجْنَانِّ","لَتَتَدَحْرَجَنَّ","لَتَتَدَحْرَجَانِّ","لَتَتَدَحْرَجُنَّ","لَتَتَدَحْرَجِنَّ","لَتَتَدَحْرَجَانِّ","لَتَتَدَحْرَجْنَانِّ","لَأَتَدَحْرَجَنَّ","لَنَتَدَحْرَجَنَّ"]);
+assert.deepEqual(tafaul.sections.section02.map(r=>r.lightEmphatic),["لَيَتَدَحْرَجَنْ",null,"لَيَتَدَحْرَجُنْ","لَتَتَدَحْرَجَنْ",null,null,"لَتَتَدَحْرَجَنْ",null,"لَتَتَدَحْرَجُنْ","لَتَتَدَحْرَجِنْ",null,null,"لَأَتَدَحْرَجَنْ","لَنَتَدَحْرَجَنْ"]);
+assert.deepEqual(tafaul.sections.section03.slice(6,12).map(r=>r.imperative),["تَدَحْرَجْ","تَدَحْرَجَا","تَدَحْرَجُوا","تَدَحْرَجِي","تَدَحْرَجَا","تَدَحْرَجْنَ"]);
+assert.equal(tafaul.sections.section03[6].imperative.startsWith("ا"),false);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>tafaul.sections.section03[i].imperative),["لِيَتَدَحْرَجْ","لِيَتَدَحْرَجَا","لِيَتَدَحْرَجُوا","لِتَتَدَحْرَجْ","لِتَتَدَحْرَجَا","لِيَتَدَحْرَجْنَ","لِأَتَدَحْرَجْ","لِنَتَدَحْرَجْ"]);
+assert.deepEqual(tafaul.sections.section03.slice(6,12).map(r=>r.heavyImperative),["تَدَحْرَجَنَّ","تَدَحْرَجَانِّ","تَدَحْرَجُنَّ","تَدَحْرَجِنَّ","تَدَحْرَجَانِّ","تَدَحْرَجْنَانِّ"]);
+assert.deepEqual(tafaul.sections.section03.slice(6,12).map(r=>r.lightImperative),["تَدَحْرَجَنْ",null,"تَدَحْرَجُنْ","تَدَحْرَجِنْ",null,null]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>tafaul.sections.section03[i].heavyImperative),["لِيَتَدَحْرَجَنَّ","لِيَتَدَحْرَجَانِّ","لِيَتَدَحْرَجُنَّ","لِتَتَدَحْرَجَنَّ","لِتَتَدَحْرَجَانِّ","لِيَتَدَحْرَجْنَانِّ","لِأَتَدَحْرَجَنَّ","لِنَتَدَحْرَجَنَّ"]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>tafaul.sections.section03[i].lightImperative),["لِيَتَدَحْرَجَنْ",null,"لِيَتَدَحْرَجُنْ","لِتَتَدَحْرَجَنْ",null,null,"لِأَتَدَحْرَجَنْ","لِنَتَدَحْرَجَنْ"]);
+for(const particle of MANSUB_PARTICLES) assert.ok(dispatchGeneration({...tafaulOptions,mansubParticle:particle}).sections.section02[0].mansubPresent.startsWith(`${particle} `));
+
+const doubleTa=tafaul.sections.section01[3].presentation.present.runs.slice(0,2);
+assert.deepEqual(doubleTa.map(({text,kind,radicalIndex,elementId})=>({text,kind,radicalIndex,elementId})),[{text:"تَ",kind:"grammatical",radicalIndex:null,elementId:undefined},{text:"تَ",kind:"derivational",radicalIndex:null,elementId:"quadriliteral-tafaul.ta"}]);
+const pastRuns=tafaul.sections.section01[0].presentation.past.runs;
+assert.deepEqual(pastRuns.filter(r=>r.kind==="radical").map(r=>[r.text[0],r.radicalIndex]),[["د",1],["ح",2],["ر",3],["ج",4]]);
+assert.deepEqual([pastRuns[0].kind,pastRuns[0].radicalIndex,pastRuns[0].elementId],["derivational",null,"quadriliteral-tafaul.ta"]);
+assert.equal(tafaul.sections.section01.every(r=>r.passivePast===null&&r.passivePresent===null),true);
+assert.deepEqual(tafaul.sections.section04.passiveParticiple,[]);
+assert.deepEqual(tafaul.sections.section04.masdar.map(row=>row.values),[["تَدَحْرُج"]]);
+assert.equal(JSON.stringify(tafaul.sections.section04).includes("دِحْرَاج"),false);
+assert.equal(tafaul.sections.section04.activeParticiple[0].values[0],"مُتَدَحْرِجٌ");
+assert.deepEqual(tafaul.sections.section04.activeParticiple.map(r=>r.values.length),[6,6,6]);
+const tafaulParticipleRuns=tafaul.sections.section04.activeParticiple[0].presentations[0].runs;
+assert.deepEqual(tafaulParticipleRuns.slice(0,2).map(r=>[r.kind,r.radicalIndex,r.elementId]),[["derivational",null,"quadriliteral-tafaul.participleMim"],["derivational",null,"quadriliteral-tafaul.ta"]]);
+assert.equal("elative" in tafaul.sections.section04,false); assert.equal("zarf" in tafaul.sections.section04,false);
+
+// Passive eligibility is keyed by Bāb plus root, never by the bare root alone.
+assert.equal(quadr.sections.section01[0].passivePast,"دُحْرِجَ");
+assert.equal(tafaul.sections.section01[0].passivePast,null);
+const tafaulZalzala=dispatchGeneration({...tafaulOptions,root:["ز","ل","ز","ل"]});
+assert.deepEqual([tafaulZalzala.sections.section01[0].past,tafaulZalzala.sections.section01[0].present,tafaulZalzala.sections.section04.masdar[0].values[0]],["تَزَلْزَلَ","يَتَزَلْزَلُ","تَزَلْزُل"]);
+const zalzalaRuns=tafaulZalzala.sections.section01[0].presentation.past.runs;
+assert.deepEqual(zalzalaRuns.filter(r=>r.kind==="radical").map(r=>[r.text[0],r.radicalIndex]),[["ز",1],["ل",2],["ز",3],["ل",4]]);
+assert.equal(zalzalaRuns.some(r=>r.kind==="derivational-copy"),false);
+assert.deepEqual(tafaulZalzala.passiveEligibility,{eligible:false,source:"unverified-lexeme"});
+for(const root of [["و","س","و","س"],["د","ح","ر","أ"],["ز","ل","ل","ق"]]) assert.throws(()=>dispatchGeneration({...tafaulOptions,root}));
+
+// Snapshot-driven exporters need no Bāb-specific branch: all four layout/format paths consume the same structure.
+for(const snapshot of [tafaul,tafaulZalzala]) for(const layout of ["portrait","landscape"]){
+  const pages=buildExportPages(snapshot,layout).join("");
+  assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("اسم المفعول"),false); assert.equal(pages.includes("دِحْرَاج"),false);
+  assert.match(pages,/#8E44AD/); assert.ok(buildDocx(snapshot,layout).length>500); assert.ok(buildPdfDocument([tinyJpeg],layout).length>500);
+}
+const exportTa=tafaul.sections.section01[0].presentation.past.runs[0];
+assert.deepEqual([exportTa.radicalIndex,exportTa.kind],[null,"derivational"]);
+
+// Existing immutable invalidation and family compatibility behavior includes both quadriliteral groups.
+const tafaulState=createGeneratedStateStore(); tafaulState.generate(tafaulOptions);
+applyRootFamily("triliteral",{rootFour:{value:"ج",disabled:false,required:true},rootFourField:{hidden:false},babSelect:domBabSelect,generatedState:tafaulState});
+assert.equal(tafaulState.get(),null); assert.equal(domBabSelect.select("quadriliteral-tafaul"),false);
+
+console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions, including باب التفعلل V1.");
