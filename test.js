@@ -2,14 +2,14 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const {
-  BAB_CONFIG, MAZID_BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
+  BAB_CONFIG, MAZID_BAB_CONFIG, QUADRILITERAL_BAB_CONFIG, MAJZUM_PARTICLES, MANSUB_PARTICLES, SIGHAS, buildActivePast, buildActivePresent,
   buildPassivePast, buildPassivePresent, buildMajzumPresent,
   buildMansubPresent, generateActiveForms, generateVersion4Forms, generateMansubForms,
   buildEmphaticPresent, generateEmphaticForms, buildImperative, generateImperativeForms,
   HARAKAT, LETTERS, NOMINAL_INFLECTIONS, buildActiveParticipleStem, buildPassiveParticipleStem,
   inflectNominalStem, generateActiveParticipleForms, generatePassiveParticipleForms,
   generateElativeForms, generateZarfForms,
-  buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot, isRegularFormVIIIRoot,
+  buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot,
   FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, formVIIITransformation,
   ROOT_FAMILIES, rootArchitecture, validateRoot, validateStructuralRuns, createArchitectureSnapshot, applyRootFamily,
 } = require("./script.js");
@@ -1396,7 +1396,8 @@ const harb=dispatchGeneration({root:["ح","ر","ب"],bab:"bab-al-ifanla",majzumP
 assert.deepEqual([harb.sections.section01[0].past,harb.sections.section01[6].past,harb.sections.section01[2].past,harb.sections.section01[0].present,harb.sections.section01[2].present,harb.sections.section02[0].majzumPresent,harb.sections.section02[0].mansubPresent,harb.sections.section03[6].imperative,harb.sections.section02[0].heavyEmphatic,harb.sections.section02[2].heavyEmphatic,harb.sections.section02[0].lightEmphatic,harb.sections.section04.masdar[0].values[0],harb.sections.section04.activeParticiple[0].values[0],harb.sections.section04.activeParticiple[1].values[0]],["اِحْرَنْبَى","اِحْرَنْبَيْتَ","اِحْرَنْبَوْا","يَحْرَنْبِي","يَحْرَنْبُونَ","لَمْ يَحْرَنْبِ","لَنْ يَحْرَنْبِيَ","اِحْرَنْبِ","لَيَحْرَنْبِيَنَّ","لَيَحْرَنْبُنَّ","لَيَحْرَنْبِيَنْ","اِحْرِنْبَاء","مُحْرَنْبٍ","مُحْرَنْبِيًا"]);
 for(const layout of ["portrait","landscape"]) { const pages=buildExportPages(ifanla,layout).join(""); assert.equal(pages.includes("اسم المفعول"),false); assert.equal(pages.includes("ifanla.final-ya"),false); const docx=buildDocx(ifanla,layout); assert.ok(docx); }
 
-// Four-root architecture only: genuine R4 is legal by arity, but generation remains unavailable.
+// Quadriliteral mujarrad: the single enabled family is generated through the
+// shared structural template, person-ending, mood, and nominal engines.
 assert.deepEqual([rootArchitecture("triliteral").rootArity, rootArchitecture("quadriliteral").rootArity], [3, 4]);
 assert.deepEqual(validateRoot(["د", "ح", "ر", "ج"], "quadriliteral"), ["د", "ح", "ر", "ج"]);
 assert.throws(() => validateRoot(["د", "ح", "ر"], "quadriliteral"), /exactly 4/);
@@ -1417,4 +1418,35 @@ const rootFour = { value: "ج", disabled: false, required: true }, rootFourField
 const groups = ["triliteral", "quadriliteral"].map((rootFamily) => ({ dataset: { rootFamily } }));
 applyRootFamily("triliteral", { rootFour, rootFourField, babSelect: { value: "x", querySelectorAll: () => groups }, generatedState: familyState });
 assert.deepEqual([rootFour.value, rootFour.disabled, rootFour.required, rootFourField.hidden, familyState.get()], ["", true, false, true, null]);
-assert.throws(() => dispatchGeneration({ ...snapshotOptions, rootFamily: "quadriliteral", root: ["د", "ح", "ر", "ج"] }), /not implemented/);
+const quadrConfig = QUADRILITERAL_BAB_CONFIG["quadriliteral-form-i"];
+assert.deepEqual([quadrConfig.rootFamily, quadrConfig.rootArity, quadrConfig.finalRadicalIndex, quadrConfig.generationStatus], ["quadriliteral", 4, 4, "implemented"]);
+assert.equal(isSoundQuadriliteralRoot(["د","ح","ر","ج"]), true);
+assert.equal(isSoundQuadriliteralRoot(["و","س","و","س"]), false);
+assert.equal(isSoundQuadriliteralRoot(["ز","ل","ز","ل"]), true); // repeated lexical positions remain valid
+const quadrOptions = { rootFamily:"quadriliteral", root:["د","ح","ر","ج"], bab:"quadriliteral-form-i", babLabel:"فَعْلَلَ / يُفَعْلِلُ", majzumParticle:"لَمْ", mansubParticle:"لَنْ", colourRootLetters:true };
+const quadr = dispatchGeneration(quadrOptions);
+assert.match(html, /<option value="quadriliteral-form-i">فَعْلَلَ \/ يُفَعْلِلُ<\/option>/);
+assert.deepEqual([quadr.rootFamily,quadr.rootArity,quadr.finalRadicalIndex,quadr.root,quadr.config.id,quadr.capabilities], ["quadriliteral",4,4,["د","ح","ر","ج"],"quadriliteral-form-i",{passive:true,masdar:true,activeParticiple:true,passiveParticiple:true,elative:false,zarf:false}]);
+assert.deepEqual(quadr.sections.section01.map(r=>r.past),["دَحْرَجَ","دَحْرَجَا","دَحْرَجُوا","دَحْرَجَتْ","دَحْرَجَتَا","دَحْرَجْنَ","دَحْرَجْتَ","دَحْرَجْتُمَا","دَحْرَجْتُمْ","دَحْرَجْتِ","دَحْرَجْتُمَا","دَحْرَجْتُنَّ","دَحْرَجْتُ","دَحْرَجْنَا"]);
+assert.deepEqual(quadr.sections.section01.map(r=>r.present),["يُدَحْرِجُ","يُدَحْرِجَانِ","يُدَحْرِجُونَ","تُدَحْرِجُ","تُدَحْرِجَانِ","يُدَحْرِجْنَ","تُدَحْرِجُ","تُدَحْرِجَانِ","تُدَحْرِجُونَ","تُدَحْرِجِينَ","تُدَحْرِجَانِ","تُدَحْرِجْنَ","أُدَحْرِجُ","نُدَحْرِجُ"]);
+assert.deepEqual(quadr.sections.section02.map(r=>r.majzumPresent),["لَمْ يُدَحْرِجْ","لَمْ يُدَحْرِجَا","لَمْ يُدَحْرِجُوا","لَمْ تُدَحْرِجْ","لَمْ تُدَحْرِجَا","لَمْ يُدَحْرِجْنَ","لَمْ تُدَحْرِجْ","لَمْ تُدَحْرِجَا","لَمْ تُدَحْرِجُوا","لَمْ تُدَحْرِجِي","لَمْ تُدَحْرِجَا","لَمْ تُدَحْرِجْنَ","لَمْ أُدَحْرِجْ","لَمْ نُدَحْرِجْ"]);
+assert.deepEqual(quadr.sections.section02.map(r=>r.mansubPresent),["لَنْ يُدَحْرِجَ","لَنْ يُدَحْرِجَا","لَنْ يُدَحْرِجُوا","لَنْ تُدَحْرِجَ","لَنْ تُدَحْرِجَا","لَنْ يُدَحْرِجْنَ","لَنْ تُدَحْرِجَ","لَنْ تُدَحْرِجَا","لَنْ تُدَحْرِجُوا","لَنْ تُدَحْرِجِي","لَنْ تُدَحْرِجَا","لَنْ تُدَحْرِجْنَ","لَنْ أُدَحْرِجَ","لَنْ نُدَحْرِجَ"]);
+assert.deepEqual(quadr.sections.section03.slice(6,12).map(r=>r.imperative),["دَحْرِجْ","دَحْرِجَا","دَحْرِجُوا","دَحْرِجِي","دَحْرِجَا","دَحْرِجْنَ"]);
+assert.deepEqual(quadr.sections.section03.slice(6,12).map(r=>r.heavyImperative),["دَحْرِجَنَّ","دَحْرِجَانِّ","دَحْرِجُنَّ","دَحْرِجِنَّ","دَحْرِجَانِّ","دَحْرِجْنَانِّ"]);
+assert.deepEqual(quadr.sections.section03.slice(6,12).map(r=>r.lightImperative),["دَحْرِجَنْ",null,"دَحْرِجُنْ","دَحْرِجِنْ",null,null]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>quadr.sections.section03[i].imperative),["لِيُدَحْرِجْ","لِيُدَحْرِجَا","لِيُدَحْرِجُوا","لِتُدَحْرِجْ","لِتُدَحْرِجَا","لِيُدَحْرِجْنَ","لِأُدَحْرِجْ","لِنُدَحْرِجْ"]);
+assert.deepEqual(quadr.sections.section02.map(r=>r.heavyEmphatic),["لَيُدَحْرِجَنَّ","لَيُدَحْرِجَانِّ","لَيُدَحْرِجُنَّ","لَتُدَحْرِجَنَّ","لَتُدَحْرِجَانِّ","لَيُدَحْرِجْنَانِّ","لَتُدَحْرِجَنَّ","لَتُدَحْرِجَانِّ","لَتُدَحْرِجُنَّ","لَتُدَحْرِجِنَّ","لَتُدَحْرِجَانِّ","لَتُدَحْرِجْنَانِّ","لَأُدَحْرِجَنَّ","لَنُدَحْرِجَنَّ"]);
+assert.deepEqual(quadr.sections.section02.map(r=>r.lightEmphatic),["لَيُدَحْرِجَنْ",null,"لَيُدَحْرِجُنْ","لَتُدَحْرِجَنْ",null,null,"لَتُدَحْرِجَنْ",null,"لَتُدَحْرِجُنْ","لَتُدَحْرِجِنْ",null,null,"لَأُدَحْرِجَنْ","لَنُدَحْرِجَنْ"]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>quadr.sections.section03[i].heavyImperative),["لِيُدَحْرِجَنَّ","لِيُدَحْرِجَانِّ","لِيُدَحْرِجُنَّ","لِتُدَحْرِجَنَّ","لِتُدَحْرِجَانِّ","لِيُدَحْرِجْنَانِّ","لِأُدَحْرِجَنَّ","لِنُدَحْرِجَنَّ"]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>quadr.sections.section03[i].lightImperative),["لِيُدَحْرِجَنْ",null,"لِيُدَحْرِجُنْ","لِتُدَحْرِجَنْ",null,null,"لِأُدَحْرِجَنْ","لِنُدَحْرِجَنْ"]);
+assert.deepEqual(quadr.sections.section01.slice(0,1).flatMap(r=>[r.passivePast,r.passivePresent]),["دُحْرِجَ","يُدَحْرَجُ"]);
+assert.deepEqual([quadr.sections.section04.masdar[0].values[0],quadr.sections.section04.masdar[0].alternatives[0].value],["دَحْرَجَة","دِحْرَاج"]);
+assert.deepEqual([quadr.sections.section04.activeParticiple[0].values[0],quadr.sections.section04.passiveParticiple[0].values[0]],["مُدَحْرِجٌ","مُدَحْرَجٌ"]);
+for (const value of [quadr.sections.section01[0].presentation.past,quadr.sections.section01[0].presentation.present,quadr.sections.section01[0].presentation.passivePast,quadr.sections.section01[0].presentation.passivePresent,quadr.sections.section04.masdar[0].presentations[0],quadr.sections.section04.masdar[0].alternatives[0].presentation,quadr.sections.section04.activeParticiple[0].presentations[0],quadr.sections.section04.passiveParticiple[0].presentations[0]]) {
+  const r4=value.runs.find(run=>run.radicalIndex===4); assert.ok(r4); assert.equal(r4.kind,"radical"); assert.equal("sourceRadicalIndex" in r4,false); validateStructuralRuns(value.runs,4);
+}
+assert.throws(()=>dispatchGeneration({...quadrOptions,root:["د","ح","ر"]}),/exactly 4/);
+for(const root of [["و","س","و","س"],["د","ح","ر","أ"]]) assert.throws(()=>dispatchGeneration({...quadrOptions,root}),/الصحيح السالم/);
+for(const particle of MAJZUM_PARTICLES) assert.ok(dispatchGeneration({...quadrOptions,majzumParticle:particle}).sections.section02[0].majzumPresent.startsWith(`${particle} `));
+for(const particle of MANSUB_PARTICLES) assert.ok(dispatchGeneration({...quadrOptions,mansubParticle:particle}).sections.section02[0].mansubPresent.startsWith(`${particle} `));
+for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadr,layout).join(""); assert.match(pages,/الجذر: دحرج/); assert.match(pages,/#8E44AD/); assert.ok(buildDocx(quadr,layout)); assert.ok(buildPdfDocument([tinyJpeg],layout).length>500);}
