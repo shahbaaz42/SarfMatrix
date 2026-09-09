@@ -36,6 +36,8 @@ const ROOT_FAMILIES = Object.freeze({
   quadriliteral: Object.freeze({ rootArity: 4, finalRadicalIndex: 4 }),
 });
 const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
+const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
+const QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES = Object.freeze(new Set(["دحرج"]));
 function rootArchitecture(rootFamily = "triliteral") {
   const architecture = ROOT_FAMILIES[rootFamily];
   if (!architecture) throw new Error(`Unknown root family: ${rootFamily}`);
@@ -281,6 +283,33 @@ const MAZID_BAB_CONFIG = Object.freeze({
   }),
 });
 
+// The first quadriliteral release deliberately contains only the traditional
+// mujarrad فَعْلَلَ family. Its templates use the same person-ending, mood,
+// emphasis, command, and nominal engines as the implemented mazīd families.
+const QUADRILITERAL_BAB_CONFIG = Object.freeze({
+  "quadriliteral-form-i": Object.freeze({
+    id: "quadriliteral-form-i", babId: "quadriliteral-form-i",
+    label: "الفعل الرباعي المجرد — فَعْلَلَ / يُفَعْلِلُ",
+    traditionalName: "الفعل الرباعي المجرد", rootFamily: "quadriliteral",
+    rootArity: 4, finalRadicalIndex: 4, rootClass: "sahih-salim",
+    generationStatus: "implemented", capabilities: QUADRILITERAL_CAPABILITIES,
+    normalizeLongLetterSpelling: true,
+    eligibility: Object.freeze({ ruleId: "quadriliteral-mujarrad.regular-sound-only", deferredRootClasses: Object.freeze(["weak", "hamzated", "lexical-exception"]) }),
+    availability: Object.freeze({ passivePast: "lexical-metadata-required", passivePresent: "lexical-metadata-required", masdar: "available", activeParticiple: "available", passiveParticiple: "lexical-metadata-required" }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"َ"],["radical",4]]),
+      activePresent: Object.freeze([["personPrefix","ُ"],["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"ِ"],["radical",4]]),
+      passivePast: Object.freeze([["radical",1,"ُ"],["radical",2,"ْ"],["radical",3,"ِ"],["radical",4]]),
+      passivePresent: Object.freeze([["personPrefix","ُ"],["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"َ"],["radical",4]]),
+      imperative: Object.freeze([["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"ِ"],["radical",4]]),
+      masdar: Object.freeze([["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"َ"],["radical",4,"َ"],["literal","ة"]]),
+      masdarAlternative: Object.freeze([["radical",1,"ِ"],["radical",2,"ْ"],["radical",3,"َ"],["literal","ا"],["radical",4]]),
+      activeParticiple: Object.freeze([["literal","مُ"],["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"ِ"],["radical",4]]),
+      passiveParticiple: Object.freeze([["literal","مُ"],["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"َ"],["radical",4]]),
+    }),
+  }),
+});
+
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
 const { ALIF, WAW, TA, NUN, MIM, YA, HAMZA, LAM, TA_MARBUTA, ALIF_MAQSURA } = LETTERS;
 
@@ -500,7 +529,7 @@ function morphologyValue(...parts) {
 
 function literal(text) { return morphologyRun(text, null); }
 function grammatical(text) { return morphologyRun(text, null, { kind: "grammatical" }); }
-function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index); }
+function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index, { kind: "radical" }); }
 function derivationalCopy(root, sourceRadicalIndex = 3, marks = "", elementId = null) {
   return morphologyRun(`${root[sourceRadicalIndex - 1]}${marks}`, null, { kind: "derivational-copy", sourceRadicalIndex, ...(elementId ? { elementId } : {}) });
 }
@@ -568,6 +597,18 @@ function isSoundFormIVRoot(root) {
   return bare.length === 3 && bare.every((letter) => /^\p{Script=Arabic}$/u.test(letter))
     && !bare.some((letter) => weak.has(letter) || letter.includes("ء") || /[أإآؤئ]/u.test(letter))
     && bare[1] !== bare[2];
+}
+
+function isSoundQuadriliteralRoot(root) {
+  const bare = root.map((letter) => String(letter).normalize("NFC").replace(/\p{M}/gu, ""));
+  const weak = new Set(["ا", "و", "ي", "ى"]);
+  return bare.length === 4 && bare.every((letter) => /^\p{Script=Arabic}$/u.test(letter))
+    && !bare.some((letter) => weak.has(letter) || letter.includes("ء") || /[أإآؤئ]/u.test(letter))
+    && !bare.some((letter, index) => index > 0 && letter === bare[index - 1]);
+}
+
+function quadriliteralPassiveEligible(root) {
+  return QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES.has(root.join(""));
 }
 
 const FORM_VIII_SPECIAL_R1 = new Set(["ت", "ث", "د", "ذ", "ز", "ص", "ض", "ط", "ظ"]);
@@ -928,10 +969,10 @@ function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   return deepFreeze({ root:[...root], bab, babLabel, family:"mazid", availability:config.availability, majzumParticle, mansubParticle, transformation:config.transformation, presentation:{colourRootLetters:Boolean(colourRootLetters)}, sections:{section01,section02,section03,section04:{masdar:[{label:"المصدر",values:[masdar.text],presentations:[masdar]}],activeParticiple:nominalRows,passiveParticiple:[]}} });
 }
 
-function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
-  const config = MAZID_BAB_CONFIG[bab];
+function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }, configuredBab = null, snapshotFamily = "mazid") {
+  const config = configuredBab || MAZID_BAB_CONFIG[bab];
   if (!config) throw new Error(`Unknown Mazīd Bāb: ${bab}`);
-  if (!isSoundFormIVRoot(root)) throw new Error(`${config.label} متاح حاليًا للجذر الصحيح السالم فقط.`);
+  if (configuredBab ? !isSoundQuadriliteralRoot(root) : !isSoundFormIVRoot(root)) throw new Error(`${config.label} متاح حاليًا للجذر الصحيح السالم فقط.`);
   if (config.form === 9) return buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   if (config.form === 11) return buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
   if (config.form === 15) return buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters });
@@ -942,7 +983,7 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
   const templates = config.templates;
   // Forms X, XII, and XIII use the conventional unmarked long wāw/yā spelling;
   // the shared person inventory itself remains unchanged.
-  const ending = (value) => [10, 12, 13].includes(config.form) && value !== null
+  const ending = (value) => ([10, 12, 13].includes(config.form) || config.normalizeLongLetterSpelling) && value !== null
     ? value.replaceAll(`${WAW}${SUKUN}`, WAW).replaceAll(`${YA}${SUKUN}`, YA)
     : value;
   const transformationMetadata = transformation ? (() => {
@@ -990,7 +1031,12 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
   const section02 = verbs.map((v) => ({ pronoun: v.pronoun, majzumPresent: v.majzumPresent.text, mansubPresent: v.mansubPresent.text, heavyEmphatic: v.heavyEmphatic.text || null, lightEmphatic: v.lightEmphatic.text || null, presentation: { majzumPresent: v.majzumPresent, mansubPresent: v.mansubPresent, heavyEmphatic: v.heavyEmphatic, lightEmphatic: v.lightEmphatic } }));
   const section03 = verbs.map((v) => ({ pronoun: v.pronoun, imperative: v.imperative.text, heavyImperative: v.heavyImperative.text || null, lightImperative: v.lightImperative.text || null, presentation: { imperative: v.imperative, heavyImperative: v.heavyImperative, lightImperative: v.lightImperative } }));
   const masdar = instantiateMazidTemplate(root, templates.masdar, SIGHAS[0], transformation);
-  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", availability: config.availability, majzumParticle, mansubParticle, transformation: transformationMetadata, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows(templates.activeParticiple), passiveParticiple: config.availability?.passiveParticiple === "suppressed" ? [] : nominalRows(templates.passiveParticiple) } } });
+  const masdarAlternative = templates.masdarAlternative ? instantiateMazidTemplate(root, templates.masdarAlternative, SIGHAS[0], transformation) : null;
+  const masdarRows = [
+    { label: "المصدر", values: [masdar.text], presentations: [masdar], ...(masdarAlternative ? { alternatives: [{ value: masdarAlternative.text, presentation: masdarAlternative }] } : {}) },
+    ...(masdarAlternative ? [{ label: "المصدر القياسي الآخر", values: [masdarAlternative.text], presentations: [masdarAlternative] }] : []),
+  ];
+  return deepFreeze({ root: [...root], bab, babLabel, family: snapshotFamily, config: { id: config.id || config.babId || bab, label: config.label }, availability: config.availability, majzumParticle, mansubParticle, transformation: transformationMetadata, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: masdarRows, activeParticiple: nominalRows(templates.activeParticiple), passiveParticiple: config.availability?.passiveParticiple === "suppressed" ? [] : nominalRows(templates.passiveParticiple) } } });
 }
 
 function presentedRuns(value, presentation, colourRootLetters) {
@@ -1007,7 +1053,7 @@ function inflectVerbStem(stemRuns, ending) {
   const { marks, remainder } = splitInitialMarks(ending);
   const runs = [...stemRuns];
   const finalRadical = runs.pop();
-  if (!finalRadical || (finalRadical.radicalIndex !== 3 && finalRadical.sourceRadicalIndex !== 3)) throw new Error("Verb stem must end with the third radical or its derivational copy");
+  if (!finalRadical || (![3, 4].includes(finalRadical.radicalIndex) && finalRadical.sourceRadicalIndex !== 3)) throw new Error("Verb stem must end with its final radical or an approved derivational copy");
   const metadata = Object.fromEntries(Object.entries(finalRadical).filter(([key]) => !["text", "radicalIndex"].includes(key)));
   const suffix = finalRadical.elementId === "form14.r3Copy" ? grammatical(remainder) : literal(remainder);
   return morphologyValue(runs, morphologyRun(finalRadical.text + marks, finalRadical.radicalIndex, metadata), suffix);
@@ -1152,7 +1198,18 @@ function buildTriliteralSnapshot({ root, bab, babLabel, majzumParticle, mansubPa
 function buildGeneratedSnapshot(options) {
   const rootFamily = options.rootFamily ?? "triliteral";
   const root = validateRoot(options.root, rootFamily);
-  if (rootFamily === "quadriliteral") throw new Error("Quadriliteral morphology is not implemented yet");
+  if (!MAJZUM_PARTICLES.includes(options.majzumParticle)) throw new Error(`Unknown majzūm particle: ${options.majzumParticle}`);
+  if (!MANSUB_PARTICLES.includes(options.mansubParticle)) throw new Error(`Unknown manṣūb particle: ${options.mansubParticle}`);
+  if (rootFamily === "quadriliteral") {
+    const config = QUADRILITERAL_BAB_CONFIG[options.bab];
+    if (!config) throw new Error(`Unknown quadriliteral Bāb: ${options.bab}`);
+    if (root.some((letter, index) => index > 0 && letter === root[index - 1])) throw new Error("الجذور الرباعية ذات الحرفين المتجاورين المتماثلين مؤجلة حتى تنفيذ أحكام الإدغام والفك.");
+    const passiveEligible = quadriliteralPassiveEligible(root);
+    const resolvedConfig = { ...config, availability: { ...config.availability, passivePast: passiveEligible ? "available" : "suppressed", passivePresent: passiveEligible ? "available" : "suppressed", passiveParticiple: passiveEligible ? "available" : "suppressed" } };
+    const snapshot = buildMazidSnapshot({ ...options, root }, resolvedConfig, "quadriliteral-mujarrad");
+    const capabilities = { ...config.capabilities, passive: passiveEligible, passiveParticiple: passiveEligible };
+    return deepFreeze({ ...snapshot, rootFamily, rootArity: 4, finalRadicalIndex: 4, passiveEligibility: { eligible: passiveEligible, source: passiveEligible ? "lexeme-map" : "unverified-lexeme" }, capabilities });
+  }
   const snapshot = buildTriliteralSnapshot({ ...options, root });
   const capabilities = snapshot.family === "mazid"
     ? { passive: snapshot.availability?.passivePast !== "suppressed", masdar: true, activeParticiple: snapshot.availability?.activeParticiple !== "suppressed", passiveParticiple: snapshot.availability?.passiveParticiple !== "suppressed", elative: false, zarf: false }
@@ -1215,7 +1272,7 @@ function applyRootFamily(rootFamily, { rootFour, rootFourField, babSelect, gener
   for (const group of babSelect.querySelectorAll("optgroup[data-root-family]")) {
     const active = group.dataset.rootFamily === rootFamily;
     group.hidden = !active;
-    group.disabled = !active || quadriliteral;
+    group.disabled = !active;
   }
   generatedState.invalidate();
 }
@@ -1388,7 +1445,7 @@ if (typeof document !== "undefined") {
 }
 if (typeof module !== "undefined") {
   module.exports = {
-    BAB_CONFIG, MAZID_BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
+    BAB_CONFIG, MAZID_BAB_CONFIG, QUADRILITERAL_BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
     ROOT_FAMILIES, rootArchitecture, validateRoot, validateStructuralRuns, createArchitectureSnapshot, applyRootFamily,
     buildActivePast, buildActivePresent, buildPassivePast, buildPassivePresent,
     buildPresentStem, buildMajzumPresent, buildMansubPresent, buildEmphaticPresent, buildImperative,
@@ -1396,6 +1453,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
