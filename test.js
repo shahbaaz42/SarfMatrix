@@ -302,6 +302,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "باب الافعنلاء — اِفْعَنْلَى / يَفْعَنْلِي",
   "فَعْلَلَ / يُفَعْلِلُ",
   "باب التفعلل — تَفَعْلَلَ / يَتَفَعْلَلُ",
+  "الرباعي المزيد فيه بحرفين — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1553,6 +1554,43 @@ for(const snapshot of [tafaul,tafaulZalzala]) for(const layout of ["portrait","l
 }
 const exportTa=tafaul.sections.section01[0].presentation.past.runs[0];
 assert.deepEqual([exportTa.radicalIndex,exportTa.kind],[null,"derivational"]);
+
+// Genuine quadriliteral اِفْعَنْلَلَ — active-only regular sound V1.
+const quadrIfanlalConfig=QUADRILITERAL_BAB_CONFIG["quadriliteral-ifanlal"];
+assert.deepEqual({id:quadrIfanlalConfig.id,rootFamily:quadrIfanlalConfig.rootFamily,rootArity:quadrIfanlalConfig.rootArity,finalRadicalIndex:quadrIfanlalConfig.finalRadicalIndex,snapshotFamily:quadrIfanlalConfig.snapshotFamily,morphologyCategory:quadrIfanlalConfig.morphologyCategory,traditionalCategory:quadrIfanlalConfig.traditionalCategory},
+  {id:"quadriliteral-ifanlal",rootFamily:"quadriliteral",rootArity:4,finalRadicalIndex:4,snapshotFamily:"quadriliteral-augmented",morphologyCategory:"augmented",traditionalCategory:"الرباعي المزيد فيه بحرفين"});
+assert.notEqual(quadrIfanlalConfig,MAZID_BAB_CONFIG["bab-al-ifanlal"]);
+assert.match(html,/<option value="quadriliteral-tafaul">[\s\S]*?<option value="quadriliteral-ifanlal">الرباعي المزيد فيه بحرفين — اِفْعَنْلَلَ \/ يَفْعَنْلِلُ<\/option>/);
+const quadrIfanlalOptions={rootFamily:"quadriliteral",root:["ح","ر","ج","م"],bab:"quadriliteral-ifanlal",babLabel:quadrIfanlalConfig.label,majzumParticle:"لَمْ",mansubParticle:"لَنْ",colourRootLetters:true};
+const quadrIfanlal=dispatchGeneration(quadrIfanlalOptions);
+assert.deepEqual([quadrIfanlal.rootFamily,quadrIfanlal.rootArity,quadrIfanlal.finalRadicalIndex,quadrIfanlal.family],["quadriliteral",4,4,"quadriliteral-augmented"]);
+assert.deepEqual(quadrIfanlal.capabilities,{passive:false,masdar:true,activeParticiple:false,passiveParticiple:false,elative:false,zarf:false});
+assert.deepEqual(quadrIfanlal.passiveEligibility,{eligible:false,source:"unverified-lexeme"});
+assert.deepEqual(quadrIfanlal.sections.section01.map(r=>r.past),["اِحْرَنْجَمَ","اِحْرَنْجَمَا","اِحْرَنْجَمُوا","اِحْرَنْجَمَتْ","اِحْرَنْجَمَتَا","اِحْرَنْجَمْنَ","اِحْرَنْجَمْتَ","اِحْرَنْجَمْتُمَا","اِحْرَنْجَمْتُمْ","اِحْرَنْجَمْتِ","اِحْرَنْجَمْتُمَا","اِحْرَنْجَمْتُنَّ","اِحْرَنْجَمْتُ","اِحْرَنْجَمْنَا"]);
+assert.deepEqual(quadrIfanlal.sections.section01.map(r=>r.present),["يَحْرَنْجِمُ","يَحْرَنْجِمَانِ","يَحْرَنْجِمُونَ","تَحْرَنْجِمُ","تَحْرَنْجِمَانِ","يَحْرَنْجِمْنَ","تَحْرَنْجِمُ","تَحْرَنْجِمَانِ","تَحْرَنْجِمُونَ","تَحْرَنْجِمِينَ","تَحْرَنْجِمَانِ","تَحْرَنْجِمْنَ","أَحْرَنْجِمُ","نَحْرَنْجِمُ"]);
+assert.deepEqual(quadrIfanlal.sections.section02.map(r=>r.majzumPresent),["لَمْ يَحْرَنْجِمْ","لَمْ يَحْرَنْجِمَا","لَمْ يَحْرَنْجِمُوا","لَمْ تَحْرَنْجِمْ","لَمْ تَحْرَنْجِمَا","لَمْ يَحْرَنْجِمْنَ","لَمْ تَحْرَنْجِمْ","لَمْ تَحْرَنْجِمَا","لَمْ تَحْرَنْجِمُوا","لَمْ تَحْرَنْجِمِي","لَمْ تَحْرَنْجِمَا","لَمْ تَحْرَنْجِمْنَ","لَمْ أَحْرَنْجِمْ","لَمْ نَحْرَنْجِمْ"]);
+assert.deepEqual(quadrIfanlal.sections.section02.map(r=>r.mansubPresent),["لَنْ يَحْرَنْجِمَ","لَنْ يَحْرَنْجِمَا","لَنْ يَحْرَنْجِمُوا","لَنْ تَحْرَنْجِمَ","لَنْ تَحْرَنْجِمَا","لَنْ يَحْرَنْجِمْنَ","لَنْ تَحْرَنْجِمَ","لَنْ تَحْرَنْجِمَا","لَنْ تَحْرَنْجِمُوا","لَنْ تَحْرَنْجِمِي","لَنْ تَحْرَنْجِمَا","لَنْ تَحْرَنْجِمْنَ","لَنْ أَحْرَنْجِمَ","لَنْ نَحْرَنْجِمَ"]);
+assert.deepEqual(quadrIfanlal.sections.section02.map(r=>r.heavyEmphatic),tafaul.sections.section02.map(r=>r.heavyEmphatic.replaceAll("تَدَحْرَج","حْرَنْجِم")));
+assert.deepEqual(quadrIfanlal.sections.section02.map(r=>r.lightEmphatic),tafaul.sections.section02.map(r=>r.lightEmphatic?.replaceAll("تَدَحْرَج","حْرَنْجِم")??null));
+assert.deepEqual(quadrIfanlal.sections.section03.slice(6,12).map(r=>r.imperative),["اِحْرَنْجِمْ","اِحْرَنْجِمَا","اِحْرَنْجِمُوا","اِحْرَنْجِمِي","اِحْرَنْجِمَا","اِحْرَنْجِمْنَ"]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>quadrIfanlal.sections.section03[i].imperative),["لِيَحْرَنْجِمْ","لِيَحْرَنْجِمَا","لِيَحْرَنْجِمُوا","لِتَحْرَنْجِمْ","لِتَحْرَنْجِمَا","لِيَحْرَنْجِمْنَ","لِأَحْرَنْجِمْ","لِنَحْرَنْجِمْ"]);
+assert.equal(quadrIfanlal.sections.section03.every((r,i)=>r.heavyImperative&&([1,4,5,7,10,11].includes(i)||r.lightImperative)),true);
+assert.deepEqual(quadrIfanlal.sections.section04.masdar.map(r=>r.values),[["اِحْرِنْجَام"]]);
+assert.deepEqual(quadrIfanlal.sections.section04.activeParticiple,[]); assert.deepEqual(quadrIfanlal.sections.section04.passiveParticiple,[]);
+assert.equal(quadrIfanlal.sections.section01.every(r=>r.passivePast===null&&r.passivePresent===null),true);
+for(const particle of MANSUB_PARTICLES) assert.ok(dispatchGeneration({...quadrIfanlalOptions,mansubParticle:particle}).sections.section02[0].mansubPresent.startsWith(`${particle} `));
+for(const root of [["و","س","و","س"],["ح","ر","ج","أ"],["ح","ر","ر","ج"]]) assert.throws(()=>dispatchGeneration({...quadrIfanlalOptions,root}),/الصحيح السالم|الإدغام والفك/);
+assert.equal(dispatchGeneration({...quadrIfanlalOptions,root:["ز","ل","ز","ق"]}).sections.section01[0].past,"اِزْلَنْزَقَ");
+const targetValues=[...quadrIfanlal.sections.section01.flatMap(r=>Object.values(r.presentation)),...quadrIfanlal.sections.section02.flatMap(r=>Object.values(r.presentation)),...quadrIfanlal.sections.section03.flatMap(r=>Object.values(r.presentation)),quadrIfanlal.sections.section04.masdar[0].presentations[0]];
+for(const value of targetValues){ for(const run of value.runs){ assert.equal(run.kind==="derivational-copy",false); assert.equal("sourceRadicalIndex" in run,false); } validateStructuralRuns(value.runs,4); }
+const targetPastRuns=quadrIfanlal.sections.section01[0].presentation.past.runs;
+assert.deepEqual(targetPastRuns.filter(r=>r.kind==="radical").map(r=>[r.text[0],r.radicalIndex]),[["ح",1],["ر",2],["ج",3],["م",4]]);
+assert.deepEqual(targetPastRuns.filter(r=>r.kind==="derivational").map(r=>[r.elementId,r.radicalIndex]),[["quadriliteral-ifanlal.hamzatWasl",null],["quadriliteral-ifanlal.insertedNun",null]]);
+const targetMasdarRuns=quadrIfanlal.sections.section04.masdar[0].presentations[0].runs;
+assert.deepEqual(targetMasdarRuns.filter(r=>r.kind==="derivational").map(r=>[r.elementId,r.radicalIndex]),[["quadriliteral-ifanlal.hamzatWasl",null],["quadriliteral-ifanlal.insertedNun",null],["quadriliteral-ifanlal.masdarAlif",null]]);
+const mulhaqFinal=ifanlal.sections.section01[0].presentation.past.runs.find(r=>r.sourceRadicalIndex===3);
+assert.deepEqual([ifanlal.rootArity,ifanlal.finalRadicalIndex,mulhaqFinal.kind,mulhaqFinal.radicalIndex,mulhaqFinal.sourceRadicalIndex],[3,3,"derivational-copy",null,3]);
+for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadrIfanlal,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("اسم الفاعل"),false); assert.equal(pages.includes("اسم المفعول"),false); assert.ok(buildDocx(quadrIfanlal,layout).length>500);}
 
 // Existing immutable invalidation and family compatibility behavior includes both quadriliteral groups.
 const tafaulState=createGeneratedStateStore(); tafaulState.generate(tafaulOptions);

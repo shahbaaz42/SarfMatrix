@@ -37,6 +37,7 @@ const ROOT_FAMILIES = Object.freeze({
 });
 const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
 const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
+const QUADRILITERAL_IFANLAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: false, passiveParticiple: false, elative: false, zarf: false });
 const QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES = Object.freeze(new Set(["quadriliteral-form-i:دحرج"]));
 function rootArchitecture(rootFamily = "triliteral") {
   const architecture = ROOT_FAMILIES[rootFamily];
@@ -328,6 +329,23 @@ const QUADRILITERAL_BAB_CONFIG = Object.freeze({
       activeParticiple: Object.freeze([["derivational","quadriliteral-tafaul.participleMim","ُ"],["derivational","quadriliteral-tafaul.ta","َ"],["radical",1,"َ"],["radical",2,"ْ"],["radical",3,"ِ"],["radical",4]]),
     }),
   }),
+  "quadriliteral-ifanlal": Object.freeze({
+    id: "quadriliteral-ifanlal", babId: "quadriliteral-ifanlal",
+    label: "الرباعي المزيد فيه بحرفين — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
+    traditionalName: "اِفْعَنْلَلَ / يَفْعَنْلِلُ", traditionalCategory: "الرباعي المزيد فيه بحرفين",
+    morphologyCategory: "augmented", snapshotFamily: "quadriliteral-augmented", rootFamily: "quadriliteral",
+    rootArity: 4, finalRadicalIndex: 4, rootClass: "sahih-salim",
+    generationStatus: "implemented", capabilities: QUADRILITERAL_IFANLAL_CAPABILITIES,
+    normalizeLongLetterSpelling: true, grammaticalAdditions: true,
+    eligibility: Object.freeze({ ruleId: "quadriliteral-ifanlal.regular-sound-only", deferredRootClasses: Object.freeze(["weak", "hamzated", "adjacent-identical", "lexical-exception"]) }),
+    availability: Object.freeze({ passivePast: "lexical-metadata-required", passivePresent: "lexical-metadata-required", masdar: "available", activeParticiple: "suppressed", passiveParticiple: "lexical-metadata-required", elative: "suppressed", zarf: "suppressed" }),
+    templates: Object.freeze({
+      activePast: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"َ"],["radical",4]]),
+      activePresent: Object.freeze([["grammaticalPersonPrefix","َ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"ِ"],["radical",4]]),
+      imperative: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"ِ"],["radical",4]]),
+      masdar: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"ِ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"َ"],["derivational","quadriliteral-ifanlal.masdarAlif"],["radical",4]]),
+    }),
+  }),
 });
 
 const { FATHA, DAMMA, KASRA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN } = HARAKAT;
@@ -576,6 +594,9 @@ const DERIVATIONAL_ELEMENTS = Object.freeze({
   "form14.participleMim": LETTERS.MIM,
   "quadriliteral-tafaul.ta": LETTERS.TA,
   "quadriliteral-tafaul.participleMim": LETTERS.MIM,
+  "quadriliteral-ifanlal.hamzatWasl": LETTERS.ALIF,
+  "quadriliteral-ifanlal.insertedNun": LETTERS.NUN,
+  "quadriliteral-ifanlal.masdarAlif": LETTERS.ALIF,
 });
 
 function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transformation = null) {
@@ -1058,7 +1079,7 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
     { label: "المصدر", values: [masdar.text], presentations: [masdar], ...(masdarAlternative ? { alternatives: [{ value: masdarAlternative.text, presentation: masdarAlternative }] } : {}) },
     ...(masdarAlternative ? [{ label: "المصدر القياسي الآخر", values: [masdarAlternative.text], presentations: [masdarAlternative] }] : []),
   ];
-  return deepFreeze({ root: [...root], bab, babLabel, family: snapshotFamily, config: { id: config.id || config.babId || bab, label: config.label, ...(config.traditionalName ? { traditionalName: config.traditionalName } : {}), ...(config.traditionalCategory ? { traditionalCategory: config.traditionalCategory } : {}), ...(config.morphologyCategory ? { morphologyCategory: config.morphologyCategory } : {}), ...(config.snapshotFamily ? { snapshotFamily: config.snapshotFamily } : {}) }, availability: config.availability, majzumParticle, mansubParticle, transformation: transformationMetadata, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: masdarRows, activeParticiple: nominalRows(templates.activeParticiple), passiveParticiple: config.availability?.passiveParticiple === "suppressed" ? [] : nominalRows(templates.passiveParticiple) } } });
+  return deepFreeze({ root: [...root], bab, babLabel, family: snapshotFamily, config: { id: config.id || config.babId || bab, label: config.label, ...(config.traditionalName ? { traditionalName: config.traditionalName } : {}), ...(config.traditionalCategory ? { traditionalCategory: config.traditionalCategory } : {}), ...(config.morphologyCategory ? { morphologyCategory: config.morphologyCategory } : {}), ...(config.snapshotFamily ? { snapshotFamily: config.snapshotFamily } : {}) }, availability: config.availability, majzumParticle, mansubParticle, transformation: transformationMetadata, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: masdarRows, activeParticiple: config.availability?.activeParticiple === "suppressed" ? [] : nominalRows(templates.activeParticiple), passiveParticiple: config.availability?.passiveParticiple === "suppressed" ? [] : nominalRows(templates.passiveParticiple) } } });
 }
 
 function presentedRuns(value, presentation, colourRootLetters) {
