@@ -37,7 +37,7 @@ const ROOT_FAMILIES = Object.freeze({
 });
 const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
 const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
-const QUADRILITERAL_IFANLAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: false, passiveParticiple: false, elative: false, zarf: false });
+const QUADRILITERAL_IFANLAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
 const QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES = Object.freeze(new Set(["quadriliteral-form-i:دحرج"]));
 function rootArchitecture(rootFamily = "triliteral") {
   const architecture = ROOT_FAMILIES[rootFamily];
@@ -338,12 +338,13 @@ const QUADRILITERAL_BAB_CONFIG = Object.freeze({
     generationStatus: "implemented", capabilities: QUADRILITERAL_IFANLAL_CAPABILITIES,
     normalizeLongLetterSpelling: true, grammaticalAdditions: true,
     eligibility: Object.freeze({ ruleId: "quadriliteral-ifanlal.regular-sound-only", deferredRootClasses: Object.freeze(["weak", "hamzated", "adjacent-identical", "lexical-exception"]) }),
-    availability: Object.freeze({ passivePast: "lexical-metadata-required", passivePresent: "lexical-metadata-required", masdar: "available", activeParticiple: "suppressed", passiveParticiple: "lexical-metadata-required", elative: "suppressed", zarf: "suppressed" }),
+    availability: Object.freeze({ passivePast: "lexical-metadata-required", passivePresent: "lexical-metadata-required", masdar: "available", activeParticiple: "available", passiveParticiple: "lexical-metadata-required", elative: "suppressed", zarf: "suppressed" }),
     templates: Object.freeze({
       activePast: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"َ"],["radical",4]]),
       activePresent: Object.freeze([["grammaticalPersonPrefix","َ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"ِ"],["radical",4]]),
       imperative: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"ِ"],["radical",4]]),
       masdar: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"ِ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"َ"],["derivational","quadriliteral-ifanlal.masdarAlif"],["radical",4]]),
+      activeParticiple: Object.freeze([["derivational","quadriliteral-ifanlal.participleMim","ُ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"ِ"],["radical",4]]),
     }),
   }),
 });
@@ -597,6 +598,7 @@ const DERIVATIONAL_ELEMENTS = Object.freeze({
   "quadriliteral-ifanlal.hamzatWasl": LETTERS.ALIF,
   "quadriliteral-ifanlal.insertedNun": LETTERS.NUN,
   "quadriliteral-ifanlal.masdarAlif": LETTERS.ALIF,
+  "quadriliteral-ifanlal.participleMim": LETTERS.MIM,
 });
 
 function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transformation = null) {
