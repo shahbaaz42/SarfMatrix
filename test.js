@@ -1564,7 +1564,8 @@ assert.match(html,/<option value="quadriliteral-tafaul">[\s\S]*?<option value="q
 const quadrIfanlalOptions={rootFamily:"quadriliteral",root:["ح","ر","ج","م"],bab:"quadriliteral-ifanlal",babLabel:quadrIfanlalConfig.label,majzumParticle:"لَمْ",mansubParticle:"لَنْ",colourRootLetters:true};
 const quadrIfanlal=dispatchGeneration(quadrIfanlalOptions);
 assert.deepEqual([quadrIfanlal.rootFamily,quadrIfanlal.rootArity,quadrIfanlal.finalRadicalIndex,quadrIfanlal.family],["quadriliteral",4,4,"quadriliteral-augmented"]);
-assert.deepEqual(quadrIfanlal.capabilities,{passive:false,masdar:true,activeParticiple:false,passiveParticiple:false,elative:false,zarf:false});
+assert.deepEqual(quadrIfanlal.capabilities,{passive:false,masdar:true,activeParticiple:true,passiveParticiple:false,elative:false,zarf:false});
+assert.equal(quadrIfanlal.availability.activeParticiple,"available");
 assert.deepEqual(quadrIfanlal.passiveEligibility,{eligible:false,source:"unverified-lexeme"});
 assert.deepEqual(quadrIfanlal.sections.section01.map(r=>r.past),["اِحْرَنْجَمَ","اِحْرَنْجَمَا","اِحْرَنْجَمُوا","اِحْرَنْجَمَتْ","اِحْرَنْجَمَتَا","اِحْرَنْجَمْنَ","اِحْرَنْجَمْتَ","اِحْرَنْجَمْتُمَا","اِحْرَنْجَمْتُمْ","اِحْرَنْجَمْتِ","اِحْرَنْجَمْتُمَا","اِحْرَنْجَمْتُنَّ","اِحْرَنْجَمْتُ","اِحْرَنْجَمْنَا"]);
 assert.deepEqual(quadrIfanlal.sections.section01.map(r=>r.present),["يَحْرَنْجِمُ","يَحْرَنْجِمَانِ","يَحْرَنْجِمُونَ","تَحْرَنْجِمُ","تَحْرَنْجِمَانِ","يَحْرَنْجِمْنَ","تَحْرَنْجِمُ","تَحْرَنْجِمَانِ","تَحْرَنْجِمُونَ","تَحْرَنْجِمِينَ","تَحْرَنْجِمَانِ","تَحْرَنْجِمْنَ","أَحْرَنْجِمُ","نَحْرَنْجِمُ"]);
@@ -1576,21 +1577,29 @@ assert.deepEqual(quadrIfanlal.sections.section03.slice(6,12).map(r=>r.imperative
 assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>quadrIfanlal.sections.section03[i].imperative),["لِيَحْرَنْجِمْ","لِيَحْرَنْجِمَا","لِيَحْرَنْجِمُوا","لِتَحْرَنْجِمْ","لِتَحْرَنْجِمَا","لِيَحْرَنْجِمْنَ","لِأَحْرَنْجِمْ","لِنَحْرَنْجِمْ"]);
 assert.equal(quadrIfanlal.sections.section03.every((r,i)=>r.heavyImperative&&([1,4,5,7,10,11].includes(i)||r.lightImperative)),true);
 assert.deepEqual(quadrIfanlal.sections.section04.masdar.map(r=>r.values),[["اِحْرِنْجَام"]]);
-assert.deepEqual(quadrIfanlal.sections.section04.activeParticiple,[]); assert.deepEqual(quadrIfanlal.sections.section04.passiveParticiple,[]);
+assert.deepEqual(quadrIfanlal.sections.section04.activeParticiple.map(r=>r.values),[
+  ["مُحْرَنْجِمٌ","مُحْرَنْجِمَانِ","مُحْرَنْجِمُونَ","مُحْرَنْجِمَةٌ","مُحْرَنْجِمَتَانِ","مُحْرَنْجِمَاتٌ"],
+  ["مُحْرَنْجِمًا","مُحْرَنْجِمَيْنِ","مُحْرَنْجِمِينَ","مُحْرَنْجِمَةً","مُحْرَنْجِمَتَيْنِ","مُحْرَنْجِمَاتٍ"],
+  ["مُحْرَنْجِمٍ","مُحْرَنْجِمَيْنِ","مُحْرَنْجِمِينَ","مُحْرَنْجِمَةٍ","مُحْرَنْجِمَتَيْنِ","مُحْرَنْجِمَاتٍ"],
+]);
+assert.equal(quadrIfanlal.sections.section04.activeParticiple[0].values[0].slice(0,-1),"مُحْرَنْجِم");
+assert.deepEqual(quadrIfanlal.sections.section04.passiveParticiple,[]);
 assert.equal(quadrIfanlal.sections.section01.every(r=>r.passivePast===null&&r.passivePresent===null),true);
 for(const particle of MANSUB_PARTICLES) assert.ok(dispatchGeneration({...quadrIfanlalOptions,mansubParticle:particle}).sections.section02[0].mansubPresent.startsWith(`${particle} `));
 for(const root of [["و","س","و","س"],["ح","ر","ج","أ"],["ح","ر","ر","ج"]]) assert.throws(()=>dispatchGeneration({...quadrIfanlalOptions,root}),/الصحيح السالم|الإدغام والفك/);
 assert.equal(dispatchGeneration({...quadrIfanlalOptions,root:["ز","ل","ز","ق"]}).sections.section01[0].past,"اِزْلَنْزَقَ");
-const targetValues=[...quadrIfanlal.sections.section01.flatMap(r=>Object.values(r.presentation)),...quadrIfanlal.sections.section02.flatMap(r=>Object.values(r.presentation)),...quadrIfanlal.sections.section03.flatMap(r=>Object.values(r.presentation)),quadrIfanlal.sections.section04.masdar[0].presentations[0]];
+const targetValues=[...quadrIfanlal.sections.section01.flatMap(r=>Object.values(r.presentation)),...quadrIfanlal.sections.section02.flatMap(r=>Object.values(r.presentation)),...quadrIfanlal.sections.section03.flatMap(r=>Object.values(r.presentation)),quadrIfanlal.sections.section04.masdar[0].presentations[0],...quadrIfanlal.sections.section04.activeParticiple.flatMap(r=>r.presentations)];
 for(const value of targetValues){ for(const run of value.runs){ assert.equal(run.kind==="derivational-copy",false); assert.equal("sourceRadicalIndex" in run,false); } validateStructuralRuns(value.runs,4); }
 const targetPastRuns=quadrIfanlal.sections.section01[0].presentation.past.runs;
 assert.deepEqual(targetPastRuns.filter(r=>r.kind==="radical").map(r=>[r.text[0],r.radicalIndex]),[["ح",1],["ر",2],["ج",3],["م",4]]);
 assert.deepEqual(targetPastRuns.filter(r=>r.kind==="derivational").map(r=>[r.elementId,r.radicalIndex]),[["quadriliteral-ifanlal.hamzatWasl",null],["quadriliteral-ifanlal.insertedNun",null]]);
 const targetMasdarRuns=quadrIfanlal.sections.section04.masdar[0].presentations[0].runs;
 assert.deepEqual(targetMasdarRuns.filter(r=>r.kind==="derivational").map(r=>[r.elementId,r.radicalIndex]),[["quadriliteral-ifanlal.hamzatWasl",null],["quadriliteral-ifanlal.insertedNun",null],["quadriliteral-ifanlal.masdarAlif",null]]);
+const targetParticipleRuns=quadrIfanlal.sections.section04.activeParticiple[0].presentations[0].runs;
+assert.deepEqual(targetParticipleRuns.slice(0,6).map(r=>[r.text[0],r.kind,r.radicalIndex,r.elementId??null]),[["م","derivational",null,"quadriliteral-ifanlal.participleMim"],["ح","radical",1,null],["ر","radical",2,null],["ن","derivational",null,"quadriliteral-ifanlal.insertedNun"],["ج","radical",3,null],["م","radical",4,null]]);
 const mulhaqFinal=ifanlal.sections.section01[0].presentation.past.runs.find(r=>r.sourceRadicalIndex===3);
 assert.deepEqual([ifanlal.rootArity,ifanlal.finalRadicalIndex,mulhaqFinal.kind,mulhaqFinal.radicalIndex,mulhaqFinal.sourceRadicalIndex],[3,3,"derivational-copy",null,3]);
-for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadrIfanlal,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("اسم الفاعل"),false); assert.equal(pages.includes("اسم المفعول"),false); assert.ok(buildDocx(quadrIfanlal,layout).length>500);}
+for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadrIfanlal,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("المصدر"),true); assert.equal(pages.includes("اسم الفاعل"),true); assert.equal(pages.includes("اسم المفعول"),false); const docx=buildDocx(quadrIfanlal,layout); assert.ok(docx.length>500); assert.equal(docx.toString("utf8").includes("اسم المفعول"),false);}
 
 // Existing immutable invalidation and family compatibility behavior includes both quadriliteral groups.
 const tafaulState=createGeneratedStateStore(); tafaulState.generate(tafaulOptions);
