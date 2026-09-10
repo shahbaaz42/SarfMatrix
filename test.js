@@ -303,6 +303,7 @@ assert.deepEqual([...babSelect.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map(
   "فَعْلَلَ / يُفَعْلِلُ",
   "باب التفعلل — تَفَعْلَلَ / يَتَفَعْلَلُ",
   "الرباعي المزيد فيه بحرفين — اِفْعَنْلَلَ / يَفْعَنْلِلُ",
+  "الرباعي المزيد فيه بحرفين — اِفْعَلَلَّ / يَفْعَلِلُّ",
 ]);
 const mansubSelect = html.match(/<select id="mansub-particle"[\s\S]*?<\/select>/)[0];
 assert.equal(mansubSelect.match(/<option[^>]*value="([^"]+)"/)[1], "لَنْ");
@@ -1600,6 +1601,39 @@ assert.deepEqual(targetParticipleRuns.slice(0,6).map(r=>[r.text[0],r.kind,r.radi
 const mulhaqFinal=ifanlal.sections.section01[0].presentation.past.runs.find(r=>r.sourceRadicalIndex===3);
 assert.deepEqual([ifanlal.rootArity,ifanlal.finalRadicalIndex,mulhaqFinal.kind,mulhaqFinal.radicalIndex,mulhaqFinal.sourceRadicalIndex],[3,3,"derivational-copy",null,3]);
 for(const layout of ["portrait","landscape"]){const pages=buildExportPages(quadrIfanlal,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("المصدر"),true); assert.equal(pages.includes("اسم الفاعل"),true); assert.equal(pages.includes("اسم المفعول"),false); const docx=buildDocx(quadrIfanlal,layout); assert.ok(docx.length>500); assert.equal(docx.toString("utf8").includes("اسم المفعول"),false);}
+
+// Final genuine quadriliteral augmented اِفْعَلَلَّ: structural R4-copy gemination.
+const ifalallaConfig=QUADRILITERAL_BAB_CONFIG["quadriliteral-ifalalla"];
+assert.deepEqual([ifalallaConfig.id,ifalallaConfig.rootFamily,ifalallaConfig.rootArity,ifalallaConfig.finalRadicalIndex,ifalallaConfig.snapshotFamily],["quadriliteral-ifalalla","quadriliteral",4,4,"quadriliteral-augmented"]);
+assert.equal(MAZID_BAB_CONFIG["quadriliteral-ifalalla"],undefined);
+assert.match(html,/<option value="quadriliteral-ifanlal">[\s\S]*?<option value="quadriliteral-ifalalla">/);
+const ifalallaOptions={rootFamily:"quadriliteral",root:["ق","ش","ع","ر"],bab:"quadriliteral-ifalalla",babLabel:ifalallaConfig.label,majzumParticle:"لَمْ",mansubParticle:"لَنْ",colourRootLetters:true};
+const ifalalla=dispatchGeneration(ifalallaOptions);
+assert.deepEqual([ifalalla.rootFamily,ifalalla.rootArity,ifalalla.finalRadicalIndex,ifalalla.family,ifalalla.config.id],["quadriliteral",4,4,"quadriliteral-augmented","quadriliteral-ifalalla"]);
+assert.deepEqual(ifalalla.sections.section01.map(r=>r.past),["اِقْشَعَرَّ","اِقْشَعَرَّا","اِقْشَعَرُّوا","اِقْشَعَرَّتْ","اِقْشَعَرَّتَا","اِقْشَعْرَرْنَ","اِقْشَعْرَرْتَ","اِقْشَعْرَرْتُمَا","اِقْشَعْرَرْتُمْ","اِقْشَعْرَرْتِ","اِقْشَعْرَرْتُمَا","اِقْشَعْرَرْتُنَّ","اِقْشَعْرَرْتُ","اِقْشَعْرَرْنَا"]);
+assert.deepEqual(ifalalla.sections.section01.map(r=>r.present),["يَقْشَعِرُّ","يَقْشَعِرَّانِ","يَقْشَعِرُّونَ","تَقْشَعِرُّ","تَقْشَعِرَّانِ","يَقْشَعْرِرْنَ","تَقْشَعِرُّ","تَقْشَعِرَّانِ","تَقْشَعِرُّونَ","تَقْشَعِرِّينَ","تَقْشَعِرَّانِ","تَقْشَعْرِرْنَ","أَقْشَعِرُّ","نَقْشَعِرُّ"]);
+assert.deepEqual(ifalalla.sections.section02.map(r=>r.majzumPresent),["لَمْ يَقْشَعِرَّ","لَمْ يَقْشَعِرَّا","لَمْ يَقْشَعِرُّوا","لَمْ تَقْشَعِرَّ","لَمْ تَقْشَعِرَّا","لَمْ يَقْشَعْرِرْنَ","لَمْ تَقْشَعِرَّ","لَمْ تَقْشَعِرَّا","لَمْ تَقْشَعِرُّوا","لَمْ تَقْشَعِرِّي","لَمْ تَقْشَعِرَّا","لَمْ تَقْشَعْرِرْنَ","لَمْ أَقْشَعِرَّ","لَمْ نَقْشَعِرَّ"]);
+assert.deepEqual(ifalalla.sections.section02.map(r=>r.mansubPresent),ifalalla.sections.section02.map(r=>r.majzumPresent.replace("لَمْ","لَنْ")));
+assert.deepEqual(ifalalla.sections.section02.map(r=>r.heavyEmphatic),["لَيَقْشَعِرَّنَّ","لَيَقْشَعِرَّانِّ","لَيَقْشَعِرُّنَّ","لَتَقْشَعِرَّنَّ","لَتَقْشَعِرَّانِّ","لَيَقْشَعْرِرْنَانِّ","لَتَقْشَعِرَّنَّ","لَتَقْشَعِرَّانِّ","لَتَقْشَعِرُّنَّ","لَتَقْشَعِرِّنَّ","لَتَقْشَعِرَّانِّ","لَتَقْشَعْرِرْنَانِّ","لَأَقْشَعِرَّنَّ","لَنَقْشَعِرَّنَّ"]);
+assert.deepEqual(ifalalla.sections.section02.map(r=>r.lightEmphatic),["لَيَقْشَعِرَّنْ",null,"لَيَقْشَعِرُّنْ","لَتَقْشَعِرَّنْ",null,null,"لَتَقْشَعِرَّنْ",null,"لَتَقْشَعِرُّنْ","لَتَقْشَعِرِّنْ",null,null,"لَأَقْشَعِرَّنْ","لَنَقْشَعِرَّنْ"]);
+assert.deepEqual(ifalalla.sections.section03.slice(6,12).map(r=>r.imperative),["اِقْشَعِرَّ","اِقْشَعِرَّا","اِقْشَعِرُّوا","اِقْشَعِرِّي","اِقْشَعِرَّا","اِقْشَعْرِرْنَ"]);
+assert.deepEqual([0,1,2,3,4,5,12,13].map(i=>ifalalla.sections.section03[i].imperative),["لِيَقْشَعِرَّ","لِيَقْشَعِرَّا","لِيَقْشَعِرُّوا","لِتَقْشَعِرَّ","لِتَقْشَعِرَّا","لِيَقْشَعْرِرْنَ","لِأَقْشَعِرَّ","لِنَقْشَعِرَّ"]);
+assert.deepEqual(ifalalla.sections.section03.slice(6,12).map(r=>r.heavyImperative),["اِقْشَعِرَّنَّ","اِقْشَعِرَّانِّ","اِقْشَعِرُّنَّ","اِقْشَعِرِّنَّ","اِقْشَعِرَّانِّ","اِقْشَعْرِرْنَانِّ"]);
+assert.deepEqual(ifalalla.sections.section03.slice(6,12).map(r=>r.lightImperative),["اِقْشَعِرَّنْ",null,"اِقْشَعِرُّنْ","اِقْشَعِرِّنْ",null,null]);
+assert.deepEqual(ifalalla.sections.section02[0].variants.majzumPresent.map(v=>v.value),["لَمْ يَقْشَعِرُّ","لَمْ يَقْشَعِرِّ","لَمْ يَقْشَعْرِرْ"]);
+assert.deepEqual(ifalalla.sections.section03[6].variants.imperative.map(v=>v.value),["اِقْشَعِرُّ","اِقْشَعِرِّ","اِقْشَعْرِرْ"]);
+assert.equal(ifalalla.sections.section02[0].variants.mansubPresent,undefined);
+assert.deepEqual(ifalalla.sections.section04.masdar[0].values,["اِقْشِعْرَار"]);
+assert.deepEqual(ifalalla.sections.section04.activeParticiple.map(r=>r.values[0]),["مُقْشَعِرٌّ","مُقْشَعِرًّا","مُقْشَعِرٍّ"]);
+assert.deepEqual(ifalalla.sections.section04.activeParticiple.map(r=>r.values.length),[6,6,6]);
+assert.deepEqual(ifalalla.capabilities,{passive:false,masdar:true,activeParticiple:true,passiveParticiple:false,elative:false,zarf:false});
+assert.equal(ifalalla.sections.section01.every(r=>r.passivePast===null&&r.passivePresent===null),true); assert.deepEqual(ifalalla.sections.section04.passiveParticiple,[]);
+const contractedR4=ifalalla.sections.section01[0].presentation.past.runs.at(-1); assert.deepEqual([contractedR4.radicalIndex,contractedR4.absorbed.kind,contractedR4.absorbed.radicalIndex,contractedR4.absorbed.sourceRadicalIndex],[4,"derivational-copy",null,4]);
+const ifalallaExpandedCopy=ifalalla.sections.section01[5].presentation.past.runs.find(r=>r.kind==="derivational-copy"); assert.deepEqual([ifalallaExpandedCopy.radicalIndex,ifalallaExpandedCopy.sourceRadicalIndex],[null,4]);
+assert.equal(ifalalla.sections.section01[0].presentation.past.underlyingRuns.some(r=>r.kind==="derivational-copy"&&r.sourceRadicalIndex===4),true);
+const masdarCopy=ifalalla.sections.section04.masdar[0].presentations[0].runs.at(-1); assert.deepEqual([masdarCopy.kind,masdarCopy.radicalIndex,masdarCopy.sourceRadicalIndex],["derivational-copy",null,4]);
+for(const root of [["ق","ش","ع"],["و","ش","ع","ر"],["أ","ش","ع","ر"],["ق","ش","ش","ر"]]) assert.throws(()=>dispatchGeneration({...ifalallaOptions,root}),/exactly 4|الصحيح السالم|الإدغام والفك/);
+for(const layout of ["portrait","landscape"]){const pages=buildExportPages(ifalalla,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("اسم المفعول"),false); assert.ok(pages.includes("المصدر")&&pages.includes("اسم الفاعل")); const docx=buildDocx(ifalalla,layout); assert.ok(docx.length>500);}
 
 // Existing immutable invalidation and family compatibility behavior includes both quadriliteral groups.
 const tafaulState=createGeneratedStateStore(); tafaulState.generate(tafaulOptions);

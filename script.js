@@ -38,6 +38,7 @@ const ROOT_FAMILIES = Object.freeze({
 const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
 const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
 const QUADRILITERAL_IFANLAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
+const QUADRILITERAL_IFALALLA_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
 const QUADRILITERAL_PASSIVE_ELIGIBLE_LEXEMES = Object.freeze(new Set(["quadriliteral-form-i:دحرج"]));
 function rootArchitecture(rootFamily = "triliteral") {
   const architecture = ROOT_FAMILIES[rootFamily];
@@ -346,6 +347,17 @@ const QUADRILITERAL_BAB_CONFIG = Object.freeze({
       masdar: Object.freeze([["derivational","quadriliteral-ifanlal.hamzatWasl","ِ"],["radical",1,"ْ"],["radical",2,"ِ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"َ"],["derivational","quadriliteral-ifanlal.masdarAlif"],["radical",4]]),
       activeParticiple: Object.freeze([["derivational","quadriliteral-ifanlal.participleMim","ُ"],["radical",1,"ْ"],["radical",2,"َ"],["derivational","quadriliteral-ifanlal.insertedNun","ْ"],["radical",3,"ِ"],["radical",4]]),
     }),
+  }),
+  "quadriliteral-ifalalla": Object.freeze({
+    id: "quadriliteral-ifalalla", babId: "quadriliteral-ifalalla",
+    label: "الرباعي المزيد فيه بحرفين — اِفْعَلَلَّ / يَفْعَلِلُّ",
+    traditionalName: "اِفْعَلَلَّ / يَفْعَلِلُّ", traditionalCategory: "الرباعي المزيد فيه بحرفين",
+    morphologyCategory: "augmented", snapshotFamily: "quadriliteral-augmented", rootFamily: "quadriliteral",
+    rootArity: 4, finalRadicalIndex: 4, rootClass: "sahih-salim", generationStatus: "implemented",
+    capabilities: QUADRILITERAL_IFALALLA_CAPABILITIES, normalizeLongLetterSpelling: true, grammaticalAdditions: true,
+    eligibility: Object.freeze({ ruleId: "quadriliteral-ifalalla.regular-sound-only", deferredRootClasses: Object.freeze(["weak", "hamzated", "adjacent-identical", "lexical-exception"]) }),
+    availability: Object.freeze({ passivePast: "lexical-metadata-required", passivePresent: "lexical-metadata-required", masdar: "available", activeParticiple: "available", passiveParticiple: "lexical-metadata-required", elative: "suppressed", zarf: "suppressed" }),
+    templates: Object.freeze({}),
   }),
 });
 
@@ -764,6 +776,88 @@ function isRegularFormVIIIRoot(root) {
   if (!isSoundFormIVRoot(root)) return false;
   const first = String(root[0]).normalize("NFC").replace(/\p{M}/gu, "");
   return !FORM_VIII_SPECIAL_R1.has(first);
+}
+
+// Contracts a lexical final radical with a derivational copy, or exposes both
+// consonants when the grammatical environment requires fakk.  The visible
+// consonant always belongs to R4; the absorbed/exposed copy remains null-owned.
+function finalDerivationalCopyGeminationTransformer({ root, prefixRuns, state = "contracted", lexicalVowel = "", copyVowel = "", acceptedAlternatives = [], defaultVariant = "contracted" }) {
+  const ruleId = "final-derivational-copy-gemination";
+  const copy = derivationalCopy(root, 4, copyVowel, "quadriliteral-ifalalla.r4Copy");
+  const underlyingRuns = Object.freeze([...prefixRuns, radical(root, 4, lexicalVowel), copy]);
+  const finalRuns = state === "expanded"
+    ? underlyingRuns
+    : Object.freeze([...prefixRuns, morphologyRun(`${root[3]}${SHADDA}`, 4, { kind: "radical", absorbed: copy, ruleId })]);
+  const value = morphologyValue(finalRuns);
+  return Object.freeze({ ...value, state, surfaceRuns: value.runs, underlyingRuns, defaultVariant, acceptedAlternatives: Object.freeze(acceptedAlternatives), ruleId });
+}
+
+function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }, config) {
+  if (!isSoundQuadriliteralRoot(root)) throw new Error(`${config.label} متاح حاليًا للجذر الصحيح السالم فقط.`);
+  const normalized = (ending) => ending?.replaceAll(`${WAW}${SUKUN}`, WAW).replaceAll(`${YA}${SUKUN}`, YA);
+  const attach = (stem, ending) => {
+    const { marks, remainder } = splitInitialMarks(ending);
+    const runs = [...stem.runs];
+    const last = runs.pop();
+    const metadata = Object.fromEntries(Object.entries(last).filter(([key]) => !["text", "radicalIndex"].includes(key)));
+    const value = morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex, metadata), grammatical(remainder));
+    return Object.freeze({ ...value, state: stem.state, surfaceRuns: value.runs, underlyingRuns: stem.underlyingRuns, defaultVariant: stem.defaultVariant, acceptedAlternatives: stem.acceptedAlternatives, ruleId: stem.ruleId });
+  };
+  const particle = (text, value) => morphologyValue(grammatical(`${text} `), value.runs);
+  const pastPrefix = () => [morphologyRun(`${ALIF}${KASRA}`, null, { kind: "derivational", elementId: "quadriliteral-ifalalla.hamzatWasl" }), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,FATHA)];
+  const presentPrefix = (s, expanded = false) => [grammatical(`${s.presentPrefix}${FATHA}`), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,expanded?SUKUN:KASRA)];
+  const imperativePrefix = (expanded = false) => [morphologyRun(`${ALIF}${KASRA}`, null, { kind: "derivational", elementId: "quadriliteral-ifalalla.hamzatWasl" }), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,expanded?SUKUN:KASRA)];
+  const stem = (prefixRuns, state, lexicalVowel = "", copyVowel = "") => finalDerivationalCopyGeminationTransformer({ root, prefixRuns, state, lexicalVowel, copyVowel });
+  const expandedPast = new Set(["3fp","2ms","2md","2mp","2fs","2fd","2fp","1s","1p"]);
+  const femininePlural = (s) => s.gender === "feminine" && s.number === "plural";
+  const bare = (s) => ["3ms","3fs","2ms","1s","1p"].includes(s.id);
+  const directEndings = { "2ms": SUKUN, "2md": FATHA+ALIF, "2mp": DAMMA+WAW+ALIF, "2fs": KASRA+YA, "2fd": FATHA+ALIF, "2fp": SUKUN+NUN+FATHA };
+  const alternativeValues = (prefixRuns, particleText = "") => {
+    const variants = [
+      attach(stem(prefixRuns,"contracted"),DAMMA), attach(stem(prefixRuns,"contracted"),KASRA),
+      attach(stem([...prefixRuns.slice(0,-1),radical(root,3,SUKUN)],"expanded",KASRA),SUKUN),
+    ];
+    return variants.map((value, index) => {
+      const presented = particleText ? particle(particleText,value) : value;
+      return { variantId: ["contracted-damma","contracted-kasra","expanded-fakk"][index], value: presented.text, presentation: presented, ruleId: "final-derivational-copy-gemination" };
+    });
+  };
+  const verbs = SIGHAS.map((s) => {
+    const pastIsExpanded=expandedPast.has(s.id);
+    const pastRuns=pastIsExpanded?[...pastPrefix().slice(0,-1),radical(root,3,SUKUN)]:pastPrefix();
+    const past = attach(stem(pastRuns, pastIsExpanded?"expanded":"contracted", FATHA), normalized(s.pastEnding));
+    const ordinaryStem = stem(presentPrefix(s,femininePlural(s)), femininePlural(s)?"expanded":"contracted", femininePlural(s)?KASRA:"");
+    const present = attach(ordinaryStem, normalized(s.presentEnding));
+    const jussiveVerb = attach(ordinaryStem, bare(s)?FATHA:normalized(s.majzumEnding));
+    const mansubVerb = attach(ordinaryStem, normalized(s.mansubEnding));
+    const heavy = attach(stem([grammatical(`${LAM}${FATHA}`),...presentPrefix(s,femininePlural(s))],femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:""), normalized(s.heavyEmphaticEnding));
+    const light = s.lightEmphaticEnding===null ? morphologyValue() : attach(stem([grammatical(`${LAM}${FATHA}`),...presentPrefix(s)],"contracted"),normalized(s.lightEmphaticEnding));
+    let imperative=morphologyValue(), heavyImperative=morphologyValue(), lightImperative=morphologyValue(), imperativeVariants=[];
+    if(s.person===2){
+      const directStem=stem(imperativePrefix(s.id==="2fp"),s.id==="2fp"?"expanded":"contracted",s.id==="2fp"?KASRA:"");
+      imperative=attach(directStem,s.id==="2ms"?FATHA:directEndings[s.id]);
+      heavyImperative=attach(directStem,normalized(s.heavyEmphaticEnding));
+      lightImperative=s.lightEmphaticEnding===null?morphologyValue():attach(stem(imperativePrefix(),"contracted"),normalized(s.lightEmphaticEnding));
+      if(s.id==="2ms") imperativeVariants=alternativeValues(imperativePrefix());
+    } else {
+      const lamPrefix=[grammatical(`${LAM}${KASRA}`),...presentPrefix(s,femininePlural(s))];
+      const lamStem=stem(lamPrefix,femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:"");
+      imperative=attach(lamStem,bare(s)?FATHA:normalized(s.majzumEnding));
+      heavyImperative=attach(stem(lamPrefix,femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:""),normalized(s.heavyEmphaticEnding));
+      lightImperative=s.lightEmphaticEnding===null?morphologyValue():attach(stem(lamPrefix,"contracted"),normalized(s.lightEmphaticEnding));
+      if(bare(s)) imperativeVariants=alternativeValues(lamPrefix);
+    }
+    return {s,past,present,majzum:particle(majzumParticle,jussiveVerb),mansub:particle(mansubParticle,mansubVerb),heavy,light,imperative,heavyImperative,lightImperative,
+      jussiveVariants:bare(s)?alternativeValues(presentPrefix(s),majzumParticle):[],imperativeVariants};
+  });
+  const empty=morphologyValue();
+  const section01=verbs.map(v=>({pronoun:v.s.pronoun,past:v.past.text,present:v.present.text,passivePast:null,passivePresent:null,presentation:{past:v.past,present:v.present,passivePast:empty,passivePresent:empty}}));
+  const section02=verbs.map(v=>({pronoun:v.s.pronoun,majzumPresent:v.majzum.text,mansubPresent:v.mansub.text,heavyEmphatic:v.heavy.text,lightEmphatic:v.light.text||null,...(v.jussiveVariants.length?{variants:{majzumPresent:v.jussiveVariants}}:{}),presentation:{majzumPresent:v.majzum,mansubPresent:v.mansub,heavyEmphatic:v.heavy,lightEmphatic:v.light}}));
+  const section03=verbs.map(v=>({pronoun:v.s.pronoun,imperative:v.imperative.text||null,heavyImperative:v.heavyImperative.text||null,lightImperative:v.lightImperative.text||null,...(v.imperativeVariants.length?{variants:{imperative:v.imperativeVariants}}:{}),presentation:{imperative:v.imperative,heavyImperative:v.heavyImperative,lightImperative:v.lightImperative}}));
+  const masdar=morphologyValue(morphologyRun(`${ALIF}${KASRA}`,null,{kind:"derivational",elementId:"quadriliteral-ifalalla.hamzatWasl"}),radical(root,1,SUKUN),radical(root,2,KASRA),radical(root,3,SUKUN),radical(root,4,FATHA),morphologyRun(ALIF,null,{kind:"derivational",elementId:"quadriliteral-ifalalla.masdarAlif"}),derivationalCopy(root,4,"","quadriliteral-ifalalla.r4Copy"));
+  const participleStem=finalDerivationalCopyGeminationTransformer({root,prefixRuns:[morphologyRun(`${MIM}${DAMMA}`,null,{kind:"derivational",elementId:"quadriliteral-ifalalla.participleMim"}),radical(root,1,SUKUN),radical(root,2,FATHA),radical(root,3,KASRA)]});
+  const nominalRows=NOMINAL_CASES.map(({key,label})=>({label,values:NOMINAL_INFLECTIONS.map(form=>attach(participleStem,form[key]).text),presentations:NOMINAL_INFLECTIONS.map(form=>attach(participleStem,form[key]))}));
+  return deepFreeze({root:[...root],bab,babLabel,family:config.snapshotFamily,config:{id:config.id,label:config.label,traditionalName:config.traditionalName,traditionalCategory:config.traditionalCategory,morphologyCategory:config.morphologyCategory,snapshotFamily:config.snapshotFamily},availability:config.availability,majzumParticle,mansubParticle,transformation:{ruleId:"final-derivational-copy-gemination",states:["contracted","expanded"],sourceRadicalIndex:4},presentation:{colourRootLetters:Boolean(colourRootLetters)},sections:{section01,section02,section03,section04:{masdar:[{label:"المصدر",values:[masdar.text],presentations:[masdar]}],activeParticiple:nominalRows,passiveParticiple:[]}}});
 }
 
 // Form IX selects between its doubled and unfolded R3 allomorphs before the
@@ -1251,7 +1345,9 @@ function buildGeneratedSnapshot(options) {
     if (root.some((letter, index) => index > 0 && letter === root[index - 1])) throw new Error("الجذور الرباعية ذات الحرفين المتجاورين المتماثلين مؤجلة حتى تنفيذ أحكام الإدغام والفك.");
     const passiveEligible = quadriliteralPassiveEligible(config.id, root);
     const resolvedConfig = { ...config, availability: { ...config.availability, passivePast: passiveEligible ? "available" : "suppressed", passivePresent: passiveEligible ? "available" : "suppressed", passiveParticiple: passiveEligible ? "available" : "suppressed" } };
-    const snapshot = buildMazidSnapshot({ ...options, root }, resolvedConfig, config.snapshotFamily);
+    const snapshot = config.id === "quadriliteral-ifalalla"
+      ? buildQuadriliteralIfalallaSnapshot({ ...options, root }, resolvedConfig)
+      : buildMazidSnapshot({ ...options, root }, resolvedConfig, config.snapshotFamily);
     const capabilities = { ...config.capabilities, passive: passiveEligible, passiveParticiple: passiveEligible };
     return deepFreeze({ ...snapshot, rootFamily, rootArity: 4, finalRadicalIndex: 4, passiveEligibility: { eligible: passiveEligible, source: passiveEligible ? "lexeme-map" : "unverified-lexeme" }, capabilities });
   }
@@ -1507,6 +1603,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, finalDerivationalCopyGeminationTransformer, buildQuadriliteralIfalallaSnapshot, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
