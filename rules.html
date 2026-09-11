@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SarfMatrix Rules Reference</title>
+    <link rel="stylesheet" href="rules-page.css?v=phase-b7">
+  </head>
+  <body>
+    <main class="rules-app">
+      <header class="rules-header">
+        <p class="eyebrow">SarfMatrix · Phase B7</p>
+        <h1>Rules Reference</h1>
+        <p>Browse the morphology rules, supported environments and source evidence used by the explanation engine.</p>
+        <a class="back-link" href="index.html">← Back to Arabic Ṣarf Generator</a>
+      </header>
+
+      <section class="rules-controls" aria-label="Rules filters">
+        <div class="field">
+          <label for="rule-search">Search</label>
+          <input id="rule-search" type="search" placeholder="Search rule, Bāb, category or source">
+        </div>
+        <div class="field">
+          <label for="rule-category">Category</label>
+          <select id="rule-category"><option value="">All categories</option></select>
+        </div>
+        <div class="field">
+          <label for="rule-evidence">Evidence</label>
+          <select id="rule-evidence">
+            <option value="">All rules</option>
+            <option value="sourced">Source-backed only</option>
+            <option value="unsourced">No source attached</option>
+          </select>
+        </div>
+        <div id="locale-field" class="field" hidden>
+          <label for="rules-locale">Language</label>
+          <select id="rules-locale"></select>
+        </div>
+      </section>
+
+      <section class="rules-summary" aria-live="polite">
+        <strong id="rules-count"></strong>
+        <span id="rules-source-count"></span>
+      </section>
+
+      <section id="rules-list" class="rules-list" aria-live="polite"></section>
+      <p id="rules-empty" class="rules-empty" hidden>No rules match the selected filters.</p>
+    </main>
+
+    <footer class="rules-footer">
+      <p>Developed by Shahbaaz Ahmed</p>
+      <p><a href="mailto:shahbaaz.education@gmail.com">shahbaaz.education@gmail.com</a></p>
+      <p>© Shahbaaz Ahmed. All Rights Reserved.</p>
+    </footer>
+
+    <script src="rules-registry.js?v=phase-b3"></script>
+    <script src="localization.js?v=phase-b6"></script>
+    <script src="rules-page.js?v=phase-b7"></script>
+  </body>
+</html>
