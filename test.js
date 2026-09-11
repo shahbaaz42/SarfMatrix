@@ -1635,6 +1635,146 @@ const masdarCopy=ifalalla.sections.section04.masdar[0].presentations[0].runs.at(
 for(const root of [["ق","ش","ع"],["و","ش","ع","ر"],["أ","ش","ع","ر"],["ق","ش","ش","ر"]]) assert.throws(()=>dispatchGeneration({...ifalallaOptions,root}),/exactly 4|الصحيح السالم|الإدغام والفك/);
 for(const layout of ["portrait","landscape"]){const pages=buildExportPages(ifalalla,layout).join(""); assert.equal(pages.includes("الفعل الماضي المجهول"),false); assert.equal(pages.includes("اسم المفعول"),false); assert.ok(pages.includes("المصدر")&&pages.includes("اسم الفاعل")); const docx=buildDocx(ifalalla,layout); assert.ok(docx.length>500);}
 
+// Phase B0 semantic contracts protect surface morphology while allowing
+// explanation metadata to evolve. In particular, this projection intentionally
+// ignores kind, elementId, ruleId, transformations, and underlying-run shapes.
+const morphologyContractFixtures = JSON.parse(fs.readFileSync("test-fixtures/morphology-contracts.json", "utf8"));
+const MORPHOLOGY_CONTRACT_CASES = Object.freeze([
+  ["mujarrad-nasara", ["ن", "ص", "ر"], "نَصَرَ-يَنْصُرُ", "triliteral"],
+  ["form-ii-allama", ["ع", "ل", "م"], "form-ii-tafil", "triliteral"],
+  ["form-iii-qatala", ["ق", "ت", "ل"], "form-iii-mufaalah", "triliteral"],
+  ["form-iv-akrama", ["ك", "ر", "م"], "form-iv-ifal", "triliteral"],
+  ["form-v-fahima", ["ف", "ه", "م"], "form-v-tafaul", "triliteral"],
+  ["form-vi-qatala", ["ق", "ت", "ل"], "form-vi-tafaul", "triliteral"],
+  ["form-vii-kasara", ["ك", "س", "ر"], "form-vii-infial", "triliteral"],
+  ["form-viii-regular-kataba", ["ك", "ت", "ب"], "form-viii-iftial", "triliteral"],
+  ["form-viii-ibdal-sabara", ["ص", "ب", "ر"], "form-viii-iftial", "triliteral"],
+  ["form-viii-assimilation-dhakara", ["ذ", "ك", "ر"], "form-viii-iftial", "triliteral"],
+  ["form-ix-hamira", ["ح", "م", "ر"], "form-ix-ifilal", "triliteral"],
+  ["form-x-ghafara", ["غ", "ف", "ر"], "form-x-istifal", "triliteral"],
+  ["ifawlal-ashaba", ["ع", "ش", "ب"], "bab-al-ifawlal", "triliteral"],
+  ["ifawwal-jaladha", ["ج", "ل", "ذ"], "bab-al-ifawwal", "triliteral"],
+  ["ifilal-hamira", ["ح", "م", "ر"], "bab-al-ifilal", "triliteral"],
+  ["mulhaq-ifanlal-qasa", ["ق", "ع", "س"], "bab-al-ifanlal", "triliteral"],
+  ["mulhaq-ifanla-salaqa", ["س", "ل", "ق"], "bab-al-ifanla", "triliteral"],
+  ["quadriliteral-mujarrad-dahraja", ["د", "ح", "ر", "ج"], "quadriliteral-form-i", "quadriliteral"],
+  ["quadriliteral-tafaul-dahraja", ["د", "ح", "ر", "ج"], "quadriliteral-tafaul", "quadriliteral"],
+  ["quadriliteral-ifanlal-harjama", ["ح", "ر", "ج", "م"], "quadriliteral-ifanlal", "quadriliteral"],
+  ["quadriliteral-ifalalla-qashara", ["ق", "ش", "ع", "ر"], "quadriliteral-ifalalla", "quadriliteral"],
+]);
+
+const contractRow = (row, fields) => Object.fromEntries(fields.map((field) => [field, row[field] ?? null]));
+const contractAlternatives = (row) => Object.fromEntries(Object.entries(row.variants || {}).map(([field, variants]) => [field, variants.map(({ value }) => value)]));
+const ownershipSignature = (presentation) => presentation
+  ? presentation.runs.map(({ text, radicalIndex }) => ({ text, radicalIndex }))
+  : null;
+
+function projectMorphologyContract(snapshot) {
+  const { section01, section02, section03, section04 } = snapshot.sections;
+  return {
+    root: snapshot.root,
+    rootFamily: snapshot.rootFamily,
+    rootArity: snapshot.rootArity,
+    finalRadicalIndex: snapshot.finalRadicalIndex,
+    bab: snapshot.bab,
+    snapshotFamily: snapshot.config?.snapshotFamily ?? snapshot.family,
+    capabilities: snapshot.capabilities,
+    availability: snapshot.availability ?? null,
+    passiveEligibility: snapshot.passiveEligibility ?? null,
+    particles: { majzum: snapshot.majzumParticle, mansub: snapshot.mansubParticle },
+    pronouns: section01.map(({ pronoun }) => pronoun),
+    section01: section01.map((row) => contractRow(row, ["past", "present", "passivePast", "passivePresent"])),
+    section02: section02.map((row) => ({ ...contractRow(row, ["majzumPresent", "mansubPresent", "heavyEmphatic", "lightEmphatic"]), alternatives: contractAlternatives(row) })),
+    section03: section03.map((row) => ({ ...contractRow(row, ["imperative", "heavyImperative", "lightImperative"]), alternatives: contractAlternatives(row) })),
+    section04: Object.fromEntries(Object.entries(section04).map(([key, rows]) => [key, rows.map((row) => ({
+      label: row.label,
+      values: row.values,
+      alternatives: (row.alternatives || []).map(({ value }) => value),
+    }))])),
+    transformationAlternatives: (snapshot.transformation?.acceptedAlternatives || []).map((alternative) => alternative.resultForm ?? alternative.resultSequence ?? alternative.value),
+    ownership: {
+      past: ownershipSignature(section01[0].presentation.past),
+      expandedPast: ownershipSignature(section01[5].presentation.past),
+      present: ownershipSignature(section01[0].presentation.present),
+      jussive: ownershipSignature(section02[0].presentation.majzumPresent),
+      directImperative: ownershipSignature(section03[6].presentation.imperative),
+      masdar: ownershipSignature(section04.masdar?.[0]?.presentations?.[0]),
+      activeParticiple: ownershipSignature(section04.activeParticiple?.[0]?.presentations?.[0]),
+      passiveParticiple: ownershipSignature(section04.passiveParticiple?.[0]?.presentations?.[0]),
+    },
+  };
+}
+
+const contractSnapshots = new Map();
+for (const [fixtureId, root, bab, rootFamily] of MORPHOLOGY_CONTRACT_CASES) {
+  const config = MAZID_BAB_CONFIG[bab] || QUADRILITERAL_BAB_CONFIG[bab];
+  const snapshot = dispatchGeneration({ root, rootFamily, bab, babLabel: config?.label ?? bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+  contractSnapshots.set(fixtureId, snapshot);
+  assert.deepEqual(projectMorphologyContract(snapshot), morphologyContractFixtures.cases[fixtureId], `semantic morphology contract: ${fixtureId}`);
+  assert.equal(snapshot.sections.section01.length, 14);
+  assert.equal(snapshot.sections.section02.length, 14);
+  assert.equal(snapshot.sections.section03.slice(6, 12).length, 6);
+  assert.equal([0, 1, 2, 3, 4, 5, 12, 13].map((index) => snapshot.sections.section03[index]).length, 8);
+}
+assert.equal(contractSnapshots.size, 21);
+assert.equal(morphologyContractFixtures.schemaVersion, 1);
+
+// Accepted alternatives are a surface contract; their evolving metadata shape
+// is deliberately not compared.
+assert.deepEqual(morphologyContractFixtures.cases["form-viii-assimilation-dhakara"].transformationAlternatives, ["اِذَّكَرَ"]);
+assert.deepEqual(morphologyContractFixtures.cases["form-ix-hamira"].section02[0].alternatives.majzumPresent, ["لَمْ يَحْمَرِرْ"]);
+assert.deepEqual(morphologyContractFixtures.cases["ifilal-hamira"].section03[6].alternatives.imperative, ["اِحْمَارُّ", "اِحْمَارِّ", "اِحْمَارِرْ"]);
+assert.deepEqual(morphologyContractFixtures.cases["quadriliteral-ifalalla-qashara"].section02[0].alternatives.majzumPresent, ["لَمْ يَقْشَعِرُّ", "لَمْ يَقْشَعِرِّ", "لَمْ يَقْشَعْرِرْ"]);
+
+// Explanation-only enrichment on a test clone cannot affect the semantic
+// projection, proving that future B1 metadata can evolve independently.
+const metadataBaseline = contractSnapshots.get("form-viii-ibdal-sabara");
+const metadataEnrichedClone = JSON.parse(JSON.stringify(metadataBaseline));
+for (const section of Object.values(metadataEnrichedClone.sections)) {
+  if (!Array.isArray(section)) continue;
+  for (const row of section) for (const presentation of Object.values(row.presentation || {})) {
+    for (const run of presentation.runs || []) Object.assign(run, { kind: run.kind ?? "test-only", elementId: run.elementId ?? "test-only", ruleId: "test-only", explanationPlaceholder: true });
+  }
+}
+assert.deepEqual(projectMorphologyContract(metadataEnrichedClone), projectMorphologyContract(metadataBaseline));
+
+// Particle regeneration changes only the two particle-dependent paradigms.
+const particleState = createGeneratedStateStore();
+particleState.generate({ root: ["ن", "ص", "ر"], bab: "نَصَرَ-يَنْصُرُ", babLabel: "نَصَرَ-يَنْصُرُ", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
+const particleBefore = projectMorphologyContract(particleState.get());
+particleState.updateParticles("لَا", "أَنْ");
+const particleAfter = projectMorphologyContract(particleState.get());
+assert.deepEqual(particleAfter.section01, particleBefore.section01);
+assert.deepEqual(particleAfter.section03, particleBefore.section03);
+assert.deepEqual(particleAfter.section04, particleBefore.section04);
+assert.deepEqual(particleAfter.particles, { majzum: "لَا", mansub: "أَنْ" });
+assert.ok(particleAfter.section02.every(({ majzumPresent, mansubPresent }) => majzumPresent.startsWith("لَا ") && mansubPresent.startsWith("أَنْ ")));
+
+// Export contracts exercise both model layouts without freezing binary files.
+for (const fixtureId of ["mujarrad-nasara", "form-viii-ibdal-sabara", "form-ix-hamira", "quadriliteral-mujarrad-dahraja", "quadriliteral-ifalalla-qashara"]) {
+  const snapshot = contractSnapshots.get(fixtureId);
+  for (const layout of ["portrait", "landscape"]) {
+    const pages = buildExportPages(snapshot, layout).join("");
+    const surfaceText = pages.replace(/<[^>]+>/g, "");
+    assert.ok(surfaceText.includes(snapshot.sections.section01[0].past));
+    assert.ok(surfaceText.includes(snapshot.sections.section01[0].present));
+    assert.equal(pages.includes("اسم المفعول"), snapshot.capabilities.passiveParticiple);
+    assert.ok(layout === "portrait" ? buildExportPages(snapshot, layout).length === 4 : buildExportPages(snapshot, layout).length === 2);
+  }
+}
+
+// Simplified ownership contracts protect colouring without depending on kind,
+// elementId, ruleId, transformation, or absorbed-element object shapes.
+for (const [fixtureId, snapshot] of contractSnapshots) {
+  const allRuns = [
+    ...snapshot.sections.section01.flatMap((row) => Object.values(row.presentation)),
+    ...snapshot.sections.section02.flatMap((row) => Object.values(row.presentation)),
+    ...snapshot.sections.section03.flatMap((row) => Object.values(row.presentation)),
+  ].flatMap((presentation) => presentation.runs);
+  if (snapshot.rootFamily === "triliteral") assert.equal(allRuns.some(({ radicalIndex }) => radicalIndex === 4), false, fixtureId);
+  else assert.equal(snapshot.sections.section01[0].presentation.past.runs.some(({ radicalIndex }) => radicalIndex === 4), true, fixtureId);
+}
+
 // Existing immutable invalidation and family compatibility behavior includes both quadriliteral groups.
 const tafaulState=createGeneratedStateStore(); tafaulState.generate(tafaulOptions);
 applyRootFamily("triliteral",{rootFour:{value:"ج",disabled:false,required:true},rootFourField:{hidden:false},babSelect:domBabSelect,generatedState:tafaulState});
