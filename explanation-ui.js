@@ -2,42 +2,12 @@
 (function exposeExplanationUi(globalScope) {
   "use strict";
 
+  const LOCALE = "en";
   const SECTION_CONFIG = Object.freeze({
-    section01: Object.freeze({
-      label: "Section 01 — Indicative & passive",
-      fields: Object.freeze([
-        Object.freeze(["past", "Active past"]),
-        Object.freeze(["present", "Active present"]),
-        Object.freeze(["passivePast", "Passive past"]),
-        Object.freeze(["passivePresent", "Passive present"]),
-      ]),
-    }),
-    section02: Object.freeze({
-      label: "Section 02 — Jussive, subjunctive & emphasis",
-      fields: Object.freeze([
-        Object.freeze(["majzumPresent", "Jussive present"]),
-        Object.freeze(["mansubPresent", "Subjunctive present"]),
-        Object.freeze(["heavyEmphatic", "Heavy emphasis"]),
-        Object.freeze(["lightEmphatic", "Light emphasis"]),
-      ]),
-    }),
-    section03: Object.freeze({
-      label: "Section 03 — Commands",
-      fields: Object.freeze([
-        Object.freeze(["imperative", "Command / request"]),
-        Object.freeze(["heavyImperative", "Heavy emphatic command"]),
-        Object.freeze(["lightImperative", "Light emphatic command"]),
-      ]),
-    }),
-    section04: Object.freeze({ label: "Section 04 — Derived forms", fields: Object.freeze([]) }),
-  });
-
-  const SECTION04_LABELS = Object.freeze({
-    masdar: "Maṣdar",
-    activeParticiple: "Active participle",
-    passiveParticiple: "Passive participle",
-    elative: "Elative",
-    zarf: "Noun of time/place",
+    section01: Object.freeze({ fields: Object.freeze(["past", "present", "passivePast", "passivePresent"]) }),
+    section02: Object.freeze({ fields: Object.freeze(["majzumPresent", "mansubPresent", "heavyEmphatic", "lightEmphatic"]) }),
+    section03: Object.freeze({ fields: Object.freeze(["imperative", "heavyImperative", "lightImperative"]) }),
+    section04: Object.freeze({ fields: Object.freeze([]) }),
   });
 
   function create(tag, className, text) {
@@ -82,7 +52,9 @@
   function initialize() {
     const panel = document.querySelector("#explanation-panel");
     const form = document.querySelector("#sarf-form");
-    if (!panel || !form || !globalScope.SarfExplanationEngine || !globalScope.SarfExplanationText) return;
+    const localization = globalScope.SarfLocalization;
+    if (!panel || !form || !localization || !globalScope.SarfExplanationEngine || !globalScope.SarfExplanationText) return;
+    const t = (key, params) => localization.translate(LOCALE, key, params);
 
     const sectionSelect = document.querySelector("#explanation-section");
     const fieldSelect = document.querySelector("#explanation-field");
@@ -90,9 +62,15 @@
     const valueSelect = document.querySelector("#explanation-value");
     const valueField = document.querySelector("#explanation-value-field");
     const output = document.querySelector("#explanation-output");
+    document.querySelector("#explanation-heading").textContent = t("ui.explanation.title");
+    document.querySelector("#explanation-intro").textContent = t("ui.explanation.intro");
+    document.querySelector('label[for="explanation-section"]').textContent = t("ui.control.section");
+    document.querySelector('label[for="explanation-field"]').textContent = t("ui.control.form");
+    document.querySelector('label[for="explanation-row"]').textContent = t("ui.control.row");
+    document.querySelector('label[for="explanation-value"]').textContent = t("ui.control.value");
     let snapshot = null;
 
-    replaceOptions(sectionSelect, Object.entries(SECTION_CONFIG).map(([value, config]) => ({ value, label: config.label })));
+    replaceOptions(sectionSelect, Object.keys(SECTION_CONFIG).map((value) => ({ value, label: t(`ui.section.${value}`) })));
 
     function currentSectionRows() {
       return snapshot?.sections?.[sectionSelect.value] || [];
@@ -103,12 +81,11 @@
       const section = sectionSelect.value;
       if (section === "section04") {
         const groups = snapshot.sections.section04 || {};
-        const options = Object.entries(groups)
+        replaceOptions(fieldSelect, Object.entries(groups)
           .filter(([, rows]) => Array.isArray(rows) && rows.length)
-          .map(([value]) => ({ value, label: SECTION04_LABELS[value] || value }));
-        replaceOptions(fieldSelect, options);
+          .map(([value]) => ({ value, label: t(`ui.group.${value}`) })));
       } else {
-        replaceOptions(fieldSelect, SECTION_CONFIG[section].fields.map(([value, label]) => ({ value, label })));
+        replaceOptions(fieldSelect, SECTION_CONFIG[section].fields.map((value) => ({ value, label: t(`ui.form.${value}`) })));
       }
       updateRowOptions();
     }
@@ -121,7 +98,7 @@
         : currentSectionRows();
       replaceOptions(rowSelect, rows.map((row, index) => ({
         value: String(index),
-        label: row.pronoun || row.label || `Row ${index + 1}`,
+        label: row.pronoun || row.label || t("ui.row.fallback", { number: index + 1 }),
       })));
       updateValueOptions();
     }
@@ -129,35 +106,36 @@
     function updateValueOptions() {
       if (!snapshot || sectionSelect.value !== "section04") {
         valueField.hidden = true;
-        replaceOptions(valueSelect, [{ value: "0", label: "Form 1" }]);
+        replaceOptions(valueSelect, [{ value: "0", label: t("ui.value.fallback", { number: 1 }) }]);
         return;
       }
       const rows = snapshot.sections.section04?.[fieldSelect.value] || [];
       const row = rows[Number(rowSelect.value || 0)];
       const values = row?.values || [];
-      replaceOptions(valueSelect, values.map((value, index) => ({ value: String(index), label: value || `Form ${index + 1}` })));
+      replaceOptions(valueSelect, values.map((value, index) => ({
+        value: String(index),
+        label: value || t("ui.value.fallback", { number: index + 1 }),
+      })));
       valueField.hidden = values.length <= 1;
     }
 
     function buildTarget() {
       const section = sectionSelect.value;
       const rowIndex = Number(rowSelect.value || 0);
-      if (section === "section04") {
-        return { section, group: fieldSelect.value, rowIndex, valueIndex: Number(valueSelect.value || 0) };
-      }
-      return { section, rowIndex, field: fieldSelect.value };
+      return section === "section04"
+        ? { section, group: fieldSelect.value, rowIndex, valueIndex: Number(valueSelect.value || 0) }
+        : { section, rowIndex, field: fieldSelect.value };
     }
 
-    function appendEmpty(container, text) {
-      container.append(create("p", "explanation-empty", text));
+    function appendEmpty(container, key) {
+      container.append(create("p", "explanation-empty", t(key)));
     }
 
     function renderStructure(container, model) {
       const block = create("section", "explanation-block");
-      block.append(create("h3", null, "Structure"));
-      if (!model.structure.length) {
-        appendEmpty(block, "No structural segments are available for this target.");
-      } else {
+      block.append(create("h3", null, t("ui.block.structure")));
+      if (!model.structure.length) appendEmpty(block, "ui.empty.structure");
+      else {
         const runs = create("div", "structure-runs");
         for (const segment of model.structure) {
           const item = create("div", "structure-run");
@@ -175,10 +153,9 @@
 
     function renderRules(container, model) {
       const block = create("section", "explanation-block");
-      block.append(create("h3", null, "Rules"));
-      if (!model.rules.length) {
-        appendEmpty(block, "No special transformation rule is needed for this selected form.");
-      } else {
+      block.append(create("h3", null, t("ui.block.rules")));
+      if (!model.rules.length) appendEmpty(block, "ui.empty.rules");
+      else {
         for (const rule of model.rules) {
           const card = create("article", "rule-card");
           card.append(create("strong", null, rule.shortText));
@@ -193,19 +170,18 @@
 
     function renderDerivation(container, model) {
       const block = create("section", "explanation-block");
-      block.append(create("h3", null, "Derivation"));
+      block.append(create("h3", null, t("ui.block.derivation")));
       if (model.derivation.underlyingText) {
         const underlying = create("p", "explanation-step");
-        underlying.append(create("span", null, "Underlying form"));
+        underlying.append(create("span", null, t("ui.derivation.underlying")));
         const arabic = create("span", "explanation-step__arabic", model.derivation.underlyingText);
         arabic.lang = "ar";
         arabic.dir = "rtl";
         underlying.append(arabic);
         block.append(underlying);
       }
-      if (!model.derivation.stages.length) {
-        appendEmpty(block, "No transformation stages are recorded for this selected form.");
-      } else {
+      if (!model.derivation.stages.length) appendEmpty(block, "ui.empty.derivation");
+      else {
         const list = create("ol", "explanation-list");
         for (const stage of model.derivation.stages) {
           const item = create("li", "explanation-step");
@@ -226,10 +202,9 @@
 
     function renderAlternatives(container, model) {
       const block = create("section", "explanation-block");
-      block.append(create("h3", null, "Accepted alternatives"));
-      if (!model.alternatives.length) {
-        appendEmpty(block, "No alternative forms are recorded for this target.");
-      } else {
+      block.append(create("h3", null, t("ui.block.alternatives")));
+      if (!model.alternatives.length) appendEmpty(block, "ui.empty.alternatives");
+      else {
         for (const alternative of model.alternatives) {
           const card = create("article", "alternative-card");
           const value = create("strong", null, alternative.value);
@@ -247,10 +222,9 @@
 
     function renderSources(container, model) {
       const block = create("section", "explanation-block");
-      block.append(create("h3", null, "Sources"));
-      if (!model.sources.length) {
-        appendEmpty(block, "No source reference is attached to the selected rule record.");
-      } else {
+      block.append(create("h3", null, t("ui.block.sources")));
+      if (!model.sources.length) appendEmpty(block, "ui.empty.sources");
+      else {
         for (const source of model.sources) {
           const card = create("article", "source-card");
           card.append(create("div", null, source.citationText));
@@ -262,12 +236,11 @@
     }
 
     function renderExplanation() {
-      if (!snapshot || !fieldSelect.value || !rowSelect.value && rowSelect.value !== "0") return;
+      if (!snapshot || !fieldSelect.value || (!rowSelect.value && rowSelect.value !== "0")) return;
       try {
         const record = globalScope.SarfExplanationEngine.buildExplanationRecord(snapshot, buildTarget());
-        const model = globalScope.SarfExplanationText.buildLocalizedExplanation(record, "en");
+        const model = globalScope.SarfExplanationText.buildLocalizedExplanation(record, LOCALE);
         output.replaceChildren();
-
         const surfaceCard = create("section", "explanation-surface-card");
         const surface = create("div", "explanation-surface", model.surface || model.availability.label);
         if (model.surface) { surface.lang = "ar"; surface.dir = "rtl"; }
@@ -286,7 +259,7 @@
         output.append(grid);
       } catch (error) {
         console.error("Sarf explanation rendering failed", error);
-        output.replaceChildren(create("p", "explanation-empty", "The explanation for this form could not be displayed."));
+        output.replaceChildren(create("p", "explanation-empty", t("ui.error.render")));
       }
     }
 
@@ -322,7 +295,7 @@
     }
   }
 
-  const api = Object.freeze({ SECTION_CONFIG, SECTION04_LABELS });
+  const api = Object.freeze({ LOCALE, SECTION_CONFIG });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else {
     globalScope.SarfExplanationUi = api;
