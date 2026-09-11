@@ -1818,4 +1818,62 @@ const tafaulState=createGeneratedStateStore(); tafaulState.generate(tafaulOption
 applyRootFamily("triliteral",{rootFour:{value:"ج",disabled:false,required:true},rootFourField:{hidden:false},babSelect:domBabSelect,generatedState:tafaulState});
 assert.equal(tafaulState.get(),null); assert.equal(domBabSelect.select("quadriliteral-tafaul"),false);
 
+
+// Phase B2 canonical alternatives/events remain additive and deeply immutable.
+const assertCanonicalAlternative = (alternative, expectedRule = undefined) => {
+  assert.ok(alternative.variantId);
+  assert.equal(alternative.status, "accepted");
+  assert.equal(typeof alternative.value, "string");
+  assert.equal(alternative.presentation.text, alternative.value);
+  if (expectedRule) assert.equal(alternative.ruleId, expectedRule);
+  assert.ok(Object.isFrozen(alternative));
+  assert.ok(Object.isFrozen(alternative.steps));
+};
+const assertCanonicalEvent = (event, { ruleId, operation } = {}) => {
+  assert.ok(event.eventId);
+  assert.equal(event.ruleId, ruleId);
+  if (operation) assert.equal(event.operation, operation);
+  assert.equal(typeof event.before.text, "string");
+  assert.equal(typeof event.after.text, "string");
+  assert.ok(Array.isArray(event.before.runs) && Array.isArray(event.after.runs));
+  assert.ok(Array.isArray(event.affectedElements));
+  assert.ok(Object.isFrozen(event) && Object.isFrozen(event.before) && Object.isFrozen(event.after));
+};
+const sadVIII = formVIII(["ص", "ب", "ر"]);
+assertCanonicalEvent(sadVIII.transformation.events[0], { ruleId: sadVIII.transformation.ruleId, operation: "substitution" });
+assert.ok(sadVIII.transformation.events.every((event, index) => event.sequence === index));
+assertCanonicalEvent(dhalVIII.transformation.events.at(-1), { ruleId: dhalVIII.transformation.ruleId, operation: "assimilation" });
+assertCanonicalAlternative(dhalVIII.transformation.alternatives[0], dhalVIII.transformation.ruleId);
+assert.equal(dhalVIII.transformation.alternatives[0].value, "اِذَّكَرَ");
+
+const form9Alternative = formIX.sections.section02[0].alternatives.majzumPresent[0];
+assertCanonicalAlternative(form9Alternative, "form9.jussive-final-geminate");
+assert.equal(form9Alternative.value, "لَمْ يَحْمَرِرْ");
+assertCanonicalEvent(form9Alternative.steps[0], { ruleId: "form9.final-copy-gemination", operation: "fakk" });
+assertCanonicalEvent(formIX.transformation.events[0], { ruleId: "form9.final-copy-gemination", operation: "gemination" });
+
+for (const alternative of ifilal.sections.section03[6].alternatives.imperative) assertCanonicalAlternative(alternative, "form11.imperative-final-geminate");
+assert.deepEqual(ifilal.sections.section03[6].alternatives.imperative.map(({ value }) => value), ["اِحْمَارُّ", "اِحْمَارِّ", "اِحْمَارِرْ"]);
+assertCanonicalEvent(ifilal.sections.section03[6].alternatives.imperative[2].steps[0], { ruleId: "form11.imperative-final-geminate", operation: "fakk" });
+
+const weakFinalEvent = ifanla.sections.section02[0].events.majzumPresent[0];
+assertCanonicalEvent(weakFinalEvent, { ruleId: "ifanla.final-ya.delete-jussive", operation: "deletion" });
+assert.deepEqual(weakFinalEvent.trigger.elementRefs, ["ifanla.finalYa"]);
+assert.equal(weakFinalEvent.affectedElements[0].radicalIndex, null);
+
+for (const alternative of ifalalla.sections.section02[0].alternatives.majzumPresent) assertCanonicalAlternative(alternative, "final-derivational-copy-gemination");
+assert.deepEqual(ifalalla.sections.section02[0].alternatives.majzumPresent.map(({ value }) => value), ["لَمْ يَقْشَعِرُّ", "لَمْ يَقْشَعِرِّ", "لَمْ يَقْشَعْرِرْ"]);
+assertCanonicalEvent(ifalalla.sections.section02[0].alternatives.majzumPresent[2].steps[0], { ruleId: "final-derivational-copy-gemination", operation: "fakk" });
+assert.equal(ifalalla.sections.section02[0].alternatives.majzumPresent[2].steps[0].affectedElements[0].sourceRadicalIndex, 4);
+
+for (const bab of ["bab-al-ifawlal", "bab-al-ifawwal", "bab-al-ifilal", "quadriliteral-ifanlal"]) {
+  const config = MAZID_BAB_CONFIG[bab] ?? QUADRILITERAL_BAB_CONFIG[bab];
+  const rootFamily = config.rootFamily ?? "triliteral";
+  const root = rootFamily === "quadriliteral" ? ["د", "ح", "ر", "ج"] : ["ح", "م", "ر"];
+  const snapshot = dispatchGeneration({ rootFamily, root, bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ" });
+  if (snapshot.transformation?.events) assert.ok(snapshot.transformation.events.every(Object.isFrozen));
+}
+const quadrMasdarAlternative = quadrIfanlal.sections.section04.masdar[0].alternatives?.[0];
+if (quadrMasdarAlternative) assertCanonicalAlternative(quadrMasdarAlternative);
+
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions, including باب التفعلل V1.");
