@@ -35,6 +35,36 @@ const ROOT_FAMILIES = Object.freeze({
   triliteral: Object.freeze({ rootArity: 3, finalRadicalIndex: 3 }),
   quadriliteral: Object.freeze({ rootArity: 4, finalRadicalIndex: 4 }),
 });
+
+// Phase B2 metadata is additive: surface values remain authoritative while
+// alternatives and structural changes use one language-neutral contract.
+const ALTERNATIVE_STATUSES = Object.freeze(["default", "accepted", "preferred", "deprecated"]);
+const TRANSFORMATION_OPERATIONS = Object.freeze(["substitution", "assimilation", "gemination", "fakk", "deletion", "retention", "weak-letter-change"]);
+function structuralState(value, runs = undefined) {
+  const text = typeof value === "string" ? value : value?.text ?? "";
+  const structuralRuns = runs ?? (typeof value === "object" ? value?.runs : undefined) ?? [];
+  return { text, runs: [...structuralRuns] };
+}
+function createTransformationEvent({ eventId, sequence = 0, ruleId, operation, before, after, trigger = {}, affectedElements = [], parameters = {} }) {
+  if (!eventId || !ruleId || !TRANSFORMATION_OPERATIONS.includes(operation)) throw new Error("Invalid canonical transformation event");
+  return deepFreeze({
+    eventId, sequence, ruleId, operation,
+    before: structuralState(before), after: structuralState(after),
+    trigger: { type: trigger.type ?? "structural-context", value: trigger.value ?? null, elementRefs: [...(trigger.elementRefs ?? [])] },
+    affectedElements: [...affectedElements], parameters: { ...parameters },
+  });
+}
+function createAlternative({ variantId, value, presentation, status = "accepted", ruleId = null, reasonCode = null, preferenceCode = null, steps = [] }) {
+  if (!variantId || !ALTERNATIVE_STATUSES.includes(status) || typeof value !== "string" || !presentation) throw new Error("Invalid canonical alternative");
+  return deepFreeze({ variantId, status, ruleId, value, presentation, reasonCode, preferenceCode, steps: [...steps] });
+}
+function canonicalAlternatives(variants, { ruleId = null, preferenceCode = null, eventFactory = null } = {}) {
+  return variants.map((variant, index) => createAlternative({
+    ...variant, variantId: variant.variantId ?? `accepted-${index + 1}`, status: variant.status ?? "accepted",
+    ruleId: variant.ruleId ?? ruleId, preferenceCode: variant.preferenceCode ?? preferenceCode,
+    steps: variant.steps ?? (eventFactory ? eventFactory(variant, index) : []),
+  }));
+}
 const TRILITERAL_CAPABILITIES = Object.freeze({ passive: true, masdar: true, activeParticiple: true, passiveParticiple: true, elative: true, zarf: true });
 const QUADRILITERAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
 const QUADRILITERAL_IFANLAL_CAPABILITIES = Object.freeze({ passive: false, masdar: true, activeParticiple: true, passiveParticiple: false, elative: false, zarf: false });
@@ -805,7 +835,8 @@ function finalDerivationalCopyGeminationTransformer({ root, prefixRuns, state = 
     ? underlyingRuns
     : Object.freeze([...prefixRuns, morphologyRun(`${root[3]}${SHADDA}`, 4, { kind: "radical", absorbed: copy, ruleId })]);
   const value = morphologyValue(finalRuns);
-  return Object.freeze({ ...value, state, surfaceRuns: value.runs, underlyingRuns, defaultVariant, acceptedAlternatives: Object.freeze(acceptedAlternatives), ruleId });
+  const events = [createTransformationEvent({ eventId: "quadriliteral-ifalalla.final-copy-state", ruleId, operation: state === "expanded" ? "fakk" : "gemination", before: { text: morphologyValue(underlyingRuns).text, runs: underlyingRuns }, after: value, trigger: { type: "inflectional-context", value: state, elementRefs: ["quadriliteral-ifalalla.r4Copy"] }, affectedElements: [copy] })];
+  return Object.freeze({ ...value, state, surfaceRuns: value.runs, underlyingRuns, defaultVariant, acceptedAlternatives: Object.freeze(acceptedAlternatives), ruleId, events: Object.freeze(events) });
 }
 
 function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }, config) {
@@ -817,7 +848,7 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
     const last = runs.pop();
     const metadata = Object.fromEntries(Object.entries(last).filter(([key]) => !["text", "radicalIndex"].includes(key)));
     const value = morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex, metadata), grammaticalEnding(remainder));
-    return Object.freeze({ ...value, state: stem.state, surfaceRuns: value.runs, underlyingRuns: stem.underlyingRuns, defaultVariant: stem.defaultVariant, acceptedAlternatives: stem.acceptedAlternatives, ruleId: stem.ruleId });
+    return Object.freeze({ ...value, state: stem.state, surfaceRuns: value.runs, underlyingRuns: stem.underlyingRuns, defaultVariant: stem.defaultVariant, acceptedAlternatives: stem.acceptedAlternatives, ruleId: stem.ruleId, events: stem.events });
   };
   const particle = (text, value) => morphologyValue(particleRun(`${text} `, "particle.mood"), value.runs);
   const pastPrefix = () => [morphologyRun(`${ALIF}${KASRA}`, null, { kind: "derivational", elementId: "quadriliteral-ifalalla.hamzatWasl" }), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,FATHA)];
@@ -835,7 +866,7 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
     ];
     return variants.map((value, index) => {
       const presented = particleText ? particle(particleText,value) : value;
-      return { variantId: ["contracted-damma","contracted-kasra","expanded-fakk"][index], value: presented.text, presentation: presented, ruleId: "final-derivational-copy-gemination" };
+      return createAlternative({ variantId: ["contracted-damma","contracted-kasra","expanded-fakk"][index], value: presented.text, presentation: presented, status: "accepted", ruleId: "final-derivational-copy-gemination", steps: value.events });
     });
   };
   const verbs = SIGHAS.map((s) => {
@@ -868,8 +899,8 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
   });
   const empty=morphologyValue();
   const section01=verbs.map(v=>({pronoun:v.s.pronoun,past:v.past.text,present:v.present.text,passivePast:null,passivePresent:null,presentation:{past:v.past,present:v.present,passivePast:empty,passivePresent:empty}}));
-  const section02=verbs.map(v=>({pronoun:v.s.pronoun,majzumPresent:v.majzum.text,mansubPresent:v.mansub.text,heavyEmphatic:v.heavy.text,lightEmphatic:v.light.text||null,...(v.jussiveVariants.length?{variants:{majzumPresent:v.jussiveVariants}}:{}),presentation:{majzumPresent:v.majzum,mansubPresent:v.mansub,heavyEmphatic:v.heavy,lightEmphatic:v.light}}));
-  const section03=verbs.map(v=>({pronoun:v.s.pronoun,imperative:v.imperative.text||null,heavyImperative:v.heavyImperative.text||null,lightImperative:v.lightImperative.text||null,...(v.imperativeVariants.length?{variants:{imperative:v.imperativeVariants}}:{}),presentation:{imperative:v.imperative,heavyImperative:v.heavyImperative,lightImperative:v.lightImperative}}));
+  const section02=verbs.map(v=>({pronoun:v.s.pronoun,majzumPresent:v.majzum.text,mansubPresent:v.mansub.text,heavyEmphatic:v.heavy.text,lightEmphatic:v.light.text||null,...(v.jussiveVariants.length?{variants:{majzumPresent:v.jussiveVariants},alternatives:{majzumPresent:v.jussiveVariants}}:{}),events:{majzumPresent:v.majzum.events},presentation:{majzumPresent:v.majzum,mansubPresent:v.mansub,heavyEmphatic:v.heavy,lightEmphatic:v.light}}));
+  const section03=verbs.map(v=>({pronoun:v.s.pronoun,imperative:v.imperative.text||null,heavyImperative:v.heavyImperative.text||null,lightImperative:v.lightImperative.text||null,...(v.imperativeVariants.length?{variants:{imperative:v.imperativeVariants},alternatives:{imperative:v.imperativeVariants}}:{}),events:{imperative:v.imperative.events},presentation:{imperative:v.imperative,heavyImperative:v.heavyImperative,lightImperative:v.lightImperative}}));
   const masdar=morphologyValue(morphologyRun(`${ALIF}${KASRA}`,null,{kind:"derivational",elementId:"quadriliteral-ifalalla.hamzatWasl"}),radical(root,1,SUKUN),radical(root,2,KASRA),radical(root,3,SUKUN),radical(root,4,FATHA),morphologyRun(ALIF,null,{kind:"derivational",elementId:"quadriliteral-ifalalla.masdarAlif"}),derivationalCopy(root,4,"","quadriliteral-ifalalla.r4Copy"));
   const participleStem=finalDerivationalCopyGeminationTransformer({root,prefixRuns:[morphologyRun(`${MIM}${DAMMA}`,null,{kind:"derivational",elementId:"quadriliteral-ifalalla.participleMim"}),radical(root,1,SUKUN),radical(root,2,FATHA),radical(root,3,KASRA)]});
   const nominalRows=NOMINAL_CASES.map(({key,label})=>({label,values:NOMINAL_INFLECTIONS.map(form=>attach(participleStem,form[key]).text),presentations:NOMINAL_INFLECTIONS.map(form=>attach(participleStem,form[key]))}));
@@ -922,12 +953,21 @@ function buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   });
   const empty = morphologyValue();
   const section01 = verbs.map((v) => ({ pronoun: v.pronoun, past: v.past.text, present: v.present.text, passivePast: null, passivePresent: null, presentation: { past: v.past, present: v.present, passivePast: empty, passivePresent: empty } }));
-  const section02 = verbs.map((v) => ({ pronoun: v.pronoun, majzumPresent: v.majzum.text, mansubPresent: v.mansub.text, heavyEmphatic: v.heavy.text || null, lightEmphatic: v.light.text || null, variants: v.jussiveVariant ? { majzumPresent: [{ value: withParticle(majzumParticle, v.jussiveVariant).text, presentation: withParticle(majzumParticle, v.jussiveVariant) }] } : {}, presentation: { majzumPresent: v.majzum, mansubPresent: v.mansub, heavyEmphatic: v.heavy, lightEmphatic: v.light } }));
-  const section03 = verbs.map((v) => ({ pronoun: v.pronoun, imperative: v.imperative.text || null, heavyImperative: v.heavyImperative.text || null, lightImperative: v.lightImperative.text || null, variants: v.imperativeVariant ? { imperative: [{ value: v.imperativeVariant.text, presentation: v.imperativeVariant }] } : {}, presentation: { imperative: v.imperative, heavyImperative: v.heavyImperative, lightImperative: v.lightImperative } }));
+  const form9Event = (before, after, operation) => createTransformationEvent({ eventId: "form9.final-copy-state", ruleId: "form9.final-copy-gemination", operation, before, after, trigger: { type: "inflectional-context", elementRefs: ["form9.r3Copy"] }, affectedElements: [{ kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" }] });
+  const section02 = verbs.map((v) => {
+    const legacy = v.jussiveVariant ? [{ variantId: "expanded-fakk", value: withParticle(majzumParticle, v.jussiveVariant).text, presentation: withParticle(majzumParticle, v.jussiveVariant), ruleId: "form9.jussive-final-geminate" }] : [];
+    const alternatives = canonicalAlternatives(legacy, { eventFactory: (variant) => [form9Event(v.majzum, variant.presentation, "fakk")] });
+    return { pronoun: v.pronoun, majzumPresent: v.majzum.text, mansubPresent: v.mansub.text, heavyEmphatic: v.heavy.text || null, lightEmphatic: v.light.text || null, variants: legacy.length ? { majzumPresent: legacy } : {}, alternatives: alternatives.length ? { majzumPresent: alternatives } : {}, events: { majzumPresent: [form9Event(v.jussiveVariant ?? v.majzum, v.majzum, "gemination")] }, presentation: { majzumPresent: v.majzum, mansubPresent: v.mansub, heavyEmphatic: v.heavy, lightEmphatic: v.light } };
+  });
+  const section03 = verbs.map((v) => {
+    const legacy = v.imperativeVariant ? [{ variantId: "contracted-fatha", value: v.imperativeVariant.text, presentation: v.imperativeVariant, ruleId: "form9.imperative-final-geminate" }] : [];
+    const alternatives = canonicalAlternatives(legacy, { eventFactory: (variant) => [form9Event(v.imperative, variant.presentation, "gemination")] });
+    return { pronoun: v.pronoun, imperative: v.imperative.text || null, heavyImperative: v.heavyImperative.text || null, lightImperative: v.lightImperative.text || null, variants: legacy.length ? { imperative: legacy } : {}, alternatives: alternatives.length ? { imperative: alternatives } : {}, presentation: { imperative: v.imperative, heavyImperative: v.heavyImperative, lightImperative: v.lightImperative } };
+  });
   const masdar = morphologyValue(derivational(`${ALIF}${KASRA}`), radical(root, 1, SUKUN), radical(root, 2, KASRA), radical(root, 3, FATHA), derivational(ALIF), derivationalCopy(root, 3, "", "form9.r3Copy"));
   const participleStem = [derivational(`${MIM}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" } })];
   const nominalRows = NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => attach(participleStem, form[key]).text), presentations: NOMINAL_INFLECTIONS.map((form) => attach(participleStem, form[key])) }));
-  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle, transformation: { kind: "r3-stem-alternation", derivationalElement: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" }, stems: ["contracted", "expanded"] }, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows, passiveParticiple: [] } } });
+  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle, transformation: { kind: "r3-stem-alternation", ruleId: "form9.final-copy-gemination", events: [form9Event("expanded", "contracted", "gemination")], derivationalElement: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" }, stems: ["contracted", "expanded"] }, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows, passiveParticiple: [] } } });
 }
 
 // Bāb al-ifʿīlāl uses the same generic lexical-R3/derivational-copy operation
@@ -964,7 +1004,7 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   const alternatives = (prefix, particle = null, separator = " ") => {
     const make = (variantId, value) => {
       const presentation = particle ? morphologyValue(particleRun(`${particle}${separator}`, "particle.mood"), value.runs) : value;
-      return { variantId, value: presentation.text, presentation };
+      return { variantId, value: presentation.text, presentation, status: "accepted" };
     };
     return [
       make("preserve-idgham-with-damma", attach(contracted(prefix), DAMMA)),
@@ -1022,12 +1062,14 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   const section02 = verbs.map(({ s, majzum, mansub, heavy, light, majzumVariants }) => ({
     pronoun: s.pronoun, majzumPresent: majzum.text, mansubPresent: mansub.text, heavyEmphatic: heavy.text, lightEmphatic: light.text || null,
     variants: majzumVariants.length ? { majzumPresent: majzumVariants } : {},
+    alternatives: majzumVariants.length ? { majzumPresent: canonicalAlternatives(majzumVariants, { ruleId: "form11.jussive-final-geminate", preferenceCode: "al-afsah", eventFactory: (variant) => [createTransformationEvent({ eventId: "form11.jussive-selection", ruleId: "form11.jussive-final-geminate", operation: variant.variantId === "fakk-al-idgham" ? "fakk" : "gemination", before: majzum, after: variant.presentation, trigger: { type: "mood", value: "jussive", elementRefs: ["form11.r3Copy"] }, affectedElements: [copyMetadata] })] }) } : {},
     rules: majzumVariants.length ? { majzumPresent: rule("form11.jussive-final-geminate") } : {},
     presentation: { majzumPresent: majzum, mansubPresent: mansub, heavyEmphatic: heavy, lightEmphatic: light },
   }));
   const section03 = verbs.map(({ s, imperative, heavyImperative, lightImperative, imperativeVariants, imperativeRule }) => ({
     pronoun: s.pronoun, imperative: imperative.text || null, heavyImperative: heavyImperative.text || null, lightImperative: lightImperative.text || null,
-    variants: imperativeVariants.length ? { imperative: imperativeVariants } : {}, rules: imperativeRule ? { imperative: imperativeRule } : {},
+    variants: imperativeVariants.length ? { imperative: imperativeVariants } : {},
+    alternatives: imperativeVariants.length ? { imperative: canonicalAlternatives(imperativeVariants, { ruleId: imperativeRule.ruleId, preferenceCode: imperativeRule.preference, eventFactory: (variant) => [createTransformationEvent({ eventId: "form11.imperative-selection", ruleId: imperativeRule.ruleId, operation: variant.variantId === "fakk-al-idgham" ? "fakk" : "gemination", before: imperative, after: variant.presentation, trigger: { type: "mood", value: "imperative", elementRefs: ["form11.r3Copy"] }, affectedElements: [copyMetadata] })] }) } : {}, rules: imperativeRule ? { imperative: imperativeRule } : {},
     presentation: { imperative, heavyImperative, lightImperative },
   }));
   const masdar = morphologyValue(
@@ -1061,7 +1103,9 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
 // presentation run.
 function transformDerivationalWeakFinal(surfaceValue, ruleId, kind = "derivational") {
   const record = Object.freeze({ elementId: "ifanla.finalYa", kind: "derivational", underlyingValue: YA, surfaceValue, radicalIndex: null, ruleId });
-  return Object.freeze({ run: surfaceValue ? morphologyRun(surfaceValue, null, { kind, elementId: "ifanla.finalYa", transformation: record }) : null, record });
+  const operation = !surfaceValue ? "deletion" : surfaceValue === YA ? "retention" : "weak-letter-change";
+  const event = createTransformationEvent({ eventId: "ifanla.final-ya", ruleId, operation, before: YA, after: surfaceValue, trigger: { type: "inflectional-context", elementRefs: ["ifanla.finalYa"] }, affectedElements: [record] });
+  return Object.freeze({ run: surfaceValue ? morphologyRun(surfaceValue, null, { kind, elementId: "ifanla.finalYa", transformation: record }) : null, record, event });
 }
 
 function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
@@ -1081,11 +1125,11 @@ function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
     const [r3Marks, yaSurface, suffix = "", ruleId = "ifanla.final-ya.retain", yaKind = "derivational"] = descriptor;
     const transformed = transformDerivationalWeakFinal(yaSurface, ruleId, yaKind);
     const base = morphologyValue(stem(prefix, r2Vowel, r3Marks), transformed.run, suffix ? grammatical(suffix) : null);
-    return Object.freeze({ ...base, transformations: Object.freeze([transformed.record]), deletedElements: Object.freeze(yaSurface ? [] : [transformed.record]) });
+    return Object.freeze({ ...base, transformations: Object.freeze([transformed.record]), deletedElements: Object.freeze(yaSurface ? [] : [transformed.record]), events: Object.freeze([transformed.event]) });
   };
   const particle = (text, form) => {
     const base = morphologyValue(particleRun(`${text} `, "particle.mood"), form.runs);
-    return Object.freeze({ ...base, transformations: form.transformations, deletedElements: form.deletedElements });
+    return Object.freeze({ ...base, transformations: form.transformations, deletedElements: form.deletedElements, events: form.events });
   };
   const prefixes = SIGHAS.map((s) => `${s.presentPrefix}${FATHA}`);
   const P = [
@@ -1115,9 +1159,9 @@ function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
     const lightImperative = s.person === 2 ? value(`${ALIF}${KASRA}`, L[i]) : value(`${LAM}${KASRA}${prefixes[i]}`, L[i]);
     return { s, past, present, majzum, mansub, heavy, light, direct, heavyImperative, lightImperative };
   });
-  const section01 = forms.map(({s,past,present}) => ({ pronoun:s.pronoun, past:past.text, present:present.text, passivePast:null, passivePresent:null, presentation:{past,present,passivePast:empty,passivePresent:empty} }));
-  const section02 = forms.map(({s,majzum,mansub,heavy,light}) => ({ pronoun:s.pronoun, majzumPresent:majzum.text, mansubPresent:mansub.text, heavyEmphatic:heavy.text, lightEmphatic:light.text || null, presentation:{majzumPresent:majzum,mansubPresent:mansub,heavyEmphatic:heavy,lightEmphatic:light} }));
-  const section03 = forms.map(({s,direct,heavyImperative,lightImperative}) => ({ pronoun:s.pronoun, imperative:direct.text || null, heavyImperative:heavyImperative.text || null, lightImperative:lightImperative.text || null, presentation:{imperative:direct,heavyImperative,lightImperative} }));
+  const section01 = forms.map(({s,past,present}) => ({ pronoun:s.pronoun, past:past.text, present:present.text, passivePast:null, passivePresent:null, events:{past:past.events,present:present.events}, presentation:{past,present,passivePast:empty,passivePresent:empty} }));
+  const section02 = forms.map(({s,majzum,mansub,heavy,light}) => ({ pronoun:s.pronoun, majzumPresent:majzum.text, mansubPresent:mansub.text, heavyEmphatic:heavy.text, lightEmphatic:light.text || null, events:{majzumPresent:majzum.events,mansubPresent:mansub.events,heavyEmphatic:heavy.events,lightEmphatic:light.events}, presentation:{majzumPresent:majzum,mansubPresent:mansub,heavyEmphatic:heavy,lightEmphatic:light} }));
+  const section03 = forms.map(({s,direct,heavyImperative,lightImperative}) => ({ pronoun:s.pronoun, imperative:direct.text || null, heavyImperative:heavyImperative.text || null, lightImperative:lightImperative.text || null, events:{imperative:direct.events,heavyImperative:heavyImperative.events,lightImperative:lightImperative.events}, presentation:{imperative:direct,heavyImperative,lightImperative} }));
   const hamza = transformDerivationalWeakFinal("ء", "ifanla.final-ya.to-masdar-hamza");
   const masdar = morphologyValue(grammatical(`${ALIF}${KASRA}`),radical(root,1,SUKUN),radical(root,2,KASRA),morphologyRun(`${NUN}${SUKUN}`,null,{kind:"derivational",elementId:"ifanla.insertedNun"}),radical(root,3,FATHA),morphologyRun(ALIF,null,{kind:"derivational",elementId:"ifanla.masdarAlif"}),hamza.run);
   const nominal = {
@@ -1158,8 +1202,34 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
         ...transformation, assimilates: true, surfaceRadical: { text: alternative.resultSequence[0] },
       }).text + FATHA,
     }));
-    return { ...transformation, acceptedAlternatives, underlyingForm, resultForm, formStages: intermediateForm ? [underlyingForm, intermediateForm, resultForm] : [underlyingForm, resultForm] };
-  })() : config.transformation ?? null;
+    const operation = (name) => name === "ibdal" ? "substitution" : name === "idgham" ? "assimilation" : "retention";
+    const events = transformation.stages.map((stage, sequence) => createTransformationEvent({
+      eventId: "form8.primary-transformation", sequence, ruleId: transformation.ruleId, operation: operation(stage.operation),
+      before: stage.input, after: stage.output,
+      trigger: { type: "radical-junction", value: root[0], elementRefs: ["form8Ta"] },
+      affectedElements: [transformation.affectedElement], parameters: { legacyOperation: stage.operation },
+    }));
+    const alternatives = canonicalAlternatives(acceptedAlternatives.map((alternative) => ({
+      ...alternative, value: alternative.resultForm, presentation: morphologyValue(morphologyRun(alternative.resultForm)),
+      steps: alternative.path.slice(0, -1).map((before, sequence) => createTransformationEvent({
+        eventId: "form8.alternative-transformation", sequence, ruleId: transformation.ruleId,
+        operation: sequence === alternative.path.length - 2 ? "assimilation" : "substitution", before, after: alternative.path[sequence + 1],
+        trigger: { type: "radical-junction", value: root[0], elementRefs: ["form8Ta"] }, affectedElements: [transformation.affectedElement],
+      })),
+    })), { ruleId: transformation.ruleId });
+    return { ...transformation, acceptedAlternatives, alternatives, events, underlyingForm, resultForm, formStages: intermediateForm ? [underlyingForm, intermediateForm, resultForm] : [underlyingForm, resultForm] };
+  })() : config.transformation ? {
+    ...config.transformation,
+    events: [createTransformationEvent({
+      eventId: `${config.patternId ?? config.babId ?? `form${config.form}`}.structural-transformation`,
+      ruleId: config.eligibility?.ruleId ?? `${config.patternId ?? config.babId ?? `form${config.form}`}.structural-transformation`,
+      operation: config.transformation.ruleType?.includes("gemination") || config.transformation.ruleType?.includes("idgham") ? "gemination" : "substitution",
+      before: `R${config.transformation.sourceRadicalIndex ?? ""}`,
+      after: config.transformation.affectedElement ?? config.transformation.ruleType,
+      trigger: { type: "template", value: config.patternId ?? config.babId, elementRefs: [config.transformation.affectedElement].filter(Boolean) },
+      affectedElements: config.transformation.affectedElement ? [{ elementId: config.transformation.affectedElement, radicalIndex: null, sourceRadicalIndex: config.transformation.sourceRadicalIndex ?? null }] : (config.transformation.underlyingElements ?? []),
+    })],
+  } : null;
   const verbs = SIGHAS.map((sighah) => {
     const inflect = (name, value) => inflectVerbStem(instantiateMazidTemplate(root, templates[name], sighah, transformation).runs, ending(value));
     const present = instantiateMazidTemplate(root, templates.activePresent, sighah, transformation);
@@ -1192,7 +1262,7 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
   const masdar = instantiateMazidTemplate(root, templates.masdar, SIGHAS[0], transformation);
   const masdarAlternative = templates.masdarAlternative ? instantiateMazidTemplate(root, templates.masdarAlternative, SIGHAS[0], transformation) : null;
   const masdarRows = [
-    { label: "المصدر", values: [masdar.text], presentations: [masdar], ...(masdarAlternative ? { alternatives: [{ value: masdarAlternative.text, presentation: masdarAlternative }] } : {}) },
+    { label: "المصدر", values: [masdar.text], presentations: [masdar], ...(masdarAlternative ? { alternatives: [createAlternative({ variantId: "alternate-masdar-pattern", value: masdarAlternative.text, presentation: masdarAlternative, status: "accepted" })] } : {}) },
     ...(masdarAlternative ? [{ label: "المصدر القياسي الآخر", values: [masdarAlternative.text], presentations: [masdarAlternative] }] : []),
   ];
   return deepFreeze({ root: [...root], bab, babLabel, family: snapshotFamily, config: { id: config.id || config.babId || bab, label: config.label, ...(config.traditionalName ? { traditionalName: config.traditionalName } : {}), ...(config.traditionalCategory ? { traditionalCategory: config.traditionalCategory } : {}), ...(config.morphologyCategory ? { morphologyCategory: config.morphologyCategory } : {}), ...(config.snapshotFamily ? { snapshotFamily: config.snapshotFamily } : {}) }, availability: config.availability, majzumParticle, mansubParticle, transformation: transformationMetadata, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: masdarRows, activeParticiple: config.availability?.activeParticiple === "suppressed" ? [] : nominalRows(templates.activeParticiple), passiveParticiple: config.availability?.passiveParticiple === "suppressed" ? [] : nominalRows(templates.passiveParticiple) } } });
@@ -1623,6 +1693,6 @@ if (typeof module !== "undefined") {
     generateActiveForms, generateVersion4Forms, generateMansubForms, generateEmphaticForms, generateImperativeForms,
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
-    deepFreeze, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, finalDerivationalCopyGeminationTransformer, buildQuadriliteralIfalallaSnapshot, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    deepFreeze, ALTERNATIVE_STATUSES, TRANSFORMATION_OPERATIONS, createAlternative, canonicalAlternatives, createTransformationEvent, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, finalDerivationalCopyGeminationTransformer, buildQuadriliteralIfalallaSnapshot, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
   };
 }
