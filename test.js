@@ -19,6 +19,11 @@ const {
   SCHEMA_VERSION, buildExplanationRecord, resolveExplanationTarget,
   normalizeStructuralRuns, collectTargetRuleIds, resolveRuleSources,
 } = require("./explanation-engine.js");
+const {
+  LOCALIZATION_CATALOGS, getLocalizationCatalog, translate, hasTranslation,
+  listSupportedLocales, validateRuleTranslations,
+} = require("./localization.js");
+const { TEXT_SCHEMA_VERSION, buildLocalizedExplanation, formatSource } = require("./explanation-text.js");
 
 const activeCases = [
   {
@@ -1995,5 +2000,85 @@ assert.throws(() => resolveExplanationTarget(nasaraExplanationSnapshot, { sectio
 assert.throws(() => resolveExplanationTarget(section04Snapshot, { section: "section04", group: "masdar", rowIndex: 0, valueIndex: 99 }), /value index out of range/);
 assert.deepEqual(normalizeStructuralRuns(simpleExplanation.presentation), simpleExplanation.structure);
 assert.deepEqual(resolveRuleSources(collectTargetRuleIds(resolveExplanationTarget(formXISnapshot, { section: "section02", rowIndex: 0, field: "majzumPresent" }))).map(({ sourceId }) => sourceId), ["al-inba-sharh-matn-al-bina"]);
+
+// Phase B5 resolves B4 records into strict, immutable English text models.
+assert.deepEqual(listSupportedLocales(), ["en"]);
+assert.equal(getLocalizationCatalog("en"), LOCALIZATION_CATALOGS.en);
+assert.ok(Object.isFrozen(LOCALIZATION_CATALOGS) && Object.isFrozen(LOCALIZATION_CATALOGS.en));
+assert.ok(Object.isFrozen(LOCALIZATION_CATALOGS.en.messages));
+assert.throws(() => getLocalizationCatalog("ar"), /Unsupported locale: ar/);
+assert.throws(() => translate("en", "missing.key"), /Missing translation/);
+assert.throws(() => translate("en", "summary.many"), /Missing interpolation parameter "count"/);
+assert.equal(translate("en", "summary.many", { count: 2 }), "This form contains 2 morphological transformations.");
+assert.equal(validateRuleTranslations("en", RULE_REGISTRY), true);
+assert.equal(new Set(Object.keys(LOCALIZATION_CATALOGS.en.messages)).size, Object.keys(LOCALIZATION_CATALOGS.en.messages).length);
+for (const rule of Object.values(RULE_REGISTRY)) {
+  assert.equal(hasTranslation("en", rule.shortExplanationKey), true, rule.shortExplanationKey);
+  assert.equal(hasTranslation("en", rule.explanationKey), true, rule.explanationKey);
+  assert.equal(rule.technicalNoteKey ? hasTranslation("en", rule.technicalNoteKey) : false, false);
+}
+
+const simpleText = buildLocalizedExplanation(simpleExplanation, "en");
+assert.equal(simpleText.schemaVersion, TEXT_SCHEMA_VERSION);
+assert.equal(simpleText.recordSchemaVersion, SCHEMA_VERSION);
+assert.equal(simpleText.surface, simpleExplanation.surface);
+assert.equal(simpleText.summary, "This form is generated directly from the selected pattern.");
+assert.deepEqual([simpleText.rules, simpleText.derivation.stages, simpleText.alternatives, simpleText.sources], [[], [], [], []]);
+assert.deepEqual(simpleText.structure.filter(({ kind }) => kind === "radical").map(({ radicalLabel }) => radicalLabel), ["First root radical", "Second root radical", "Third root radical"]);
+
+const formVIIIText = buildLocalizedExplanation(formVIIIExplanation, "en");
+assert.equal(formVIIIText.rules[0].shortText, "The inserted tāʾ changes to ṭāʾ.");
+assert.equal(formVIIIText.rules[0].categoryLabel, "Substitution (Ibdāl)");
+assert.equal(formVIIIText.rules[0].defaultOperationLabel, "Substitution");
+assert.equal(formVIIIText.derivation.stages[0].before, formVIIIExplanation.derivation.stages[0].before.text);
+assert.equal(formVIIIText.derivation.stages[0].after, formVIIIExplanation.derivation.stages[0].after.text);
+assert.ok(formVIIIText.derivation.stages[0].text.includes(`${formVIIIExplanation.derivation.stages[0].before.text} → ${formVIIIExplanation.derivation.stages[0].after.text}`));
+assert.deepEqual(formVIIIText.sources, []);
+
+const formIXText = buildLocalizedExplanation(formIXExplanation, "en");
+assert.deepEqual(formIXText.alternatives.map(({ value }) => value), formIXExplanation.alternatives.map(({ value }) => value));
+assert.ok(formIXText.rules.some(({ shortText }) => shortText.includes("jussive")));
+
+const formXIExplanation = buildExplanationRecord(formXISnapshot, { section: "section02", rowIndex: 0, field: "majzumPresent" });
+const formXIText = buildLocalizedExplanation(formXIExplanation, "en");
+assert.deepEqual(formXIText.alternatives.map(({ value, status }) => ({ value, status })), formXIExplanation.alternatives.map(({ value, status }) => ({ value, status })));
+assert.ok(formXIText.rules.every(({ shortText, detailText }) => shortText && detailText));
+assert.ok(formXIText.sources.some(({ pdfPage, printedPage, evidenceLabel }) => pdfPage === 133 && printedPage === "131–132" && evidenceLabel === "Direct rule evidence"));
+assert.ok(formXIText.rules.every(({ detailText }) => !/PDF p\.|printed p\./.test(detailText)));
+assert.equal(formXIText.alternatives[0].preferenceText, "The more eloquent variant");
+assert.ok(formXIText.alternatives.every(({ statusLabel, steps }) => statusLabel === "Accepted" && steps.length));
+
+const formXVText = buildLocalizedExplanation(formXVExplanation, "en");
+assert.equal(formXVText.derivation.stages[0].operationLabel, "Deletion");
+assert.deepEqual(formXVText.sources, []);
+assert.ok(formXVText.rules.some(({ detailText }) => detailText.includes("derivational element")));
+
+const finalCopyText = buildLocalizedExplanation(finalCopyExplanation, "en");
+assert.ok(finalCopyText.structure.some(({ radicalIndex, radicalLabel }) => radicalIndex === 4 && radicalLabel === "Fourth root radical"));
+const copiedR4 = finalCopyText.structure.map(({ absorbed }) => absorbed).filter(Boolean).find(({ kind, sourceRadicalIndex }) => kind === "derivational-copy" && sourceRadicalIndex === 4);
+assert.equal(copiedR4.note, "Derivational copy of the fourth root radical");
+assert.ok(finalCopyText.sources.some(({ evidenceLabel }) => evidenceLabel === "Direct general rule evidence"));
+
+const masdarText = buildLocalizedExplanation(masdarExplanation, "en");
+assert.equal(masdarText.surface, masdarExplanation.surface);
+assert.equal(masdarText.context.groupLabel, masdarExplanation.context.groupLabel);
+assert.equal(masdarText.context.rowLabel, masdarExplanation.context.rowLabel);
+assert.deepEqual(masdarText.alternatives.map(({ value }) => value), masdarExplanation.alternatives.map(({ value }) => value));
+assert.ok(masdarText.structure.length);
+
+const suppressedText = buildLocalizedExplanation(suppressedExplanation, "en");
+assert.equal(suppressedText.surface, null);
+assert.equal(suppressedText.availability.label, "Suppressed for this pattern");
+assert.deepEqual(suppressedText.rules, []);
+assert.equal(suppressedText.derivation.underlyingText, null);
+
+const formattedSource = formatSource(formXIExplanation.sources[0], "en");
+assert.equal(formattedSource.pdfPage, formXIExplanation.sources[0].locator.pdfPage);
+assert.equal(formattedSource.printedPage, formXIExplanation.sources[0].locator.printedPage);
+assert.ok(formattedSource.citationText.includes(formattedSource.sourceTitle));
+assert.deepEqual(simpleText, buildLocalizedExplanation(simpleExplanation, "en"));
+for (const value of [simpleText, simpleText.target, simpleText.context, simpleText.structure, simpleText.rules, simpleText.derivation,
+  simpleText.derivation.stages, simpleText.alternatives, simpleText.sources, simpleText.availability, simpleText.structure[0]]) assert.equal(Object.isFrozen(value), true);
+for (const value of [formXIText.rules[0], formXIText.alternatives[0], formXIText.alternatives[0].steps, formXIText.sources[0]]) assert.equal(Object.isFrozen(value), true);
 
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions, including باب التفعلل V1.");
