@@ -1684,6 +1684,7 @@ if (typeof document !== "undefined") {
   setExportAvailable(false);
 }
 if (typeof module !== "undefined") {
+  const ruleRegistry = require("./rules-registry.js");
   module.exports = {
     BAB_CONFIG, MAZID_BAB_CONFIG, QUADRILITERAL_BAB_CONFIG, HARAKAT, LETTERS, MAJZUM_PARTICLES, MANSUB_PARTICLES, NOMINAL_CASES, NOMINAL_INFLECTIONS, SIGHAS,
     ROOT_FAMILIES, rootArchitecture, validateRoot, validateStructuralRuns, createArchitectureSnapshot, applyRootFamily,
@@ -1694,5 +1695,6 @@ if (typeof module !== "undefined") {
     generateActiveParticipleForms, generatePassiveParticipleForms, generateElativeForms, generateZarfForms, getBabConfig,
     morphologyRun, morphologyValue, presentedRuns, structuralVerbValues, structuralDerivedValues,
     deepFreeze, ALTERNATIVE_STATUSES, TRANSFORMATION_OPERATIONS, createAlternative, canonicalAlternatives, createTransformationEvent, instantiateMazidTemplate, FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, FORM_VIII_TRANSFORMATION_RULES, formVIIITransformation, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot, transformDerivationalWeakFinal, finalDerivationalCopyGeminationTransformer, buildQuadriliteralIfalallaSnapshot, buildFormIXSnapshot, buildFormXISnapshot, buildFormXVSnapshot, buildMazidSnapshot, buildGeneratedSnapshot, dispatchGeneration, updateSnapshotParticles, updateSnapshotColour, createGeneratedStateStore,
+    ...ruleRegistry,
   };
 }
