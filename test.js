@@ -12,6 +12,7 @@ const {
   buildGeneratedSnapshot, dispatchGeneration, updateSnapshotColour, createGeneratedStateStore, presentedRuns, isSoundFormIVRoot, isSoundQuadriliteralRoot, isRegularFormVIIIRoot,
   FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES, formVIIITransformation,
   ROOT_FAMILIES, rootArchitecture, validateRoot, validateStructuralRuns, createArchitectureSnapshot, applyRootFamily,
+  EVIDENCE_CLASSES, RULE_REGISTRY, SOURCE_REGISTRY, createRuleRegistry, getRuleDefinition, getRuleSources, getSourceDefinition, validateRegistries,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, sectionTitle, FOOTER, ROOT_COLOURS } = require("./export.js");
 
@@ -1875,5 +1876,48 @@ for (const bab of ["bab-al-ifawlal", "bab-al-ifawwal", "bab-al-ifilal", "quadril
 }
 const quadrMasdarAlternative = quadrIfanlal.sections.section04.masdar[0].alternatives?.[0];
 if (quadrMasdarAlternative) assertCanonicalAlternative(quadrMasdarAlternative);
+
+// Phase B3 central registry completeness, source integrity, lookup, and immutability.
+assert.equal(validateRegistries(), true);
+assert.throws(() => createRuleRegistry([{ id: "duplicate" }, { id: "duplicate" }]), /Duplicate rule ID/);
+assert.equal(Object.keys(RULE_REGISTRY).length, 44);
+assert.equal(Object.keys(SOURCE_REGISTRY).length, 3);
+assert.ok(Object.isFrozen(RULE_REGISTRY) && Object.isFrozen(SOURCE_REGISTRY));
+for (const rule of Object.values(RULE_REGISTRY)) {
+  assert.ok(Object.isFrozen(rule) && Object.isFrozen(rule.scope) && Object.isFrozen(rule.sourceRefs));
+  assert.equal(rule.id, getRuleDefinition(rule.id).id);
+  const uniqueRefs = new Set();
+  for (const sourceRef of rule.sourceRefs) {
+    assert.ok(SOURCE_REGISTRY[sourceRef.sourceId]);
+    assert.ok(EVIDENCE_CLASSES.includes(sourceRef.evidenceClass));
+    if (sourceRef.pdfPage !== null) assert.ok(typeof sourceRef.pdfPage === "number" && sourceRef.pdfPage > 0);
+    if (sourceRef.printedPage !== null) assert.ok(["string", "number"].includes(typeof sourceRef.printedPage));
+    const signature = JSON.stringify(sourceRef);
+    assert.equal(uniqueRefs.has(signature), false, `${rule.id}: duplicate source reference`);
+    uniqueRefs.add(signature);
+  }
+}
+for (const source of Object.values(SOURCE_REGISTRY)) assert.ok(Object.isFrozen(source));
+assert.equal(getSourceDefinition("matn-al-bina").filename, "Matn al-Bināʾ.pdf");
+const resolvedSources = getRuleSources("form11.final-copy-idgham");
+assert.ok(Object.isFrozen(resolvedSources) && Object.isFrozen(resolvedSources[0]));
+assert.equal(resolvedSources[0].source.id, "matn-al-bina");
+assert.deepEqual(getRuleSources("form8-emphatic-ta-to-ta"), []);
+assert.throws(() => getRuleDefinition("unknown.rule"), /Unknown rule ID/);
+assert.throws(() => getSourceDefinition("unknown-source"), /Unknown source ID/);
+
+const emittedRuleIds = new Set();
+const collectRuleIds = (value) => {
+  if (!value || typeof value !== "object") return;
+  if (typeof value.ruleId === "string") emittedRuleIds.add(value.ruleId);
+  for (const child of Object.values(value)) collectRuleIds(child);
+};
+for (const snapshot of contractSnapshots.values()) collectRuleIds(snapshot);
+for (const config of [...Object.values(MAZID_BAB_CONFIG), ...Object.values(QUADRILITERAL_BAB_CONFIG)]) {
+  if (config.eligibility?.ruleId) emittedRuleIds.add(config.eligibility.ruleId);
+}
+for (const ruleTable of [FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES]) collectRuleIds(ruleTable);
+assert.ok(emittedRuleIds.size > 0);
+for (const ruleId of emittedRuleIds) assert.ok(RULE_REGISTRY[ruleId], `Unregistered emitted ruleId: ${ruleId}`);
 
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions, including باب التفعلل V1.");
