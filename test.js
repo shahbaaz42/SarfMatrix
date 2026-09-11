@@ -15,6 +15,10 @@ const {
   EVIDENCE_CLASSES, RULE_REGISTRY, SOURCE_REGISTRY, createRuleRegistry, getRuleDefinition, getRuleSources, getSourceDefinition, validateRegistries,
 } = require("./script.js");
 const { filenameFor, metadataRows, metadataLine, landscapeVerbTable, buildExportPages, buildDocx, buildPdfDocument, sectionTitle, FOOTER, ROOT_COLOURS } = require("./export.js");
+const {
+  SCHEMA_VERSION, buildExplanationRecord, resolveExplanationTarget,
+  normalizeStructuralRuns, collectTargetRuleIds, resolveRuleSources,
+} = require("./explanation-engine.js");
 
 const activeCases = [
   {
@@ -1919,5 +1923,77 @@ for (const config of [...Object.values(MAZID_BAB_CONFIG), ...Object.values(QUADR
 for (const ruleTable of [FORM_VIII_PHASE_A_RULES, FORM_VIII_PHASE_B1_RULES, FORM_VIII_PHASE_B2_RULES, FORM_VIII_PHASE_B3_RULES]) collectRuleIds(ruleTable);
 assert.ok(emittedRuleIds.size > 0);
 for (const ruleId of emittedRuleIds) assert.ok(RULE_REGISTRY[ruleId], `Unregistered emitted ruleId: ${ruleId}`);
+
+// Phase B4 builds immutable, deterministic, target-local explanation data.
+const explainSnapshot = (root, bab, rootFamily = "triliteral") => dispatchGeneration({ root, rootFamily, bab, babLabel: bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ" });
+const nasaraExplanationSnapshot = explainSnapshot(["ن", "ص", "ر"], "نَصَرَ-يَنْصُرُ");
+const simpleExplanation = buildExplanationRecord(nasaraExplanationSnapshot, { section: "section01", rowIndex: 0, field: "past" });
+assert.equal(simpleExplanation.schemaVersion, SCHEMA_VERSION);
+assert.equal(simpleExplanation.surface, "نَصَرَ");
+assert.deepEqual(simpleExplanation.context.root, ["ن", "ص", "ر"]);
+assert.equal(simpleExplanation.context.pronoun, "هُوَ");
+assert.deepEqual(simpleExplanation.structure.filter(({ kind }) => kind === "radical").map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
+assert.deepEqual([simpleExplanation.events, simpleExplanation.alternatives, simpleExplanation.sources, simpleExplanation.derivation.stages], [[], [], [], []]);
+assert.deepEqual(simpleExplanation, buildExplanationRecord(nasaraExplanationSnapshot, { section: "section01", rowIndex: 0, field: "past" }));
+for (const value of [simpleExplanation, simpleExplanation.target, simpleExplanation.context, simpleExplanation.structure, simpleExplanation.rules, simpleExplanation.events, simpleExplanation.alternatives, simpleExplanation.sources, simpleExplanation.derivation, simpleExplanation.availability, simpleExplanation.structure[0]]) assert.equal(Object.isFrozen(value), true);
+
+const formVIIIExplanation = buildExplanationRecord(explainSnapshot(["ص", "ب", "ر"], "form-viii-iftial"), { section: "section01", rowIndex: 0, field: "past" });
+assert.equal(formVIIIExplanation.surface, "اِصْطَبَرَ");
+assert.deepEqual(formVIIIExplanation.rules.map(({ id }) => id), ["form8-emphatic-ta-to-ta"]);
+assert.equal(formVIIIExplanation.rules[0].category, "ibdal");
+assert.deepEqual(formVIIIExplanation.events.map(({ sequence }) => sequence), [0]);
+assert.deepEqual(formVIIIExplanation.sources, []);
+
+const formIXExplanation = buildExplanationRecord(explainSnapshot(["ح", "م", "ر"], "form-ix-ifilal"), { section: "section02", rowIndex: 0, field: "majzumPresent" });
+assert.equal(formIXExplanation.alternatives[0].value, "لَمْ يَحْمَرِرْ");
+assert.ok(formIXExplanation.rules.some(({ id }) => id === "form9.jussive-final-geminate"));
+
+const formXISnapshot = explainSnapshot(["ح", "م", "ر"], "bab-al-ifilal");
+for (const target of [{ section: "section02", rowIndex: 0, field: "majzumPresent" }, { section: "section03", rowIndex: 6, field: "imperative" }]) {
+  const explanation = buildExplanationRecord(formXISnapshot, target);
+  assert.equal(explanation.surface, formXISnapshot.sections[target.section][target.rowIndex][target.field]);
+  assert.deepEqual(explanation.alternatives.map(({ value }) => value), formXISnapshot.sections[target.section][target.rowIndex].alternatives[target.field].map(({ value }) => value));
+  assert.ok(explanation.sources.some(({ locator }) => locator.pdfPage === 133 && locator.printedPage === "131–132"));
+  assert.ok(explanation.alternatives.every(({ steps }) => steps.length > 0));
+  assert.ok(explanation.alternatives.every(({ rule, sources }) => rule.id && sources.length > 0));
+}
+
+const formXVExplanation = buildExplanationRecord(explainSnapshot(["س", "ل", "ق"], "bab-al-ifanla"), { section: "section02", rowIndex: 0, field: "majzumPresent" });
+assert.equal(formXVExplanation.events[0].operation, "deletion");
+assert.equal(formXVExplanation.events[0].affectedElements[0].radicalIndex, null);
+assert.equal(formXVExplanation.events[0].affectedElements[0].elementId, "ifanla.finalYa");
+assert.deepEqual(formXVExplanation.sources, []);
+
+const quadrSimple = buildExplanationRecord(explainSnapshot(["د", "ح", "ر", "ج"], "quadriliteral-form-i", "quadriliteral"), { section: "section01", rowIndex: 0, field: "past" });
+assert.equal(quadrSimple.structure.filter(({ kind }) => kind === "radical").at(-1).radicalIndex, 4);
+const finalCopySnapshot = explainSnapshot(["ق", "ش", "ع", "ر"], "quadriliteral-ifalalla", "quadriliteral");
+const finalCopyExplanation = buildExplanationRecord(finalCopySnapshot, { section: "section02", rowIndex: 0, field: "majzumPresent" });
+assert.deepEqual(finalCopyExplanation.alternatives.map(({ value }) => value), ["لَمْ يَقْشَعِرُّ", "لَمْ يَقْشَعِرِّ", "لَمْ يَقْشَعْرِرْ"]);
+assert.ok(finalCopyExplanation.structure.some(({ kind, radicalIndex }) => kind === "radical" && radicalIndex === 4));
+assert.ok(finalCopyExplanation.alternatives[2].steps[0].affectedElements.some(({ radicalIndex, sourceRadicalIndex }) => radicalIndex === null && sourceRadicalIndex === 4));
+assert.ok(finalCopyExplanation.rules.some(({ id }) => id === "final-derivational-copy-gemination"));
+assert.deepEqual(finalCopyExplanation.sources.map(({ sourceId }) => sourceId), ["al-inba-sharh-matn-al-bina"]);
+
+const section04Snapshot = explainSnapshot(["د", "ح", "ر", "ج"], "quadriliteral-ifanlal", "quadriliteral");
+const masdarExplanation = buildExplanationRecord(section04Snapshot, { section: "section04", group: "masdar", rowIndex: 0, valueIndex: 0 });
+const participleExplanation = buildExplanationRecord(section04Snapshot, { section: "section04", group: "activeParticiple", rowIndex: 0, valueIndex: 1 });
+assert.equal(masdarExplanation.context.rowLabel, section04Snapshot.sections.section04.masdar[0].label);
+assert.equal(participleExplanation.surface, section04Snapshot.sections.section04.activeParticiple[0].values[1]);
+assert.ok(participleExplanation.structure.length > 0);
+if (section04Snapshot.sections.section04.masdar[0].alternatives) assert.equal(masdarExplanation.alternatives[0].status, "accepted");
+
+const suppressedSnapshot = explainSnapshot(["ق", "ش", "ع", "ر"], "quadriliteral-ifalalla", "quadriliteral");
+const suppressedExplanation = buildExplanationRecord(suppressedSnapshot, { section: "section01", rowIndex: 0, field: "passivePast" });
+assert.equal(suppressedExplanation.surface, null);
+assert.equal(suppressedExplanation.availability.status, "suppressed");
+assert.deepEqual([suppressedExplanation.structure, suppressedExplanation.events, suppressedExplanation.alternatives], [[], [], []]);
+
+assert.throws(() => resolveExplanationTarget(nasaraExplanationSnapshot, { section: "bad", rowIndex: 0, field: "past" }), /Unknown explanation section/);
+assert.throws(() => resolveExplanationTarget(nasaraExplanationSnapshot, { section: "section01", rowIndex: 99, field: "past" }), /row out of range/);
+assert.throws(() => resolveExplanationTarget(nasaraExplanationSnapshot, { section: "section01", rowIndex: 0, field: "bad" }), /Unknown explanation field/);
+assert.throws(() => resolveExplanationTarget(nasaraExplanationSnapshot, { section: "section04", group: "bad", rowIndex: 0, valueIndex: 0 }), /Unknown explanation group/);
+assert.throws(() => resolveExplanationTarget(section04Snapshot, { section: "section04", group: "masdar", rowIndex: 0, valueIndex: 99 }), /value index out of range/);
+assert.deepEqual(normalizeStructuralRuns(simpleExplanation.presentation), simpleExplanation.structure);
+assert.deepEqual(resolveRuleSources(collectTargetRuleIds(resolveExplanationTarget(formXISnapshot, { section: "section02", rowIndex: 0, field: "majzumPresent" }))).map(({ sourceId }) => sourceId), ["al-inba-sharh-matn-al-bina"]);
 
 console.log("Verified all morphology, snapshot, colouring, UI, DOCX, and PDF regressions, including باب التفعلل V1.");
