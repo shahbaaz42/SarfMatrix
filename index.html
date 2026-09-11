@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arabic Ṣarf Generator</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="explanation-ui.css?v=phase-b6">
   </head>
   <body>
     <main class="app">
@@ -159,6 +160,34 @@
         </section>
       </section>
 
+      <section id="explanation-panel" class="explanation-panel" aria-labelledby="explanation-heading" hidden>
+        <div class="explanation-panel__header">
+          <div>
+            <h2 id="explanation-heading">Rules &amp; Explanation</h2>
+            <p>Choose any generated form to see its structure, transformations, accepted alternatives and linked source evidence.</p>
+          </div>
+        </div>
+        <div class="explanation-controls">
+          <div class="field">
+            <label for="explanation-section">Section</label>
+            <select id="explanation-section"></select>
+          </div>
+          <div class="field">
+            <label for="explanation-field">Form</label>
+            <select id="explanation-field"></select>
+          </div>
+          <div class="field">
+            <label for="explanation-row">Pronoun / row</label>
+            <select id="explanation-row"></select>
+          </div>
+          <div id="explanation-value-field" class="field" hidden>
+            <label for="explanation-value">Derived value</label>
+            <select id="explanation-value"></select>
+          </div>
+        </div>
+        <div id="explanation-output" class="explanation-output" aria-live="polite"></div>
+      </section>
+
       <section id="export-panel" class="export-panel" aria-labelledby="export-heading" hidden>
         <h2 id="export-heading">Download generated results</h2>
         <fieldset>
@@ -186,6 +215,7 @@
     <script src="explanation-engine.js?v=phase-b4"></script>
     <script src="localization.js?v=phase-b5"></script>
     <script src="explanation-text.js?v=phase-b5"></script>
+    <script src="explanation-ui.js?v=phase-b6"></script>
     <script src="export.js?v=ifanlal-phase-c"></script>
   </body>
 </html>
