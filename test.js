@@ -943,7 +943,7 @@ assert.deepEqual(taTransformation.affectedElement, { kind: "derivational", eleme
 const taPastRuns = tabiaVIII.sections.section01[0].presentation.past.runs;
 assert.deepEqual(taPastRuns.filter((run) => run.radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
 assert.equal(taPastRuns.filter((run) => run.text.startsWith("ت")).length, 1);
-assert.deepEqual(taPastRuns.find((run) => run.radicalIndex === 1), { text: "تَّ", radicalIndex: 1 });
+assert.deepEqual(taPastRuns.find((run) => run.radicalIndex === 1), { text: "تَّ", radicalIndex: 1, kind: "radical" });
 assert.equal(tabiaVIII.sections.section01[0].past.includes("تت"), false);
 const taDispatch = dispatchGeneration({ root: ["ت", "ب", "ع"], bab: "form-viii-iftial", babLabel: "باب الافتعال", majzumParticle: "لَمْ", mansubParticle: "لَنْ", colourRootLetters: true });
 for (const section of [taDispatch.sections.section01, taDispatch.sections.section02, taDispatch.sections.section03]) assert.ok(section.length > 0);
@@ -1178,7 +1178,7 @@ assert.equal(ifawwal.sections.section01.every(({ passivePast, passivePresent }) 
 assert.deepEqual(ifawwal.sections.section04.passiveParticiple, []);
 const assertForm13Structure = (presentation, extraIds = []) => {
   assert.deepEqual(presentation.runs.filter(({ radicalIndex }) => radicalIndex).map(({ radicalIndex }) => radicalIndex), [1, 2, 3]);
-  const geminate = presentation.runs.find(({ kind }) => kind === "derivational-geminate");
+  const geminate = presentation.runs.find(({ ruleType }) => ruleType === "derivational-waw-gemination");
   assert.equal(geminate.radicalIndex, null);
   assert.equal(geminate.lexicalRadicalInGeminate, false);
   assert.deepEqual(geminate.underlying.map(({ elementId, radicalIndex }) => [elementId, radicalIndex]), [["form13.waw1", null], ["form13.waw2", null]]);
@@ -1773,6 +1773,44 @@ for (const [fixtureId, snapshot] of contractSnapshots) {
   ].flatMap((presentation) => presentation.runs);
   if (snapshot.rootFamily === "triliteral") assert.equal(allRuns.some(({ radicalIndex }) => radicalIndex === 4), false, fixtureId);
   else assert.equal(snapshot.sections.section01[0].presentation.past.runs.some(({ radicalIndex }) => radicalIndex === 4), true, fixtureId);
+}
+
+// Phase B1 structural-ownership coverage.  This intentionally walks every
+// presentation in all four sections of the same 21-family B0 matrix rather
+// than sampling only the first conjugation.  elementId is optional for
+// ordinary pattern/inflection runs, but mandatory for derivational copies.
+const OWNERSHIP_KINDS = new Set(["radical", "derivational", "derivational-copy", "grammatical", "particle", "presentation"]);
+function collectMorphologyPresentations(value, found = []) {
+  if (!value || typeof value !== "object") return found;
+  if (Array.isArray(value.runs) && typeof value.text === "string") found.push(value);
+  for (const child of Object.values(value)) collectMorphologyPresentations(child, found);
+  return found;
+}
+function collectObjects(value, predicate, found = []) {
+  if (!value || typeof value !== "object") return found;
+  if (predicate(value)) found.push(value);
+  for (const child of Object.values(value)) collectObjects(child, predicate, found);
+  return found;
+}
+for (const [fixtureId, snapshot] of contractSnapshots) {
+  for (const sectionName of ["section01", "section02", "section03", "section04"]) {
+    const presentations = collectMorphologyPresentations(snapshot.sections[sectionName]);
+    assert.ok(presentations.length > 0, `${fixtureId}: ${sectionName} has structural coverage`);
+    for (const { runs } of presentations) for (const run of runs) {
+      assert.ok(OWNERSHIP_KINDS.has(run.kind), `${fixtureId}: recognized run kind for ${run.text}`);
+      if (run.radicalIndex > 0) assert.equal(run.kind, "radical", `${fixtureId}: lexical ownership`);
+      if (["derivational-copy", "grammatical", "particle", "presentation"].includes(run.kind)) assert.equal(run.radicalIndex, null, `${fixtureId}: non-lexical ownership`);
+      if (run.kind === "derivational-copy") {
+        assert.ok(run.sourceRadicalIndex > 0, `${fixtureId}: copy source`);
+        assert.ok(run.elementId, `${fixtureId}: copy elementId`);
+      }
+    }
+  }
+  for (const copy of collectObjects(snapshot, (value) => value.kind === "derivational-copy")) {
+    assert.equal(copy.radicalIndex, null, `${fixtureId}: nested copy is non-lexical`);
+    assert.ok(copy.sourceRadicalIndex > 0, `${fixtureId}: nested copy source`);
+    assert.ok(copy.elementId, `${fixtureId}: nested copy elementId`);
+  }
 }
 
 // Existing immutable invalidation and family compatibility behavior includes both quadriliteral groups.

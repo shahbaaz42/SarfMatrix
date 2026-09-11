@@ -560,7 +560,10 @@ function generateZarfForms([first, second, third], bab) {
 // Presentation metadata is composed at the same structural points as the
 // morphology itself. It never searches a completed word for matching letters.
 function morphologyRun(text, radicalIndex = null, metadata = {}) {
-  return Object.freeze({ text, radicalIndex, ...metadata });
+  // A positive ownership index is, by definition, lexical.  Keeping this
+  // invariant here also protects reconstructed runs (where marks are moved
+  // onto the final consonant) from silently losing their classification.
+  return Object.freeze({ text, radicalIndex, ...(radicalIndex > 0 ? { kind: "radical" } : {}), ...metadata });
 }
 
 function morphologyValue(...parts) {
@@ -578,8 +581,21 @@ function morphologyValue(...parts) {
   return Object.freeze({ text: runs.map(({ text }) => text).join(""), runs: Object.freeze(runs) });
 }
 
-function literal(text) { return morphologyRun(text, null); }
-function grammatical(text) { return morphologyRun(text, null, { kind: "grammatical" }); }
+function derivational(text, elementId = null) { return morphologyRun(text, null, { kind: "derivational", ...(elementId ? { elementId } : {}) }); }
+function grammatical(text, elementId = null) { return morphologyRun(text, null, { kind: "grammatical", ...(elementId ? { elementId } : {}) }); }
+function particleRun(text, elementId = null) { return morphologyRun(text, null, { kind: "particle", ...(elementId ? { elementId } : {}) }); }
+function presentation(text, elementId = null) { return morphologyRun(text, null, { kind: "presentation", ...(elementId ? { elementId } : {}) }); }
+function grammaticalEnding(text) {
+  const elementId = text.includes(HEAVY_NUN) ? "emphasis.heavy"
+    : text.includes(LIGHT_NUN) ? "emphasis.light"
+      : "inflection.ending";
+  return grammatical(text, elementId);
+}
+function finiteOrDerivationalPrefix(text, derivationalElementId) {
+  return text === `${ALIF}${KASRA}`
+    ? derivational(text, derivationalElementId)
+    : grammatical(text, "personPrefix");
+}
 function radical(root, index, marks = "") { return morphologyRun(`${root[index - 1]}${marks}`, index, { kind: "radical" }); }
 function derivationalCopy(root, sourceRadicalIndex = 3, marks = "", elementId = null) {
   return morphologyRun(`${root[sourceRadicalIndex - 1]}${marks}`, null, { kind: "derivational-copy", sourceRadicalIndex, ...(elementId ? { elementId } : {}) });
@@ -618,14 +634,14 @@ function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transforma
   for (const [kind, value, marks = "", elementId = null] of template) {
     if (kind === "radical") runs.push(radical(root, value, marks));
     else if (kind === "copyRadical") runs.push(derivationalCopy(root, value, marks, elementId));
-    else if (kind === "personPrefix") runs.push(literal(`${sighah.presentPrefix}${value}`));
+    else if (kind === "personPrefix") runs.push(grammatical(`${sighah.presentPrefix}${value}`, `personPrefix.${sighah.id}`));
     else if (kind === "grammaticalPersonPrefix") runs.push(grammatical(`${sighah.presentPrefix}${value}`));
     else if (kind === "derivationalGeminate") {
       const waw1 = value;
       const waw2 = marks;
       const vowel = elementId;
       runs.push(morphologyRun(`${LETTERS.WAW}${SHADDA}${vowel}`, null, {
-        kind: "derivational-geminate", ruleType: "derivational-waw-gemination",
+        kind: "derivational", elementId: `${waw1}+${waw2}`, ruleType: "derivational-waw-gemination",
         lexicalRadicalInGeminate: false,
         underlying: Object.freeze([
           Object.freeze({ elementId: waw1, kind: "derivational", text: `${LETTERS.WAW}${SUKUN}`, radicalIndex: null }),
@@ -640,10 +656,10 @@ function instantiateMazidTemplate(root, template, sighah = SIGHAS[0], transforma
         // The infix's vowel moves onto the visible, doubled R1. Its origin is
         // retained by transformation metadata rather than a fake fourth run.
         runs[runs.length - 1] = morphologyRun(`${transformation.surfaceRadical?.text ?? root[0]}${SHADDA}${marks}`, 1);
-      } else runs.push(literal(`${transformation?.replacement ?? LETTERS.TA}${marks}`));
+      } else runs.push(derivational(`${transformation?.replacement ?? LETTERS.TA}${marks}`, "form8Ta"));
     } else if (kind === "derivational" && DERIVATIONAL_ELEMENTS[value]) {
       runs.push(morphologyRun(`${DERIVATIONAL_ELEMENTS[value]}${marks}`, null, { kind: "derivational", elementId: value }));
-    } else runs.push(literal(value));
+    } else runs.push(derivational(value, elementId));
   }
   return morphologyValue(runs);
 }
@@ -800,12 +816,12 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
     const runs = [...stem.runs];
     const last = runs.pop();
     const metadata = Object.fromEntries(Object.entries(last).filter(([key]) => !["text", "radicalIndex"].includes(key)));
-    const value = morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex, metadata), grammatical(remainder));
+    const value = morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex, metadata), grammaticalEnding(remainder));
     return Object.freeze({ ...value, state: stem.state, surfaceRuns: value.runs, underlyingRuns: stem.underlyingRuns, defaultVariant: stem.defaultVariant, acceptedAlternatives: stem.acceptedAlternatives, ruleId: stem.ruleId });
   };
-  const particle = (text, value) => morphologyValue(grammatical(`${text} `), value.runs);
+  const particle = (text, value) => morphologyValue(particleRun(`${text} `, "particle.mood"), value.runs);
   const pastPrefix = () => [morphologyRun(`${ALIF}${KASRA}`, null, { kind: "derivational", elementId: "quadriliteral-ifalalla.hamzatWasl" }), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,FATHA)];
-  const presentPrefix = (s, expanded = false) => [grammatical(`${s.presentPrefix}${FATHA}`), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,expanded?SUKUN:KASRA)];
+  const presentPrefix = (s, expanded = false) => [grammatical(`${s.presentPrefix}${FATHA}`, `personPrefix.${s.id}`), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,expanded?SUKUN:KASRA)];
   const imperativePrefix = (expanded = false) => [morphologyRun(`${ALIF}${KASRA}`, null, { kind: "derivational", elementId: "quadriliteral-ifalalla.hamzatWasl" }), radical(root,1,SUKUN), radical(root,2,FATHA), radical(root,3,expanded?SUKUN:KASRA)];
   const stem = (prefixRuns, state, lexicalVowel = "", copyVowel = "") => finalDerivationalCopyGeminationTransformer({ root, prefixRuns, state, lexicalVowel, copyVowel });
   const expandedPast = new Set(["3fp","2ms","2md","2mp","2fs","2fd","2fp","1s","1p"]);
@@ -830,8 +846,8 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
     const present = attach(ordinaryStem, normalized(s.presentEnding));
     const jussiveVerb = attach(ordinaryStem, bare(s)?FATHA:normalized(s.majzumEnding));
     const mansubVerb = attach(ordinaryStem, normalized(s.mansubEnding));
-    const heavy = attach(stem([grammatical(`${LAM}${FATHA}`),...presentPrefix(s,femininePlural(s))],femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:""), normalized(s.heavyEmphaticEnding));
-    const light = s.lightEmphaticEnding===null ? morphologyValue() : attach(stem([grammatical(`${LAM}${FATHA}`),...presentPrefix(s)],"contracted"),normalized(s.lightEmphaticEnding));
+    const heavy = attach(stem([particleRun(`${LAM}${FATHA}`, "particle.emphasis"),...presentPrefix(s,femininePlural(s))],femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:""), normalized(s.heavyEmphaticEnding));
+    const light = s.lightEmphaticEnding===null ? morphologyValue() : attach(stem([particleRun(`${LAM}${FATHA}`, "particle.emphasis"),...presentPrefix(s)],"contracted"),normalized(s.lightEmphaticEnding));
     let imperative=morphologyValue(), heavyImperative=morphologyValue(), lightImperative=morphologyValue(), imperativeVariants=[];
     if(s.person===2){
       const directStem=stem(imperativePrefix(s.id==="2fp"),s.id==="2fp"?"expanded":"contracted",s.id==="2fp"?KASRA:"");
@@ -840,7 +856,7 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
       lightImperative=s.lightEmphaticEnding===null?morphologyValue():attach(stem(imperativePrefix(),"contracted"),normalized(s.lightEmphaticEnding));
       if(s.id==="2ms") imperativeVariants=alternativeValues(imperativePrefix());
     } else {
-      const lamPrefix=[grammatical(`${LAM}${KASRA}`),...presentPrefix(s,femininePlural(s))];
+      const lamPrefix=[particleRun(`${LAM}${KASRA}`, "particle.imperative"),...presentPrefix(s,femininePlural(s))];
       const lamStem=stem(lamPrefix,femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:"");
       imperative=attach(lamStem,bare(s)?FATHA:normalized(s.majzumEnding));
       heavyImperative=attach(stem(lamPrefix,femininePlural(s)?"expanded":"contracted",femininePlural(s)?KASRA:""),normalized(s.heavyEmphaticEnding));
@@ -865,15 +881,15 @@ function buildQuadriliteralIfalallaSnapshot({ root, bab, babLabel, majzumParticl
 // a quadriliteral root radical, and remains visible in run metadata.
 function buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
   const availability = MAZID_BAB_CONFIG[bab].availability;
-  const contracted = (prefix, r2Vowel = FATHA) => [literal(prefix), radical(root, 1, SUKUN), radical(root, 2, r2Vowel), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null } })];
-  const expanded = (prefix, r2Vowel = FATHA, r3Vowel = FATHA) => [literal(prefix), radical(root, 1, SUKUN), radical(root, 2, r2Vowel), radical(root, 3, r3Vowel), derivationalCopy(root)];
+  const contracted = (prefix, r2Vowel = FATHA) => [finiteOrDerivationalPrefix(prefix, "form9.hamzatWasl"), radical(root, 1, SUKUN), radical(root, 2, r2Vowel), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" } })];
+  const expanded = (prefix, r2Vowel = FATHA, r3Vowel = FATHA) => [finiteOrDerivationalPrefix(prefix, "form9.hamzatWasl"), radical(root, 1, SUKUN), radical(root, 2, r2Vowel), radical(root, 3, r3Vowel), derivationalCopy(root, 3, "", "form9.r3Copy")];
   const attach = (stem, ending) => {
     const { marks, remainder } = splitInitialMarks(ending);
     const last = stem.at(-1);
     const metadata = Object.fromEntries(Object.entries(last).filter(([key]) => !["text", "radicalIndex"].includes(key)));
-    return morphologyValue(stem.slice(0, -1), morphologyRun(last.text + marks, last.radicalIndex, metadata), literal(remainder));
+    return morphologyValue(stem.slice(0, -1), morphologyRun(last.text + marks, last.radicalIndex, metadata), grammaticalEnding(remainder));
   };
-  const withParticle = (particle, value) => morphologyValue(literal(`${particle} `), value.runs);
+  const withParticle = (particle, value) => morphologyValue(particleRun(`${particle} `, "particle.mood"), value.runs);
   const ixEnding = (ending) => ending?.replaceAll(`${WAW}${SUKUN}`, WAW).replaceAll(`${YA}${SUKUN}`, YA);
   const presentPrefix = (s) => `${s.presentPrefix}${FATHA}`;
   const pastExpanded = new Set(["3fp", "2ms", "2md", "2mp", "2fs", "2fd", "2fp", "1s", "1p"]);
@@ -887,8 +903,8 @@ function buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
     const majzum = femininePlural(s) ? attach(ordinaryPresentStem, s.majzumEnding) : attach(contracted(presentPrefix(s)), s.majzumEnding === SUKUN ? FATHA : ixEnding(s.majzumEnding));
     const mansub = attach(ordinaryPresentStem, ixEnding(s.mansubEnding));
     const heavyStem = femininePlural(s) ? expanded(presentPrefix(s), FATHA, KASRA) : contracted(presentPrefix(s));
-    const heavy = attach([literal(`${LAM}${FATHA}`), ...heavyStem], s.heavyEmphaticEnding);
-    const light = s.lightEmphaticEnding === null ? morphologyValue() : attach([literal(`${LAM}${FATHA}`), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
+    const heavy = attach([particleRun(`${LAM}${FATHA}`, "particle.emphasis"), ...heavyStem], s.heavyEmphaticEnding);
+    const light = s.lightEmphaticEnding === null ? morphologyValue() : attach([particleRun(`${LAM}${FATHA}`, "particle.emphasis"), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
     let imperative = morphologyValue(), heavyImperative = morphologyValue(), lightImperative = morphologyValue();
     if (s.person === 2) {
       const directStem = ["2ms", "2fp"].includes(s.id) ? expanded(`${ALIF}${KASRA}`, FATHA, KASRA) : contracted(`${ALIF}${KASRA}`);
@@ -896,9 +912,9 @@ function buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
       heavyImperative = attach(["2fp"].includes(s.id) ? expanded(`${ALIF}${KASRA}`, FATHA, KASRA) : contracted(`${ALIF}${KASRA}`), s.heavyEmphaticEnding);
       lightImperative = s.lightEmphaticEnding === null ? morphologyValue() : attach(contracted(`${ALIF}${KASRA}`), s.lightEmphaticEnding);
     } else {
-      imperative = attach([literal(`${LAM}${KASRA}`), ...ordinaryPresentStem], s.majzumEnding === SUKUN ? FATHA : ixEnding(s.majzumEnding));
-      heavyImperative = attach([literal(`${LAM}${KASRA}`), ...heavyStem], s.heavyEmphaticEnding);
-      lightImperative = s.lightEmphaticEnding === null ? morphologyValue() : attach([literal(`${LAM}${KASRA}`), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
+      imperative = attach([particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...ordinaryPresentStem], s.majzumEnding === SUKUN ? FATHA : ixEnding(s.majzumEnding));
+      heavyImperative = attach([particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...heavyStem], s.heavyEmphaticEnding);
+      lightImperative = s.lightEmphaticEnding === null ? morphologyValue() : attach([particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
     }
     const jussiveVariant = femininePlural(s) ? null : attach(expanded(presentPrefix(s), FATHA, KASRA), SUKUN);
     const imperativeVariant = s.id === "2ms" ? attach(contracted(`${ALIF}${KASRA}`), FATHA) : null;
@@ -908,10 +924,10 @@ function buildFormIXSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   const section01 = verbs.map((v) => ({ pronoun: v.pronoun, past: v.past.text, present: v.present.text, passivePast: null, passivePresent: null, presentation: { past: v.past, present: v.present, passivePast: empty, passivePresent: empty } }));
   const section02 = verbs.map((v) => ({ pronoun: v.pronoun, majzumPresent: v.majzum.text, mansubPresent: v.mansub.text, heavyEmphatic: v.heavy.text || null, lightEmphatic: v.light.text || null, variants: v.jussiveVariant ? { majzumPresent: [{ value: withParticle(majzumParticle, v.jussiveVariant).text, presentation: withParticle(majzumParticle, v.jussiveVariant) }] } : {}, presentation: { majzumPresent: v.majzum, mansubPresent: v.mansub, heavyEmphatic: v.heavy, lightEmphatic: v.light } }));
   const section03 = verbs.map((v) => ({ pronoun: v.pronoun, imperative: v.imperative.text || null, heavyImperative: v.heavyImperative.text || null, lightImperative: v.lightImperative.text || null, variants: v.imperativeVariant ? { imperative: [{ value: v.imperativeVariant.text, presentation: v.imperativeVariant }] } : {}, presentation: { imperative: v.imperative, heavyImperative: v.heavyImperative, lightImperative: v.lightImperative } }));
-  const masdar = morphologyValue(literal(`${ALIF}${KASRA}`), radical(root, 1, SUKUN), radical(root, 2, KASRA), radical(root, 3, FATHA), literal(ALIF), derivationalCopy(root));
-  const participleStem = [literal(`${MIM}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null } })];
+  const masdar = morphologyValue(derivational(`${ALIF}${KASRA}`), radical(root, 1, SUKUN), radical(root, 2, KASRA), radical(root, 3, FATHA), derivational(ALIF), derivationalCopy(root, 3, "", "form9.r3Copy"));
+  const participleStem = [derivational(`${MIM}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" } })];
   const nominalRows = NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => attach(participleStem, form[key]).text), presentations: NOMINAL_INFLECTIONS.map((form) => attach(participleStem, form[key])) }));
-  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle, transformation: { kind: "r3-stem-alternation", derivationalElement: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null }, stems: ["contracted", "expanded"] }, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows, passiveParticiple: [] } } });
+  return deepFreeze({ root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle, transformation: { kind: "r3-stem-alternation", derivationalElement: { kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form9.r3Copy" }, stems: ["contracted", "expanded"] }, presentation: { colourRootLetters: Boolean(colourRootLetters) }, sections: { section01, section02, section03, section04: { masdar: [{ label: "المصدر", values: [masdar.text], presentations: [masdar] }], activeParticiple: nominalRows, passiveParticiple: [] } } });
 }
 
 // Bāb al-ifʿīlāl uses the same generic lexical-R3/derivational-copy operation
@@ -923,12 +939,12 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   const { availability } = config;
   const copyMetadata = Object.freeze({ kind: "derivational-copy", sourceRadicalIndex: 3, radicalIndex: null, elementId: "form11.r3Copy" });
   const contracted = (prefix) => [
-    literal(prefix), radical(root, 1, SUKUN), radical(root, 2, FATHA),
+    finiteOrDerivationalPrefix(prefix, "form11.hamzatWasl"), radical(root, 1, SUKUN), radical(root, 2, FATHA),
     morphologyRun(ALIF, null, { kind: "derivational", elementId: "form11.medialAlif" }),
     morphologyRun(`${root[2]}${SHADDA}`, 3, { absorbed: copyMetadata }),
   ];
   const expanded = (prefix, r3Vowel) => [
-    literal(prefix), radical(root, 1, SUKUN), radical(root, 2, FATHA),
+    finiteOrDerivationalPrefix(prefix, "form11.hamzatWasl"), radical(root, 1, SUKUN), radical(root, 2, FATHA),
     morphologyRun(ALIF, null, { kind: "derivational", elementId: "form11.medialAlif" }),
     radical(root, 3, r3Vowel), derivationalCopy(root, 3, "", "form11.r3Copy"),
   ];
@@ -936,9 +952,9 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
     const { marks, remainder } = splitInitialMarks(ending);
     const last = stem.at(-1);
     const metadata = Object.fromEntries(Object.entries(last).filter(([key]) => !["text", "radicalIndex"].includes(key)));
-    return morphologyValue(stem.slice(0, -1), morphologyRun(last.text + marks, last.radicalIndex, metadata), literal(remainder));
+    return morphologyValue(stem.slice(0, -1), morphologyRun(last.text + marks, last.radicalIndex, metadata), grammaticalEnding(remainder));
   };
-  const withParticle = (particle, value) => morphologyValue(literal(`${particle} `), value.runs);
+  const withParticle = (particle, value) => morphologyValue(particleRun(`${particle} `, "particle.mood"), value.runs);
   const normalizedEnding = (ending) => ending?.replaceAll(`${WAW}${SUKUN}`, WAW).replaceAll(`${YA}${SUKUN}`, YA);
   const presentPrefix = (s) => `${s.presentPrefix}${FATHA}`;
   const femininePlural = (s) => s.gender === "feminine" && s.number === "plural";
@@ -947,7 +963,7 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   const directEndings = { "2ms": SUKUN, "2md": FATHA + ALIF, "2mp": DAMMA + WAW + SUKUN + ALIF, "2fs": KASRA + YA + SUKUN, "2fd": FATHA + ALIF, "2fp": SUKUN + NUN + FATHA };
   const alternatives = (prefix, particle = null, separator = " ") => {
     const make = (variantId, value) => {
-      const presentation = particle ? morphologyValue(literal(`${particle}${separator}`), value.runs) : value;
+      const presentation = particle ? morphologyValue(particleRun(`${particle}${separator}`, "particle.mood"), value.runs) : value;
       return { variantId, value: presentation.text, presentation };
     };
     return [
@@ -982,7 +998,7 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
       }
     } else {
       const stem = femininePlural(s) ? expanded(presentPrefix(s), KASRA) : contracted(presentPrefix(s));
-      imperative = attach([literal(`${LAM}${KASRA}`), ...stem], s.majzumEnding === SUKUN ? FATHA : normalizedEnding(s.majzumEnding));
+      imperative = attach([particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...stem], s.majzumEnding === SUKUN ? FATHA : normalizedEnding(s.majzumEnding));
       if (singularSound.has(s.id)) imperativeVariants = alternatives(presentPrefix(s), `${LAM}${KASRA}`, "");
       if (singularSound.has(s.id)) imperativeRule = rule("form11.lam-al-amr-final-geminate");
     }
@@ -996,8 +1012,8 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
       heavyImperative = attach(emphaticStem, s.heavyEmphaticEnding);
       if (s.lightEmphaticEnding !== null) lightImperative = attach(contracted(`${ALIF}${KASRA}`), s.lightEmphaticEnding);
     } else {
-      heavyImperative = attach([literal(`${LAM}${KASRA}`), ...emphasisStem], s.heavyEmphaticEnding);
-      if (s.lightEmphaticEnding !== null) lightImperative = attach([literal(`${LAM}${KASRA}`), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
+      heavyImperative = attach([particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...emphasisStem], s.heavyEmphaticEnding);
+      if (s.lightEmphaticEnding !== null) lightImperative = attach([particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...contracted(presentPrefix(s))], s.lightEmphaticEnding);
     }
     const majzumVariants = singularSound.has(s.id) ? alternatives(presentPrefix(s), majzumParticle) : [];
     return { s, past, present, majzum: withParticle(majzumParticle, majzum), mansub: withParticle(mansubParticle, mansub), heavy, light, imperative, heavyImperative, lightImperative, majzumVariants, imperativeVariants, imperativeRule };
@@ -1029,8 +1045,8 @@ function buildFormXISnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
   ];
   const nominalRows = NOMINAL_CASES.map(({ key, label }) => ({
     label,
-    values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(participleStem, literal(form[key])).text),
-    presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(participleStem, literal(form[key]))),
+    values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(participleStem, grammatical(form[key], `nominalEnding.${form.id}.${key}`)).text),
+    presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(participleStem, grammatical(form[key], `nominalEnding.${form.id}.${key}`))),
   }));
   return deepFreeze({
     root: [...root], bab, babLabel, family: "mazid", availability, majzumParticle, mansubParticle,
@@ -1051,10 +1067,15 @@ function transformDerivationalWeakFinal(surfaceValue, ruleId, kind = "derivation
 function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubParticle, colourRootLetters = false }) {
   const config = MAZID_BAB_CONFIG[bab];
   const empty = morphologyValue();
-  const stem = (prefix, r2Vowel = FATHA, r3Marks = "") => [
-    grammatical(prefix), radical(root, 1, SUKUN), radical(root, 2, r2Vowel),
+  const stem = (prefix, r2Vowel = FATHA, r3Marks = "") => {
+    const lam = prefix.startsWith(`${LAM}${FATHA}`) ? `${LAM}${FATHA}` : prefix.startsWith(`${LAM}${KASRA}`) ? `${LAM}${KASRA}` : null;
+    const prefixRuns = lam
+      ? [particleRun(lam, lam.includes(FATHA) ? "particle.emphasis" : "particle.imperative"), grammatical(prefix.slice(lam.length), "personPrefix")]
+      : [finiteOrDerivationalPrefix(prefix, "ifanla.hamzatWasl")];
+    return [...prefixRuns, radical(root, 1, SUKUN), radical(root, 2, r2Vowel),
     morphologyRun(`${NUN}${SUKUN}`, null, { kind: "derivational", elementId: "ifanla.insertedNun" }), radical(root, 3, r3Marks),
-  ];
+    ];
+  };
   const value = (prefix, descriptor, r2Vowel = FATHA) => {
     if (!descriptor) return empty;
     const [r3Marks, yaSurface, suffix = "", ruleId = "ifanla.final-ya.retain", yaKind = "derivational"] = descriptor;
@@ -1063,7 +1084,7 @@ function buildFormXVSnapshot({ root, bab, babLabel, majzumParticle, mansubPartic
     return Object.freeze({ ...base, transformations: Object.freeze([transformed.record]), deletedElements: Object.freeze(yaSurface ? [] : [transformed.record]) });
   };
   const particle = (text, form) => {
-    const base = morphologyValue(grammatical(`${text} `), form.runs);
+    const base = morphologyValue(particleRun(`${text} `, "particle.mood"), form.runs);
     return Object.freeze({ ...base, transformations: form.transformations, deletedElements: form.deletedElements });
   };
   const prefixes = SIGHAS.map((s) => `${s.presentPrefix}${FATHA}`);
@@ -1140,13 +1161,12 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
     return { ...transformation, acceptedAlternatives, underlyingForm, resultForm, formStages: intermediateForm ? [underlyingForm, intermediateForm, resultForm] : [underlyingForm, resultForm] };
   })() : config.transformation ?? null;
   const verbs = SIGHAS.map((sighah) => {
-    const addition = (text) => config.form === 14 || config.grammaticalAdditions ? grammatical(text) : literal(text);
     const inflect = (name, value) => inflectVerbStem(instantiateMazidTemplate(root, templates[name], sighah, transformation).runs, ending(value));
     const present = instantiateMazidTemplate(root, templates.activePresent, sighah, transformation);
-    const emphatic = (key) => sighah[key] === null ? morphologyValue() : inflectVerbStem([addition(`${LAM}${FATHA}`), ...present.runs], ending(sighah[key]));
+    const emphatic = (key) => sighah[key] === null ? morphologyValue() : inflectVerbStem([particleRun(`${LAM}${FATHA}`, "particle.emphasis"), ...present.runs], ending(sighah[key]));
     const imperative = (key) => {
       if (sighah[key] === null) return morphologyValue();
-      const stem = sighah.person === 2 ? instantiateMazidTemplate(root, templates.imperative, sighah, transformation).runs : [addition(`${LAM}${KASRA}`), ...present.runs];
+      const stem = sighah.person === 2 ? instantiateMazidTemplate(root, templates.imperative, sighah, transformation).runs : [particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...present.runs];
       return inflectVerbStem(stem, ending(sighah[key]));
     };
     const majzum = inflectVerbStem(present.runs, ending(sighah.majzumEnding));
@@ -1156,14 +1176,14 @@ function buildMazidSnapshot({ root, bab, babLabel, majzumParticle, mansubParticl
       past: inflect("activePast", sighah.pastEnding), present: inflect("activePresent", sighah.presentEnding),
       passivePast: config.availability?.passivePast === "suppressed" ? morphologyValue() : inflect("passivePast", sighah.pastEnding),
       passivePresent: config.availability?.passivePresent === "suppressed" ? morphologyValue() : inflect("passivePresent", sighah.presentEnding),
-      majzumPresent: morphologyValue(addition(`${majzumParticle} `), majzum.runs), mansubPresent: morphologyValue(addition(`${mansubParticle} `), mansub.runs),
+      majzumPresent: morphologyValue(particleRun(`${majzumParticle} `, "particle.jussive"), majzum.runs), mansubPresent: morphologyValue(particleRun(`${mansubParticle} `, "particle.subjunctive"), mansub.runs),
       heavyEmphatic: emphatic("heavyEmphaticEnding"), lightEmphatic: emphatic("lightEmphaticEnding"),
       imperative: imperative("majzumEnding"), heavyImperative: imperative("heavyEmphaticEnding"), lightImperative: imperative("lightEmphaticEnding"),
     };
   });
   const nominalRows = (template) => {
     const stem = instantiateMazidTemplate(root, template, SIGHAS[0], transformation).runs;
-    const nominalEnding = (text) => config.form === 14 || config.grammaticalAdditions ? grammatical(text) : literal(text);
+    const nominalEnding = (text) => grammatical(text, "nominalEnding");
     return NOMINAL_CASES.map(({ key, label }) => ({ label, values: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, nominalEnding(form[key])).text), presentations: NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, nominalEnding(form[key]))) }));
   };
   const section01 = verbs.map((v) => ({ pronoun: v.pronoun, past: v.past.text, present: v.present.text, passivePast: v.passivePast.text || null, passivePresent: v.passivePresent.text || null, presentation: { past: v.past, present: v.present, passivePast: v.passivePast, passivePresent: v.passivePresent } }));
@@ -1194,12 +1214,12 @@ function inflectVerbStem(stemRuns, ending) {
   const finalRadical = runs.pop();
   if (!finalRadical || (![3, 4].includes(finalRadical.radicalIndex) && finalRadical.sourceRadicalIndex !== 3)) throw new Error("Verb stem must end with its final radical or an approved derivational copy");
   const metadata = Object.fromEntries(Object.entries(finalRadical).filter(([key]) => !["text", "radicalIndex"].includes(key)));
-  const suffix = finalRadical.elementId === "form14.r3Copy" ? grammatical(remainder) : literal(remainder);
+  const suffix = grammaticalEnding(remainder);
   return morphologyValue(runs, morphologyRun(finalRadical.text + marks, finalRadical.radicalIndex, metadata), suffix);
 }
 
 function presentStemValue(root, config, sighah) {
-  return morphologyValue(literal(`${sighah.presentPrefix}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel), radical(root, 3));
+  return morphologyValue(grammatical(`${sighah.presentPrefix}${FATHA}`, `personPrefix.${sighah.id}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel), radical(root, 3));
 }
 
 function structuralVerbValues(root, bab, majzumParticle, mansubParticle) {
@@ -1208,25 +1228,25 @@ function structuralVerbValues(root, bab, majzumParticle, mansubParticle) {
     const activePast = inflectVerbStem([radical(root, 1, FATHA), radical(root, 2, config.pastMiddleVowel), radical(root, 3)], sighah.pastEnding);
     const activePresent = inflectVerbStem(presentStemValue(root, config, sighah).runs, sighah.presentEnding);
     const passivePast = inflectVerbStem([radical(root, 1, DAMMA), radical(root, 2, KASRA), radical(root, 3)], sighah.pastEnding);
-    const passivePresent = inflectVerbStem([literal(`${sighah.presentPrefix}${DAMMA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3)], sighah.presentEnding);
+    const passivePresent = inflectVerbStem([grammatical(`${sighah.presentPrefix}${DAMMA}`, `personPrefix.${sighah.id}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3)], sighah.presentEnding);
     const majzumVerb = inflectVerbStem(presentStemValue(root, config, sighah).runs, sighah.majzumEnding);
     const mansubVerb = inflectVerbStem(presentStemValue(root, config, sighah).runs, sighah.mansubEnding);
     const emphatic = (weight) => {
       const ending = sighah[weight === "heavy" ? "heavyEmphaticEnding" : "lightEmphaticEnding"];
-      return ending === null ? morphologyValue() : inflectVerbStem([literal(`${LAM}${FATHA}`), ...presentStemValue(root, config, sighah).runs], ending);
+      return ending === null ? morphologyValue() : inflectVerbStem([particleRun(`${LAM}${FATHA}`, "particle.emphasis"), ...presentStemValue(root, config, sighah).runs], ending);
     };
     const imperative = (weight) => {
       const ending = sighah[weight === "ordinary" ? "majzumEnding" : weight === "heavy" ? "heavyEmphaticEnding" : "lightEmphaticEnding"];
       if (ending === null) return morphologyValue();
       const stem = sighah.person === 2
-        ? [literal(`${ALIF}${config.imperativeInitialVowel}`), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel), radical(root, 3)]
-        : [literal(`${LAM}${KASRA}`), ...presentStemValue(root, config, sighah).runs];
+        ? [derivational(`${ALIF}${config.imperativeInitialVowel}`, "imperative.hamzatWasl"), radical(root, 1, SUKUN), radical(root, 2, config.presentMiddleVowel), radical(root, 3)]
+        : [particleRun(`${LAM}${KASRA}`, "particle.imperative"), ...presentStemValue(root, config, sighah).runs];
       return inflectVerbStem(stem, ending);
     };
     return Object.freeze({
       activePast, activePresent, passivePast, passivePresent,
-      majzumPresent: morphologyValue(literal(`${majzumParticle} `), ...majzumVerb.runs),
-      mansubPresent: morphologyValue(literal(`${mansubParticle} `), ...mansubVerb.runs),
+      majzumPresent: morphologyValue(particleRun(`${majzumParticle} `, "particle.jussive"), ...majzumVerb.runs),
+      mansubPresent: morphologyValue(particleRun(`${mansubParticle} `, "particle.subjunctive"), ...mansubVerb.runs),
       heavyEmphatic: emphatic("heavy"), lightEmphatic: emphatic("light"),
       imperative: imperative("ordinary"), heavyImperative: imperative("heavy"), lightImperative: imperative("light"),
     });
@@ -1238,34 +1258,34 @@ function inflectStructuralStem(stemRuns, ending) {
   const { marks, remainder } = splitInitialMarks(ending);
   const runs = [...stemRuns];
   const last = runs.pop();
-  return morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex), literal(remainder));
+  return morphologyValue(runs, morphologyRun(last.text + marks, last.radicalIndex), grammaticalEnding(remainder));
 }
 
 function structuralDerivedValues(root, bab) {
-  const activeStem = [radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3)];
-  const passiveStem = [literal(`${MIM}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, DAMMA), literal(WAW), radical(root, 3)];
+  const activeStem = [radical(root, 1, FATHA), derivational(ALIF, "activeParticiple.medialAlif"), radical(root, 2, KASRA), radical(root, 3)];
+  const passiveStem = [derivational(`${MIM}${FATHA}`, "passiveParticiple.mim"), radical(root, 1, SUKUN), radical(root, 2, DAMMA), derivational(WAW, "passiveParticiple.waw"), radical(root, 3)];
   const nominalRows = (stem) => Object.freeze(Object.fromEntries(
     ["nominative", "accusative", "genitive"].map((caseName) => [
       caseName,
-      NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, literal(form[caseName]))),
+      NOMINAL_INFLECTIONS.map((form) => morphologyValue(stem, grammatical(form[caseName], `nominalEnding.${form.id}.${caseName}`))),
     ]),
   ));
   const elativePrimary = [
-    morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA)),
-    morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, FATHA), literal(`${ALIF}${NUN}${KASRA}`)),
-    morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA), literal(`${WAW}${SUKUN}${NUN}${FATHA}`)),
-    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), literal(ALIF_MAQSURA)),
-    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), literal(`${YA}${FATHA}${ALIF}${NUN}${KASRA}`)),
-    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), literal(`${YA}${FATHA}${ALIF}${TA}${DAMMATAN}`)),
+    morphologyValue(derivational(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA)),
+    morphologyValue(derivational(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, FATHA), derivational(`${ALIF}${NUN}${KASRA}`)),
+    morphologyValue(derivational(`${HAMZA}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, FATHA), radical(root, 3, DAMMA), derivational(`${WAW}${SUKUN}${NUN}${FATHA}`)),
+    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), derivational(ALIF_MAQSURA)),
+    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), derivational(`${YA}${FATHA}${ALIF}${NUN}${KASRA}`)),
+    morphologyValue(radical(root, 1, DAMMA), radical(root, 2, SUKUN), radical(root, 3, FATHA), derivational(`${YA}${FATHA}${ALIF}${TA}${DAMMATAN}`)),
   ];
-  const elativeAdditional = [morphologyValue(), morphologyValue(), morphologyValue(literal(`${HAMZA}${FATHA}`), radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3, DAMMA)), morphologyValue(), morphologyValue(), morphologyValue(radical(root, 1, DAMMA), radical(root, 2, FATHA), radical(root, 3, DAMMATAN))];
+  const elativeAdditional = [morphologyValue(), morphologyValue(), morphologyValue(derivational(`${HAMZA}${FATHA}`), radical(root, 1, FATHA), derivational(ALIF), radical(root, 2, KASRA), radical(root, 3, DAMMA)), morphologyValue(), morphologyValue(), morphologyValue(radical(root, 1, DAMMA), radical(root, 2, FATHA), radical(root, 3, DAMMATAN))];
   const { zarfMiddleVowel } = getBabConfig(bab);
-  const zarfStem = [literal(`${MIM}${FATHA}`), radical(root, 1, SUKUN), radical(root, 2, zarfMiddleVowel), radical(root, 3)];
+  const zarfStem = [derivational(`${MIM}${FATHA}`, "zarf.mim"), radical(root, 1, SUKUN), radical(root, 2, zarfMiddleVowel), radical(root, 3)];
   return Object.freeze({
     activeParticiple: nominalRows(activeStem), passiveParticiple: nominalRows(passiveStem),
     elative: { primary: elativePrimary, additional: elativeAdditional },
     zarf: {
-      ordinary: [inflectStructuralStem(zarfStem, DAMMA), inflectStructuralStem(zarfStem, `${FATHA}${ALIF}${NUN}${KASRA}`), morphologyValue(literal(`${MIM}${FATHA}`), radical(root, 1, FATHA), literal(ALIF), radical(root, 2, KASRA), radical(root, 3, DAMMA))],
+      ordinary: [inflectStructuralStem(zarfStem, DAMMA), inflectStructuralStem(zarfStem, `${FATHA}${ALIF}${NUN}${KASRA}`), morphologyValue(derivational(`${MIM}${FATHA}`), radical(root, 1, FATHA), derivational(ALIF), radical(root, 2, KASRA), radical(root, 3, DAMMA))],
       taMarbuta: [inflectStructuralStem(zarfStem, `${FATHA}${TA_MARBUTA}${DAMMATAN}`), inflectStructuralStem(zarfStem, `${FATHA}${TA}${FATHA}${ALIF}${NUN}${KASRA}`), morphologyValue()],
     },
   });
