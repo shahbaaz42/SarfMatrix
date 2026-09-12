@@ -43,6 +43,7 @@
     "ifanla.hamzatWasl": { morphologicalRoles: ["hamza-of-ifanla"], orthographicRoles: ["hamzat-wasl"] },
     "ifanla.insertedNun": { morphologicalRoles: ["form15-inserted-nun"] },
     "ifanla.finalYa": { morphologicalRoles: ["form15-final-ya"] },
+    "ifanla.masdarAlif": { morphologicalRoles: ["masdar-alif"] },
     "quadriliteral-tafaul.ta": { morphologicalRoles: ["quadriliteral-tafaul-ta"] },
     "quadriliteral-tafaul.participleMim": { morphologicalRoles: ["participle-mim"] },
     "quadriliteral-ifanlal.hamzatWasl": { morphologicalRoles: ["hamza-of-quadriliteral-ifanlal"], orthographicRoles: ["hamzat-wasl"] },
