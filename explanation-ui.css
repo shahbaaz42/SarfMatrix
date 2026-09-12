@@ -155,6 +155,31 @@
   font-weight: 700;
 }
 
+/* B10.2: transformation direction is semantic, not inherited from RTL text.
+   Keep source → result in a left-to-right flex row and isolate each Arabic token. */
+.explanation-step__change {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.explanation-step__arabic-token {
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+.explanation-step__arrow {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: sans-serif;
+}
+
 .explanation-meta {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
