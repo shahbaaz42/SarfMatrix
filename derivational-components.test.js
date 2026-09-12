@@ -6,21 +6,10 @@ const { enrichGeneratedSnapshot } = require("./grammatical-components.js");
 const { enrichDerivationalSnapshot, ELEMENT_ROLE_MAP } = require("./derivational-components.js");
 
 function generate(root, bab, rootFamily = "triliteral") {
-  return dispatchGeneration({
-    root,
-    rootFamily,
-    bab,
-    babLabel: bab,
-    majzumParticle: "لَمْ",
-    mansubParticle: "لَنْ",
-  });
+  return dispatchGeneration({ root, rootFamily, bab, babLabel: bab, majzumParticle: "لَمْ", mansubParticle: "لَنْ" });
 }
-function enrich(raw) {
-  return enrichDerivationalSnapshot(enrichGeneratedSnapshot(raw));
-}
-function allRoles(presentation, field = "morphologicalRoles") {
-  return presentation.runs.flatMap((run) => run[field] || []);
-}
+function enrich(raw) { return enrichDerivationalSnapshot(enrichGeneratedSnapshot(raw)); }
+function allRoles(presentation, field = "morphologicalRoles") { return presentation.runs.flatMap((run) => run[field] || []); }
 function assertSurfacesUnchanged(raw, enriched) {
   for (const section of ["section01", "section02", "section03"]) {
     raw.sections[section].forEach((row, rowIndex) => {
@@ -32,7 +21,7 @@ function assertSurfacesUnchanged(raw, enriched) {
   }
 }
 
-// Form IV: the same visible hamzah carries a Bāb function and qaṭʿ identity.
+// Form IV: one visible hamzah has both a morphological Bāb identity and qaṭʿ identity.
 const formIVRaw = generate(["ك", "ر", "م"], "form-iv-ifal");
 const formIV = enrich(formIVRaw);
 assertSurfacesUnchanged(formIVRaw, formIV);
@@ -40,15 +29,24 @@ const formIVPast = formIV.sections.section01[0].presentation.past;
 assert.ok(allRoles(formIVPast).includes("hamza-of-ifal"));
 assert.ok(allRoles(formIVPast, "orthographicRoles").includes("hamzat-qat"));
 
-// Form III legacy literal is identified by Bāb/field structure, not by scanning alif.
+// Form VII verifies that a legacy literal hamzah is identified by Bāb/field structure,
+// and therefore receives waṣl without inspecting the glyph in isolation.
+const formVIIRaw = generate(["ك", "س", "ر"], "form-vii-infial");
+const formVII = enrich(formVIIRaw);
+assertSurfacesUnchanged(formVIIRaw, formVII);
+const formVIIPast = formVII.sections.section01[0].presentation.past;
+assert.ok(allRoles(formVIIPast).includes("hamza-of-infial"));
+assert.ok(allRoles(formVIIPast).includes("form7-nun"));
+assert.ok(allRoles(formVIIPast, "orthographicRoles").includes("hamzat-wasl"));
+
+// Form III legacy material is likewise context-driven rather than character-driven.
 const formIIIRaw = generate(["ك", "ت", "ب"], "form-iii-mufaalah");
 const formIII = enrich(formIIIRaw);
 assertSurfacesUnchanged(formIIIRaw, formIII);
 assert.ok(allRoles(formIII.sections.section01[0].presentation.past).includes("form3-alif"));
 assert.ok(allRoles(formIII.sections.section01[0].presentation.passivePast).includes("form3-passive-waw"));
 
-// Form X uses stable elementIds: hamzat al-waṣl remains independent from its
-// morphological identity as the hamzah of istifʿāl.
+// Form X stable elementIds preserve the two-dimensional hamzah model.
 const formXRaw = generate(["غ", "ف", "ر"], "form-x-istifal");
 const formX = enrich(formXRaw);
 assertSurfacesUnchanged(formXRaw, formX);
@@ -63,7 +61,7 @@ const formXFirstPersonPresent = formX.sections.section01[12].presentation.presen
 assert.ok(allRoles(formXFirstPersonPresent).includes("present-prefix-alif"));
 assert.ok(allRoles(formXFirstPersonPresent, "orthographicRoles").includes("hamzat-qat"));
 
-// Genuine quadriliteral augmentation uses its own semantic role family.
+// Genuine quadriliteral augmentation has a separate semantic role family.
 const qRaw = generate(["د", "ح", "ر", "ج"], "quadriliteral-ifanlal", "quadriliteral");
 const q = enrich(qRaw);
 assertSurfacesUnchanged(qRaw, q);
@@ -72,7 +70,11 @@ assert.ok(allRoles(qPast).includes("hamza-of-quadriliteral-ifanlal"));
 assert.ok(allRoles(qPast).includes("quadriliteral-ifanlal-inserted-nun"));
 assert.ok(allRoles(qPast, "orthographicRoles").includes("hamzat-wasl"));
 
-// Stable registry entries are language-neutral and frozen.
+// Later families are registered by their stable builder elementIds even where the
+// visible copy may contract into a lexical radical in a particular inflection.
+assert.deepEqual(ELEMENT_ROLE_MAP["form11.medialAlif"].morphologicalRoles, ["form11-pattern-alif"]);
+assert.deepEqual(ELEMENT_ROLE_MAP["form12.r2Copy"].morphologicalRoles, ["form12-r2-copy"]);
+assert.deepEqual(ELEMENT_ROLE_MAP["ifanla.finalYa"].morphologicalRoles, ["form15-final-ya"]);
 assert.deepEqual(ELEMENT_ROLE_MAP["form10.hamzatWasl"], {
   morphologicalRoles: ["hamza-of-istifal"],
   orthographicRoles: ["hamzat-wasl"],
