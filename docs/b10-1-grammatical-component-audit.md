@@ -10,6 +10,8 @@ This audit covers Sections 01–04 and explicitly includes masculine and feminin
 
 `nun-niswa` and `heavy-emphasis-nun` are different grammatical components. When both occur in one generated form, the Structure view must show them as separate cards. The same separation principle applies to any intervening support material. A single run may not carry both labels as though they were one morpheme.
 
+When heavy emphasis is attached to a form already carrying nūn al-niswah, the separating alif between the two nūns must also be represented as its own component.
+
 Required regression cases: third-person feminine plural and second-person feminine plural in heavy-emphasis forms.
 
 ## 2. Section 04 nominal case system
@@ -89,5 +91,7 @@ The generated Arabic surface remains authoritative and unchanged during this pha
 7. Then proceed to B11 learner-friendly explanation wording.
 
 ## Research basis
+
+The repository's morphology PDFs are the preferred research collection for this project. They include classical and teaching references already stored with SarfMatrix, such as Shadha al-ʿArf, Matn al-Bināʾ, Taṣrīf al-ʿIzzī, Tashīl al-Ṣarf, Abwāb al-Ṣarf al-Jadīd, Durūs al-Taṣrīf, Kitāb al-Maqṣūd, Irshād al-Ṣarf and related works. Page-level claims should be checked against these references whenever the relevant PDF text/page is accessible.
 
 Arabic nominal inflection used by this audit follows the standard rules: the dual is nominative with alif and accusative/genitive with ya; the sound masculine plural is nominative with waw and accusative/genitive with ya; the sound feminine plural is nominative with dammah and accusative/genitive with kasrah. The nun of the dual and sound masculine plural is a separate part of the ending and is omitted in idafa, which further supports modelling it separately from the case marker.
