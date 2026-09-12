@@ -1,4 +1,4 @@
-// Phase B6: visible, read-only Rules & Explanation UI built on B4 + B5 data.
+// Phase B6+: visible, read-only Rules & Explanation UI built on B4 + B5 data.
 (function exposeExplanationUi(globalScope) {
   "use strict";
 
@@ -76,6 +76,62 @@
       return snapshot?.sections?.[sectionSelect.value] || [];
     }
 
+    function currentBabName() {
+      const label = snapshot?.babLabel || "";
+      const [name] = label.split("—");
+      return name.trim() || label.trim();
+    }
+
+    function learnerStructureLabel(segment) {
+      const roles = segment.morphologicalRoles || [];
+      const babName = currentBabName();
+      if (babName && roles.some((role) => role.startsWith("hamza-of-"))) {
+        const orthography = (segment.orthographicRoleLabels || []).join(" · ");
+        return [`Derivational hamzah of ${babName}`, orthography].filter(Boolean).join(" · ");
+      }
+      if (babName && roles.includes("form8-ta")) return `Inserted ت of ${babName}`;
+      return segment.note || segment.radicalLabel || segment.kindLabel;
+    }
+
+    function learnerRuleText(rule) {
+      const babName = currentBabName() || "the selected Bāb";
+      const form8 = {
+        "form8-emphatic-ta-to-ta": {
+          shortText: "The inserted ت changes to ط.",
+          detailText: `In ${babName}, the inserted ت changes to ط after this emphatic initial radical.`,
+        },
+        "form8-voiced-ta-to-dal": {
+          shortText: "The inserted ت changes to د.",
+          detailText: `In ${babName}, the inserted ت changes to د after this voiced initial radical.`,
+        },
+        "form8-dal-ta-assimilation": {
+          shortText: "د and ت assimilate.",
+          detailText: `In ${babName}, the initial د and inserted ت assimilate at their junction.`,
+        },
+        "form8-ta-ta-assimilation": {
+          shortText: "The two ت elements assimilate.",
+          detailText: `In ${babName}, the initial ت and inserted ت assimilate at their junction.`,
+        },
+        "form8-dhal-ta-dal-assimilation": {
+          shortText: "ذ and ت assimilate through د.",
+          detailText: `In ${babName}, ذ and the inserted ت change and assimilate as د.`,
+        },
+        "form8-za-ta-to-emphatic-ta": {
+          shortText: "The inserted ت changes to ط after ز.",
+          detailText: `In ${babName}, ز is retained while the inserted ت changes to ط.`,
+        },
+        "form8-ta-ta-idgham": {
+          shortText: "The ت junction undergoes assimilation.",
+          detailText: `In ${babName}, the two ت elements at the junction are merged.`,
+        },
+        "form8-tha-junction-variants": {
+          shortText: "The ث junction has retained variants.",
+          detailText: `In ${babName}, the ث + ت junction preserves the implemented alternative paths.`,
+        },
+      };
+      return form8[rule.id] || rule;
+    }
+
     function updateFieldOptions() {
       if (!snapshot) return;
       const section = sectionSelect.value;
@@ -143,7 +199,7 @@
           arabic.lang = "ar";
           arabic.dir = "rtl";
           item.append(arabic);
-          item.append(create("span", "structure-run__label", segment.note || segment.radicalLabel || segment.kindLabel));
+          item.append(create("span", "structure-run__label", learnerStructureLabel(segment)));
           runs.append(item);
         }
         block.append(runs);
@@ -157,15 +213,31 @@
       if (!model.rules.length) appendEmpty(block, "ui.empty.rules");
       else {
         for (const rule of model.rules) {
+          const learnerRule = learnerRuleText(rule);
           const card = create("article", "rule-card");
-          card.append(create("strong", null, rule.shortText));
-          card.append(create("div", null, rule.detailText));
+          card.append(create("strong", null, learnerRule.shortText));
+          card.append(create("div", null, learnerRule.detailText));
           const metadata = [rule.categoryLabel, rule.defaultOperationLabel].filter(Boolean).join(" · ");
           if (metadata) card.append(create("p", "explanation-meta", metadata));
           block.append(card);
         }
       }
       container.append(block);
+    }
+
+    function appendTransformation(container, beforeText, afterText) {
+      const change = create("span", "explanation-step__change");
+      change.dir = "ltr";
+      const before = create("bdi", "explanation-step__arabic-token", beforeText);
+      before.lang = "ar";
+      before.dir = "rtl";
+      const arrow = create("span", "explanation-step__arrow", "→");
+      arrow.setAttribute("aria-hidden", "true");
+      const after = create("bdi", "explanation-step__arabic-token", afterText);
+      after.lang = "ar";
+      after.dir = "rtl";
+      change.append(before, arrow, after);
+      container.append(change);
     }
 
     function renderDerivation(container, model) {
@@ -186,13 +258,12 @@
         for (const stage of model.derivation.stages) {
           const item = create("li", "explanation-step");
           item.append(create("span", null, stage.operationLabel || stage.operation));
-          if (stage.before !== null && stage.after !== null) {
-            const arabic = create("span", "explanation-step__arabic", `${stage.before} → ${stage.after}`);
-            arabic.lang = "ar";
-            arabic.dir = "rtl";
-            item.append(arabic);
+          if (stage.before !== null && stage.after !== null) appendTransformation(item, stage.before, stage.after);
+          if (stage.ruleShortText) {
+            const rule = model.rules.find(({ id }) => id === stage.ruleId);
+            const learnerRule = rule ? learnerRuleText(rule) : null;
+            item.append(create("p", "explanation-meta", learnerRule?.shortText || stage.ruleShortText));
           }
-          if (stage.ruleShortText) item.append(create("p", "explanation-meta", stage.ruleShortText));
           list.append(item);
         }
         block.append(list);
