@@ -1,4 +1,4 @@
-// Phase B10.8: learner-facing Arabic terminology and Bāb-specific component labels.
+// Phase B10.8+: learner-facing Arabic terminology and Bāb-specific component labels.
 (function exposeLearnerLabels(globalScope) {
   "use strict";
 
@@ -27,6 +27,8 @@
     elative: "Elative (اسم التفضيل)",
     zarf: "Adverb of time/place (اسم الظرف)",
   });
+
+  const NOMINAL_COMPONENT_PREFIX = /^(?:ا|و|ي|ن|ت|ة|ات)\s+of\b/i;
 
   function currentBabName() {
     const select = document.querySelector("#bab");
@@ -59,6 +61,11 @@
       if (/^Form\s+\d+\b/i.test(text)) {
         label.textContent = `This is ${arabic} of ${babName}`;
         label.dir = "ltr";
+        continue;
+      }
+      if (!/^This is\b/i.test(text) && NOMINAL_COMPONENT_PREFIX.test(text)) {
+        label.textContent = `This is ${text}`;
+        label.dir = "ltr";
       }
     }
   }
@@ -79,7 +86,7 @@
     document.querySelector("#explanation-field")?.addEventListener("change", () => queueMicrotask(apply));
   }
 
-  const api = Object.freeze({ SECTION_LABELS, FORM_LABELS, apply });
+  const api = Object.freeze({ SECTION_LABELS, FORM_LABELS, NOMINAL_COMPONENT_PREFIX, apply });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else {
     globalScope.SarfExplanationLearnerLabels = api;
