@@ -128,6 +128,23 @@
     return deepFreeze(model);
   }
 
+  function loadB10Navigation() {
+    if (typeof document === "undefined") return;
+    if (!document.querySelector('link[data-sarf-b10-navigation]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "explanation-navigation.css?v=phase-b10";
+      stylesheet.dataset.sarfB10Navigation = "true";
+      document.head.append(stylesheet);
+    }
+    if (!document.querySelector('script[data-sarf-b10-navigation]')) {
+      const script = document.createElement("script");
+      script.src = "explanation-navigation.js?v=phase-b10";
+      script.dataset.sarfB10Navigation = "true";
+      document.body.append(script);
+    }
+  }
+
   const api = deepFreeze({
     enrichExplanationSnapshot,
     attachComponentIdentities,
@@ -141,5 +158,6 @@
     globalScope.SarfExplanationIdentities = api;
     globalScope.SarfExplanationEngine = deepFreeze({ ...baseEngine, buildExplanationRecord });
     globalScope.SarfExplanationText = deepFreeze({ ...baseText, buildLocalizedExplanation });
+    if (typeof window !== "undefined") window.addEventListener("load", loadB10Navigation, { once: true });
   }
 })(typeof globalThis === "undefined" ? this : globalThis);
