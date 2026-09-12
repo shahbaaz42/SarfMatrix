@@ -18,8 +18,15 @@
   const MORPHOLOGICAL_ROLE_IDS = Object.freeze([
     "present-prefix-alif", "present-prefix-nun", "present-prefix-ya", "present-prefix-ta",
     "dual-alif", "plural-waw", "feminine-address-ya", "nun-niswa", "feminine-ta", "subject-ta", "subject-na",
-    "heavy-emphasis-nun", "light-emphasis-nun",
+    "heavy-emphasis-nun", "light-emphasis-nun", "feminine-emphasis-separator-alif",
     "jussive-particle", "subjunctive-particle",
+
+    // Nominal case/number/gender identities used by Section 04 explanations.
+    "case-nominative", "case-accusative", "case-genitive",
+    "case-marker-damma", "case-marker-fatha", "case-marker-kasra", "tanwin",
+    "dual-case-alif", "dual-case-ya", "dual-nun",
+    "sound-masculine-plural-waw", "sound-masculine-plural-ya", "sound-masculine-plural-nun",
+    "feminine-singular-ta-marbuta", "feminine-dual-ta", "sound-feminine-plural-at",
 
     // Hamzah morphology is independent from orthographic waṣl/qaṭʿ identity.
     "hamza-of-ifal", "hamza-of-infial", "hamza-of-iftial", "hamza-of-ifilal", "hamza-of-istifal",
