@@ -1,4 +1,4 @@
-// Phase B8.1: language-neutral semantic identity contract for structural morphology runs.
+// Phase B8.1+: language-neutral semantic identity contract for structural morphology runs.
 // This module defines metadata only. It does not change generation, Arabic surfaces,
 // root ownership, colouring, explanation text, or exports.
 (function exposeComponentContract(globalScope) {
@@ -15,8 +15,8 @@
     "presentation",
   ]);
 
-  // B8.1 freezes stable language-neutral identifiers. Later B8 phases attach
-  // these IDs to existing generated runs without changing their surface text.
+  // Stable language-neutral identifiers. Later presentation/localization layers
+  // translate these roles without placing Arabic explanatory prose in morphology.
   const MORPHOLOGICAL_ROLE_IDS = Object.freeze([
     // Present-tense person prefixes (أحرف المضارعة).
     "present-prefix-alif",
@@ -41,10 +41,50 @@
     "jussive-particle",
     "subjunctive-particle",
 
-    // Hamzah can have a morphological function in addition to its independent
-    // orthographic identity. These two examples are intentionally distinct.
+    // Hamzah has a morphological function independent of its orthographic identity.
     "hamza-of-ifal",
+    "hamza-of-infial",
+    "hamza-of-iftial",
+    "hamza-of-ifilal",
     "hamza-of-istifal",
+    "hamza-of-ifawlal",
+    "hamza-of-ifawwal",
+    "hamza-of-ifanlal",
+    "hamza-of-ifanla",
+    "hamza-of-quadriliteral-ifanlal",
+    "hamza-of-quadriliteral-ifalalla",
+
+    // Bāb-specific derivational material.
+    "form2-masdar-ta",
+    "form2-masdar-ya",
+    "form3-alif",
+    "form3-passive-waw",
+    "form4-masdar-alif",
+    "form5-ta",
+    "form6-ta",
+    "form6-alif",
+    "form7-nun",
+    "form8-ta",
+    "form9-r3-copy",
+    "form10-sin",
+    "form10-ta",
+    "form11-pattern-alif",
+    "form11-r3-copy",
+    "form12-waw",
+    "form13-waw-geminate",
+    "form14-inserted-nun",
+    "form14-r3-copy",
+    "form15-inserted-nun",
+    "form15-final-ya",
+    "quadriliteral-tafaul-ta",
+    "quadriliteral-ifanlal-inserted-nun",
+    "quadriliteral-ifalalla-r4-copy",
+
+    // Shared derived-form material.
+    "masdar-alif",
+    "masdar-mim",
+    "masdar-ta-marbuta",
+    "participle-mim",
   ]);
 
   const ORTHOGRAPHIC_ROLE_IDS = Object.freeze([
