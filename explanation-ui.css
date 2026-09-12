@@ -74,6 +74,10 @@
   border-radius: 0.75rem;
 }
 
+.explanation-block:has(.structure-runs) {
+  grid-column: 1 / -1;
+}
+
 .explanation-block h3 { margin-bottom: 0.7rem; }
 
 .explanation-list {
@@ -83,31 +87,45 @@
 
 .explanation-list li + li { margin-top: 0.55rem; }
 
+/* Phase B9: the Arabic structural sequence reads from the right, while each
+   learner-facing English identity remains isolated left-to-right. */
 .structure-runs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.65rem;
+  direction: rtl;
+  align-items: stretch;
 }
 
 .structure-run {
-  padding: 0.45rem 0.6rem;
+  min-width: 0;
+  padding: 0.7rem 0.65rem;
+  text-align: center;
+  direction: ltr;
   background: #eef8f4;
   border: 1px solid #cce5dc;
-  border-radius: 0.55rem;
+  border-radius: 0.65rem;
+  box-shadow: 0 1px 0 rgba(20, 70, 55, 0.05);
 }
 
 .structure-run__arabic {
   display: block;
-  font-size: 1.35rem;
+  direction: rtl;
+  unicode-bidi: isolate;
+  font-size: clamp(1.45rem, 3vw, 1.8rem);
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.55;
 }
 
 .structure-run__label {
   display: block;
+  margin-top: 0.35rem;
+  direction: ltr;
+  unicode-bidi: plaintext;
   color: var(--muted);
   font-size: 0.78rem;
-  line-height: 1.3;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .rule-card,
@@ -145,4 +163,6 @@
 @media (max-width: 32rem) {
   .explanation-panel { padding: 0.8rem; }
   .explanation-grid { grid-template-columns: 1fr; }
+  .structure-runs { grid-template-columns: repeat(auto-fit, minmax(6.8rem, 1fr)); }
+  .structure-run { padding: 0.6rem 0.5rem; }
 }
