@@ -1,0 +1,15 @@
+/* Phase B10: make generated forms visibly and accessibly navigable to explanations. */
+.explanation-link-cell {
+  cursor: pointer;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.explanation-link-cell:hover {
+  background: #f1f8f5;
+}
+
+.explanation-link-cell:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 1px var(--surface);
+}
