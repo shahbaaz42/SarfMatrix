@@ -61,6 +61,12 @@
     return Object.freeze(value);
   }
 
+  function clone(value) {
+    if (Array.isArray(value)) return value.map(clone);
+    if (!value || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, clone(child)]));
+  }
+
   function normalizeRoleList(value, allowed, fieldName) {
     if (value === null || value === undefined) return Object.freeze([]);
     if (!Array.isArray(value)) throw new Error(`${fieldName} must be an array`);
@@ -89,13 +95,13 @@
   }
 
   // Returns a new frozen run so B8 metadata remains additive and never mutates
-  // the existing morphology object or its ownership fields.
+  // or deep-freezes nested metadata belonging to the source morphology object.
   function withComponentIdentity(run, identityInput = {}) {
     if (!run || typeof run !== "object" || typeof run.text !== "string") throw new Error("Structural run is required");
     if (run.kind !== undefined && !STRUCTURAL_KINDS.includes(run.kind)) throw new Error(`Unknown structural kind: ${String(run.kind)}`);
     const identity = createComponentIdentity(identityInput);
     return deepFreeze({
-      ...run,
+      ...clone(run),
       morphologicalRoles: identity.morphologicalRoles,
       orthographicRoles: identity.orthographicRoles,
     });
