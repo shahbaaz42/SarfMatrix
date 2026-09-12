@@ -86,6 +86,16 @@ assert.deepEqual(enriched.orthographicRoles, ["hamzat-wasl"]);
 assert.ok(Object.isFrozen(enriched));
 assert.equal(validateStructuralRunIdentity(enriched), true);
 
+// Enrichment must not freeze nested objects owned by the original run.
+const nestedMetadata = { trigger: { type: "example" } };
+const sourceWithNestedMetadata = { text: "و", radicalIndex: null, kind: "grammatical", metadata: nestedMetadata };
+const enrichedNested = withComponentIdentity(sourceWithNestedMetadata, { morphologicalRoles: ["plural-waw"] });
+assert.equal(Object.isFrozen(sourceWithNestedMetadata), false);
+assert.equal(Object.isFrozen(nestedMetadata), false);
+assert.equal(Object.isFrozen(nestedMetadata.trigger), false);
+assert.equal(Object.isFrozen(enrichedNested.metadata), true);
+assert.notEqual(enrichedNested.metadata, nestedMetadata);
+
 // Existing runs without B8 fields remain valid during the staged migration.
 assert.equal(validateStructuralRunIdentity({ text: "رَ", radicalIndex: 2, kind: "radical" }), true);
 
