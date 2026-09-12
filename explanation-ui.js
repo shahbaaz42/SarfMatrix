@@ -1,4 +1,4 @@
-// Phase B10.6: learner-facing Rules & Explanation UI with explicit bidi isolation.
+// Phase B10.7: learner-facing Rules & Explanation UI with explicit bidi isolation.
 (function exposeExplanationUi(globalScope) {
   "use strict";
 
@@ -140,7 +140,7 @@
         const qat = roles.includes("hamzat-qat") || (segment.orthographicRoles || []).includes("hamzat-qat");
         return `${qat ? "Hamzat al-qaṭʿ (همزة القطع)" : "Hamzat al-waṣl (همزة الوصل)"} of ${babName}`;
       }
-      if (babName && roles.includes("form8-ta")) return `ت of ${babName}`;
+      if (babName && roles.includes("form8-ta")) return `This is ت of ${babName}`;
       if (
         snapshot?.bab === "form-viii-iftial" &&
         segment.radicalIndex === 1 &&
@@ -303,8 +303,7 @@
           detail.dir = "ltr";
           appendMixedText(detail, learnerRule.detailText);
           card.append(heading, detail);
-          const combinedForm8 = ["form8-dal-ta-assimilation", "form8-ta-ta-assimilation", "form8-dhal-ta-dal-assimilation"].includes(rule.id);
-          if (!combinedForm8) {
+          if (learnerRule === rule) {
             const metadata = [rule.categoryLabel, rule.defaultOperationLabel].filter(Boolean).join(" · ");
             if (metadata) card.append(create("p", "explanation-meta", metadata));
           }
