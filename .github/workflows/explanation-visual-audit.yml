@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'explanation-*.js'
+      - 'component-contract.js'
       - 'grammatical-components.js'
       - 'derivational-components.js'
       - 'index.html'
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  past-explanation-audit:
+  section01-explanation-audit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,13 +33,14 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run past explanation audit
+      - name: Run Section 01 explanation audit
         run: npm run test:visual
 
       - name: Upload generated screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: past-explanation-screenshots
-          path: test-results/**/past-explanations/*.png
+          name: section01-explanation-screenshots
+          path: test-results/**/section01-explanations/*.png
           if-no-files-found: warn
+          retention-days: 7
