@@ -31,6 +31,50 @@
   const NOMINAL_COMPONENT_PREFIX = /^(?:ا|و|ي|ن|ت|ة|ات)\s+of\b/i;
   const ARABIC_MARK = /\p{M}/u;
 
+  // Active-past learner decomposition, aligned to the repository references.
+  // The source material explicitly treats perfect-tense endings as the carriers
+  // of person, gender and number. We therefore separate learner-visible ending
+  // components without changing the generated Arabic surface.
+  const ACTIVE_PAST_ENDINGS = Object.freeze({
+    3: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the feminine marker (تاء التأنيث)" }),
+    ]),
+    4: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the feminine marker (تاء التأنيث)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the dual marker (ألف الاثنين)" }),
+    ]),
+    6: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+    ]),
+    7: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م in the dual مخاطب ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the dual marker (ألف الاثنين)" }),
+    ]),
+    8: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م of the masculine-plural مخاطب ending (أنتم)" }),
+    ]),
+    9: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+    ]),
+    10: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م in the dual مخاطب ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the dual marker (ألف الاثنين)" }),
+    ]),
+    11: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is ن of the feminine-plural مخاطب ending (أنتنّ)" }),
+    ]),
+    12: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is ت of the speaker subject ending (تاء الفاعل للمتكلم)" }),
+    ]),
+    13: Object.freeze([
+      Object.freeze({ letters: 2, label: "This is نا of the speaker subject ending (نا الفاعلين)" }),
+    ]),
+  });
+
   function currentBabName() {
     const select = document.querySelector("#bab");
     const label = select?.selectedOptions?.[0]?.textContent || "";
@@ -77,49 +121,50 @@
     return card;
   }
 
-  function splitSubjectEndingCard(card) {
-    if (card.dataset.semanticSplit === "true") return false;
-    const label = card.querySelector(".structure-run__label");
-    const arabicNode = card.querySelector(".structure-run__arabic");
-    if (!label || !arabicNode || !/^Subject\s+ت\b/i.test(label.textContent.trim())) return false;
+  function currentActivePastLayout() {
+    if (document.querySelector("#explanation-section")?.value !== "section01") return null;
+    if (document.querySelector("#explanation-field")?.value !== "past") return null;
+    const rowIndex = Number(document.querySelector("#explanation-row")?.value);
+    return Number.isInteger(rowIndex) ? ACTIVE_PAST_ENDINGS[rowIndex] || null : null;
+  }
 
-    const units = arabicUnits(arabicNode.textContent);
-    const bare = bareArabic(arabicNode.textContent);
-    let parts = null;
+  function splitReferenceAuditedPastEnding() {
+    const layout = currentActivePastLayout();
+    if (!layout) return false;
 
-    if (bare === "تما" && units.length === 3) {
-      parts = [
-        [units[0], "This is ت of the subject ending (تاء الفاعل)"],
-        [units[1], "This is م of the dual subject ending (ميم التثنية)"],
-        [units[2], "This is ا of the dual subject ending (ألف التثنية)"],
-      ];
-    } else if (bare === "تم" && units.length === 2) {
-      parts = [
-        [units[0], "This is ت of the subject ending (تاء الفاعل)"],
-        [units[1], "This is م of the plural subject ending (ميم الجمع)"],
-      ];
-    } else if (bare === "تن" && units.length === 2) {
-      parts = [
-        [units[0], "This is ت of the subject ending (تاء الفاعل)"],
-        [units[1], "This is ن of the feminine plural subject ending (نون النسوة)"],
-      ];
+    const cards = Array.from(document.querySelectorAll("#explanation-output .structure-run"));
+    if (cards.some((card) => card.dataset.semanticSplit === "true")) return false;
+
+    const expectedLetters = layout.reduce((sum, part) => sum + part.letters, 0);
+    const candidate = cards.find((card) => {
+      const label = card.querySelector(".structure-run__label")?.textContent || "";
+      const arabic = card.querySelector(".structure-run__arabic")?.textContent || "";
+      const units = arabicUnits(arabic).filter((unit) => /\p{Script=Arabic}/u.test(unit));
+      if (/root radical/i.test(label)) return false;
+      if (/Hamzat al-/i.test(label)) return false;
+      return units.length === expectedLetters;
+    });
+    if (!candidate) return false;
+
+    const units = arabicUnits(candidate.querySelector(".structure-run__arabic")?.textContent)
+      .filter((unit) => /\p{Script=Arabic}/u.test(unit));
+    if (units.length !== expectedLetters) return false;
+
+    const replacements = [];
+    let offset = 0;
+    for (const part of layout) {
+      const value = units.slice(offset, offset + part.letters).join("");
+      offset += part.letters;
+      replacements.push(makeStructureCard(candidate, value, part.label));
     }
-
-    if (!parts) return false;
-    card.replaceWith(...parts.map(([arabic, text]) => makeStructureCard(card, arabic, text)));
+    candidate.replaceWith(...replacements);
     return true;
   }
 
-  function splitCompoundStructure() {
-    for (const card of Array.from(document.querySelectorAll("#explanation-output .structure-run"))) {
-      splitSubjectEndingCard(card);
-    }
-  }
-
   function relabelStructure() {
+    splitReferenceAuditedPastEnding();
     const babName = currentBabName();
     if (!babName) return;
-    splitCompoundStructure();
     for (const card of document.querySelectorAll("#explanation-output .structure-run")) {
       const label = card.querySelector(".structure-run__label");
       const arabic = card.querySelector(".structure-run__arabic")?.textContent?.trim();
@@ -159,9 +204,19 @@
     document.querySelector("#bab")?.addEventListener("change", apply);
     document.querySelector("#explanation-section")?.addEventListener("change", () => queueMicrotask(apply));
     document.querySelector("#explanation-field")?.addEventListener("change", () => queueMicrotask(apply));
+    document.querySelector("#explanation-row")?.addEventListener("change", () => queueMicrotask(apply));
   }
 
-  const api = Object.freeze({ SECTION_LABELS, FORM_LABELS, NOMINAL_COMPONENT_PREFIX, arabicUnits, bareArabic, splitSubjectEndingCard, apply });
+  const api = Object.freeze({
+    SECTION_LABELS,
+    FORM_LABELS,
+    NOMINAL_COMPONENT_PREFIX,
+    ACTIVE_PAST_ENDINGS,
+    arabicUnits,
+    bareArabic,
+    splitReferenceAuditedPastEnding,
+    apply,
+  });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else {
     globalScope.SarfExplanationLearnerLabels = api;
