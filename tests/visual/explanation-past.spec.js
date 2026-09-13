@@ -3,10 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const FORMS = ['past', 'passivePast'];
+const ROW_COUNT = 14;
 
-test.setTimeout(120000);
-
-async function generateFixture(page) {
+async function generateFixture(page, form) {
   await page.goto('/');
   await page.fill('#root-one', 'خ');
   await page.fill('#root-two', 'ر');
@@ -15,56 +14,59 @@ async function generateFixture(page) {
   await page.click('#sarf-form button[type="submit"]');
   await expect(page.locator('#explanation-panel')).toBeVisible();
   await page.selectOption('#explanation-section', 'section01');
+  await page.selectOption('#explanation-field', form);
+  await expect(page.locator('#explanation-row option')).toHaveCount(ROW_COUNT);
 }
 
-async function forceSelect(page, selector, value) {
-  await page.locator(selector).evaluate((select, nextValue) => {
+async function chooseRow(page, rowIndex) {
+  const value = await page.locator('#explanation-row option').nth(rowIndex).getAttribute('value');
+  if (value === null) throw new Error(`Missing value for explanation row ${rowIndex}`);
+
+  await page.evaluate(({ selector, nextValue }) => {
+    const select = document.querySelector(selector);
+    if (!select) throw new Error(`Missing select: ${selector}`);
     select.value = nextValue;
     select.dispatchEvent(new Event('change', { bubbles: true }));
-  }, value);
-  await page.waitForTimeout(75);
+  }, { selector: '#explanation-row', nextValue: value });
+
+  await expect(page.locator('#explanation-row')).toHaveValue(value);
+  await expect(page.locator('#explanation-output .structure-run').first()).toBeVisible();
+  return value;
 }
 
 function safeName(value) {
   return String(value).replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'row';
 }
 
-test('capture every active/passive past pronoun and guard learner labels', async ({ page }, testInfo) => {
-  await generateFixture(page);
-  const outputDir = path.join(testInfo.outputDir, 'past-explanations');
-  fs.mkdirSync(outputDir, { recursive: true });
+async function assertLearnerLabels(page, rowIndex) {
+  const labels = await page.locator('#explanation-output .structure-run__label').allTextContents();
 
-  for (const form of FORMS) {
-    await forceSelect(page, '#explanation-field', form);
-    const rows = await page.locator('#explanation-row option').evaluateAll((options) =>
-      options.map((option, index) => ({ value: option.value, label: option.textContent.trim(), index }))
-    );
-
-    expect(rows.length).toBe(14);
-
-    for (const row of rows) {
-      await forceSelect(page, '#explanation-row', row.value);
-
-      const structure = page.locator('#explanation-output .structure-run');
-      await expect(structure.first()).toBeVisible();
-
-      const labels = await page.locator('#explanation-output .structure-run__label').allTextContents();
-      if (row.index >= 6) {
-        expect(labels.some((label) => /^Subject\s+ت\b/i.test(label.trim()))).toBeFalsy();
-      }
-      if (row.index === 11) {
-        expect(labels.some((label) => label.includes('feminine plural addressee subject ending'))).toBeTruthy();
-        expect(labels.some((label) => label.includes('feminine plural addressee ending'))).toBeTruthy();
-      }
-      if (row.index === 12) {
-        expect(labels.some((label) => label.includes('first-person singular subject ending with ḍammah'))).toBeTruthy();
-      }
-      if (row.index === 13) {
-        expect(labels.some((label) => label.includes('first-person plural subject ending'))).toBeTruthy();
-      }
-
-      const filename = `${form}-${String(row.index + 1).padStart(2, '0')}-${safeName(row.value)}.png`;
-      await page.locator('#explanation-panel').screenshot({ path: path.join(outputDir, filename) });
-    }
+  if (rowIndex >= 6) {
+    expect(labels.some((label) => /^Subject\s+ت\b/i.test(label.trim()))).toBeFalsy();
   }
-});
+  if (rowIndex === 11) {
+    expect(labels.some((label) => label.includes('feminine plural addressee subject ending'))).toBeTruthy();
+    expect(labels.some((label) => label.includes('feminine plural addressee ending'))).toBeTruthy();
+  }
+  if (rowIndex === 12) {
+    expect(labels.some((label) => label.includes('first-person singular subject ending with ḍammah'))).toBeTruthy();
+  }
+  if (rowIndex === 13) {
+    expect(labels.some((label) => label.includes('first-person plural subject ending'))).toBeTruthy();
+  }
+}
+
+for (const form of FORMS) {
+  for (let rowIndex = 0; rowIndex < ROW_COUNT; rowIndex += 1) {
+    test(`${form} explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }, testInfo) => {
+      await generateFixture(page, form);
+      const rowValue = await chooseRow(page, rowIndex);
+      await assertLearnerLabels(page, rowIndex);
+
+      const outputDir = path.join(testInfo.outputDir, 'past-explanations');
+      fs.mkdirSync(outputDir, { recursive: true });
+      const filename = `${form}-${String(rowIndex + 1).padStart(2, '0')}-${safeName(rowValue)}.png`;
+      await page.locator('#explanation-panel').screenshot({ path: path.join(outputDir, filename) });
+    });
+  }
+}
