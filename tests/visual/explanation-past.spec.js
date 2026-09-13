@@ -11,7 +11,7 @@ const FORM_DIRS = Object.freeze({
 });
 const ROW_COUNT = 14;
 
-async function generateFixture(page, form) {
+async function generateFixture(page, form, section = 'section01') {
   await page.goto('/');
   await page.fill('#root-one', 'خ');
   await page.fill('#root-two', 'ر');
@@ -19,7 +19,7 @@ async function generateFixture(page, form) {
   await page.selectOption('#bab', 'نَصَرَ-يَنْصُرُ');
   await page.click('#sarf-form button[type="submit"]');
   await expect(page.locator('#explanation-panel')).toBeVisible();
-  await page.selectOption('#explanation-section', 'section01');
+  await page.selectOption('#explanation-section', section);
   await page.selectOption('#explanation-field', form);
   await expect(page.locator('#explanation-row option')).toHaveCount(ROW_COUNT);
 }
@@ -27,14 +27,12 @@ async function generateFixture(page, form) {
 async function chooseRow(page, rowIndex) {
   const value = await page.locator('#explanation-row option').nth(rowIndex).getAttribute('value');
   if (value === null) throw new Error(`Missing value for explanation row ${rowIndex}`);
-
   await page.evaluate(({ selector, nextValue }) => {
     const select = document.querySelector(selector);
     if (!select) throw new Error(`Missing select: ${selector}`);
     select.value = nextValue;
     select.dispatchEvent(new Event('change', { bubbles: true }));
   }, { selector: '#explanation-row', nextValue: value });
-
   await expect(page.locator('#explanation-row')).toHaveValue(value);
   await expect(page.locator('#explanation-output .structure-run').first()).toBeVisible();
   return value;
@@ -60,29 +58,21 @@ async function assertPastLabels(page, rowIndex) {
 }
 
 function hasPrefixLabel(labels, person, detail) {
-  return labels.some((label) =>
-    label.includes(`Muḍāriʿ prefix for the ${person} person`) &&
-    label.includes(detail)
-  );
+  return labels.some((label) => label.includes(`Muḍāriʿ prefix for the ${person} person`) && label.includes(detail));
 }
 
 async function assertPresentLabels(page, rowIndex) {
   const labels = await labelsFor(page);
   expect(labels.some((label) => label.includes('Muḍāriʿ prefix'))).toBeTruthy();
-
   if ([0, 1, 2].includes(rowIndex)) expect(hasPrefixLabel(labels, 'third', 'masculine')).toBeTruthy();
   if ([3, 4, 5].includes(rowIndex)) expect(hasPrefixLabel(labels, 'third', 'feminine')).toBeTruthy();
   if ([6, 7, 8].includes(rowIndex)) expect(hasPrefixLabel(labels, 'second', 'masculine')).toBeTruthy();
   if ([9, 10, 11].includes(rowIndex)) expect(hasPrefixLabel(labels, 'second', 'feminine')).toBeTruthy();
   if (rowIndex === 12) expect(hasPrefixLabel(labels, 'first', 'singular')).toBeTruthy();
   if (rowIndex === 13) expect(hasPrefixLabel(labels, 'first', 'plural')).toBeTruthy();
-
   const fiveVerbRows = new Set([1, 2, 4, 7, 8, 9, 10]);
   if (fiveVerbRows.has(rowIndex)) {
-    expect(labels.some((label) =>
-      label.includes('retained nūn of the Five Verbs in the indicative') &&
-      label.includes('ثبوت النون')
-    )).toBeTruthy();
+    expect(labels.some((label) => label.includes('retained nūn of the Five Verbs in the indicative') && label.includes('ثبوت النون'))).toBeTruthy();
   }
   if (rowIndex === 5) expect(labels.some((label) => label.includes('feminine plural subject marker (نون النسوة)'))).toBeTruthy();
   if (rowIndex === 11) expect(labels.some((label) => label.includes('feminine plural addressee subject marker (نون النسوة)'))).toBeTruthy();
@@ -95,11 +85,21 @@ for (const form of FORMS) {
       const rowValue = await chooseRow(page, rowIndex);
       if (form === 'past' || form === 'passivePast') await assertPastLabels(page, rowIndex);
       else await assertPresentLabels(page, rowIndex);
-
       const outputDir = path.join(process.cwd(), 'test-results', 'section01-explanations', FORM_DIRS[form]);
       fs.mkdirSync(outputDir, { recursive: true });
       const filename = `${String(rowIndex + 1).padStart(2, '0')}-${safeName(rowValue)}.png`;
       await page.locator('#explanation-panel').screenshot({ path: path.join(outputDir, filename) });
     });
   }
+}
+
+for (let rowIndex = 0; rowIndex < ROW_COUNT; rowIndex += 1) {
+  test(`majzumPresent explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
+    await generateFixture(page, 'majzumPresent', 'section02');
+    const rowValue = await chooseRow(page, rowIndex);
+    const outputDir = path.join(process.cwd(), 'test-results', 'section02-explanations', '01-Majzum-Present');
+    fs.mkdirSync(outputDir, { recursive: true });
+    const filename = `${String(rowIndex + 1).padStart(2, '0')}-${safeName(rowValue)}.png`;
+    await page.locator('#explanation-panel').screenshot({ path: path.join(outputDir, filename) });
+  });
 }
