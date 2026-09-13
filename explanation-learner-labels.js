@@ -31,47 +31,55 @@
   const NOMINAL_COMPONENT_PREFIX = /^(?:ا|و|ي|ن|ت|ة|ات)\s+of\b/i;
   const ARABIC_MARK = /\p{M}/u;
 
-  // Active-past learner decomposition, aligned to the repository references.
-  // The source material explicitly treats perfect-tense endings as the carriers
-  // of person, gender and number. We therefore separate learner-visible ending
-  // components without changing the generated Arabic surface.
+  // Active-past learner decomposition. The label states the grammatical
+  // information carried by the ending: person, number, gender and (for
+  // تُ / تَ / تِ) the distinguishing vowel. Generated Arabic is untouched.
   const ACTIVE_PAST_ENDINGS = Object.freeze({
+    1: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is the masculine dual subject marker (ألف الاثنين للمثنى المذكر الغائب)" }),
+    ]),
+    2: Object.freeze([
+      Object.freeze({ letters: 2, label: "This is the masculine plural subject marker (واو الجماعة لجمع المذكر الغائب)" }),
+    ]),
     3: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the feminine marker (تاء التأنيث)" }),
+      Object.freeze({ letters: 1, label: "This is the feminine singular marker (تاء التأنيث الساكنة للمفردة المؤنثة الغائبة)" }),
     ]),
     4: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the feminine marker (تاء التأنيث)" }),
-      Object.freeze({ letters: 1, label: "This is ا of the dual marker (ألف الاثنين)" }),
+      Object.freeze({ letters: 1, label: "This is the feminine marker (تاء التأنيث)" }),
+      Object.freeze({ letters: 1, label: "This is the feminine dual subject marker (ألف الاثنين للمثنى المؤنث الغائب)" }),
+    ]),
+    5: Object.freeze([
+      Object.freeze({ letters: 1, label: "This is the feminine plural subject marker (نون النسوة لجمع المؤنث الغائب)" }),
     ]),
     6: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is the masculine singular مخاطب subject ending with fatḥah (تاء الفاعل للمخاطب المفرد المذكر)" }),
     ]),
     7: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the dual مخاطب ending (تاء الفاعل للمثنى المخاطب)" }),
       Object.freeze({ letters: 1, label: "This is م in the dual مخاطب ending (أنتما)" }),
-      Object.freeze({ letters: 1, label: "This is ا of the dual marker (ألف الاثنين)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the dual مخاطب ending (أنتما)" }),
     ]),
     8: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is م of the masculine-plural مخاطب ending (أنتم)" }),
+      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the masculine plural مخاطب ending (تاء الفاعل لجمع المذكر المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م of the masculine plural مخاطب ending (أنتم)" }),
     ]),
     9: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is the feminine singular مخاطبة subject ending with kasrah (تاء الفاعل للمخاطبة المفردة المؤنثة)" }),
     ]),
     10: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is م in the dual مخاطب ending (أنتما)" }),
-      Object.freeze({ letters: 1, label: "This is ا of the dual marker (ألف الاثنين)" }),
+      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the dual مخاطبة ending (تاء الفاعل للمثنى المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م in the dual مخاطبة ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the dual مخاطبة ending (أنتما)" }),
     ]),
     11: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the مخاطب subject ending (تاء الفاعل للمخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is ن of the feminine-plural مخاطب ending (أنتنّ)" }),
+      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the feminine plural مخاطبة ending (تاء الفاعل لجمع المؤنث المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is ن of the feminine plural مخاطبة ending (أنتنّ)" }),
     ]),
     12: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is ت of the speaker subject ending (تاء الفاعل للمتكلم)" }),
+      Object.freeze({ letters: 1, label: "This is the first-person singular subject ending with ḍammah (تاء الفاعل للمتكلم المفرد)" }),
     ]),
     13: Object.freeze([
-      Object.freeze({ letters: 2, label: "This is نا of the speaker subject ending (نا الفاعلين)" }),
+      Object.freeze({ letters: 2, label: "This is the first-person plural subject ending (نا الفاعلين للمتكلمين)" }),
     ]),
   });
 
