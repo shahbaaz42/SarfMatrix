@@ -1,0 +1,13 @@
+"use strict";
+const fs = require("fs");
+const assert = require("assert");
+const source = fs.readFileSync("explanation-learner-labels.js", "utf8");
+assert(source.includes('bare === "تما"'), "Dual subject ending تما should be split");
+assert(source.includes('bare === "تم"'), "Plural subject ending تم should be split");
+assert(source.includes('bare === "تن"'), "Feminine plural subject ending تن should be split");
+assert(source.includes("This is ت of the subject ending (تاء الفاعل)"));
+assert(source.includes("This is م of the dual subject ending (ميم التثنية)"));
+assert(source.includes("This is ا of the dual subject ending (ألف التثنية)"));
+assert(source.includes("This is م of the plural subject ending (ميم الجمع)"));
+assert(source.includes("This is ن of the feminine plural subject ending (نون النسوة)"));
+console.log("Verified compound past subject endings are rendered as separate learner Structure cards.");
