@@ -29,6 +29,7 @@
   });
 
   const NOMINAL_COMPONENT_PREFIX = /^(?:ا|و|ي|ن|ت|ة|ات)\s+of\b/i;
+  const ARABIC_MARK = /\p{M}/u;
 
   function currentBabName() {
     const select = document.querySelector("#bab");
@@ -50,9 +51,75 @@
     relabelSelect(document.querySelector("#explanation-field"), FORM_LABELS);
   }
 
+  function arabicUnits(text) {
+    const units = [];
+    for (const char of Array.from(String(text || ""))) {
+      if (ARABIC_MARK.test(char) && units.length) units[units.length - 1] += char;
+      else units.push(char);
+    }
+    return units.filter((unit) => unit.trim());
+  }
+
+  function bareArabic(text) {
+    return String(text || "").normalize("NFD").replace(/\p{M}/gu, "");
+  }
+
+  function makeStructureCard(source, arabic, labelText) {
+    const card = source.cloneNode(true);
+    card.dataset.semanticSplit = "true";
+    const arabicNode = card.querySelector(".structure-run__arabic");
+    const label = card.querySelector(".structure-run__label");
+    if (arabicNode) arabicNode.textContent = arabic;
+    if (label) {
+      label.textContent = labelText;
+      label.dir = "ltr";
+    }
+    return card;
+  }
+
+  function splitSubjectEndingCard(card) {
+    if (card.dataset.semanticSplit === "true") return false;
+    const label = card.querySelector(".structure-run__label");
+    const arabicNode = card.querySelector(".structure-run__arabic");
+    if (!label || !arabicNode || !/^Subject\s+ت\b/i.test(label.textContent.trim())) return false;
+
+    const units = arabicUnits(arabicNode.textContent);
+    const bare = bareArabic(arabicNode.textContent);
+    let parts = null;
+
+    if (bare === "تما" && units.length === 3) {
+      parts = [
+        [units[0], "This is ت of the subject ending (تاء الفاعل)"],
+        [units[1], "This is م of the dual subject ending (ميم التثنية)"],
+        [units[2], "This is ا of the dual subject ending (ألف التثنية)"],
+      ];
+    } else if (bare === "تم" && units.length === 2) {
+      parts = [
+        [units[0], "This is ت of the subject ending (تاء الفاعل)"],
+        [units[1], "This is م of the plural subject ending (ميم الجمع)"],
+      ];
+    } else if (bare === "تن" && units.length === 2) {
+      parts = [
+        [units[0], "This is ت of the subject ending (تاء الفاعل)"],
+        [units[1], "This is ن of the feminine plural subject ending (نون النسوة)"],
+      ];
+    }
+
+    if (!parts) return false;
+    card.replaceWith(...parts.map(([arabic, text]) => makeStructureCard(card, arabic, text)));
+    return true;
+  }
+
+  function splitCompoundStructure() {
+    for (const card of Array.from(document.querySelectorAll("#explanation-output .structure-run"))) {
+      splitSubjectEndingCard(card);
+    }
+  }
+
   function relabelStructure() {
     const babName = currentBabName();
     if (!babName) return;
+    splitCompoundStructure();
     for (const card of document.querySelectorAll("#explanation-output .structure-run")) {
       const label = card.querySelector(".structure-run__label");
       const arabic = card.querySelector(".structure-run__arabic")?.textContent?.trim();
@@ -79,14 +146,22 @@
     const panel = document.querySelector("#explanation-panel");
     if (!panel) return;
     apply();
-    const observer = new MutationObserver(apply);
+    let applying = false;
+    const observer = new MutationObserver(() => {
+      if (applying) return;
+      applying = true;
+      queueMicrotask(() => {
+        apply();
+        applying = false;
+      });
+    });
     observer.observe(panel, { childList: true, subtree: true });
     document.querySelector("#bab")?.addEventListener("change", apply);
     document.querySelector("#explanation-section")?.addEventListener("change", () => queueMicrotask(apply));
     document.querySelector("#explanation-field")?.addEventListener("change", () => queueMicrotask(apply));
   }
 
-  const api = Object.freeze({ SECTION_LABELS, FORM_LABELS, NOMINAL_COMPONENT_PREFIX, apply });
+  const api = Object.freeze({ SECTION_LABELS, FORM_LABELS, NOMINAL_COMPONENT_PREFIX, arabicUnits, bareArabic, splitSubjectEndingCard, apply });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else {
     globalScope.SarfExplanationLearnerLabels = api;
