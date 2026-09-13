@@ -1,0 +1,44 @@
+name: Explanation Visual Audit
+
+on:
+  pull_request:
+    paths:
+      - 'explanation-*.js'
+      - 'grammatical-components.js'
+      - 'derivational-components.js'
+      - 'index.html'
+      - 'style.css'
+      - 'explanation-ui.css'
+      - 'tests/visual/**'
+      - 'playwright.config.js'
+      - 'package.json'
+  workflow_dispatch:
+
+jobs:
+  past-explanation-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run past explanation audit
+        run: npm run test:visual
+
+      - name: Upload generated screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: past-explanation-screenshots
+          path: test-results/**/past-explanations/*.png
+          if-no-files-found: warn
