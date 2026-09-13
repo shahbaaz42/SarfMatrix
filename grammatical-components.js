@@ -28,6 +28,15 @@
     [], ["dual-alif"], ["plural-waw"], ["feminine-address-ya"], ["dual-alif"], ["nun-niswa"], [], [],
   ].map(Object.freeze));
 
+  // In the indicative present/passive-present forms, the five verbs retain
+  // their final nūn. That nūn is the indicative marker (ثبوت النون), while
+  // alif/wāw/yāʾ carry the subject identity. Other non-past moods reuse the
+  // underlying subject roles without this indicative nūn role.
+  const INDICATIVE_ENDING_ROLES = Object.freeze([
+    [], ["dual-alif", "indicative-nun"], ["plural-waw", "indicative-nun"], [], ["dual-alif", "indicative-nun"], ["nun-niswa"],
+    [], ["dual-alif", "indicative-nun"], ["plural-waw", "indicative-nun"], ["feminine-address-ya", "indicative-nun"], ["dual-alif", "indicative-nun"], ["nun-niswa"], [], [],
+  ].map(Object.freeze));
+
   const HEAVY_ENDING_ROLES = Object.freeze([
     ["heavy-emphasis-nun"], ["dual-alif", "heavy-emphasis-nun"], ["heavy-emphasis-nun"], ["heavy-emphasis-nun"],
     ["dual-alif", "heavy-emphasis-nun"], ["nun-niswa", "heavy-emphasis-nun"], ["heavy-emphasis-nun"],
@@ -43,7 +52,8 @@
 
   const FIELD_CLASS = Object.freeze({
     past: "past", passivePast: "past",
-    present: "nonpast", passivePresent: "nonpast", majzumPresent: "nonpast", mansubPresent: "nonpast",
+    present: "indicative-nonpast", passivePresent: "indicative-nonpast",
+    majzumPresent: "nonpast", mansubPresent: "nonpast",
     imperative: "nonpast",
     heavyEmphatic: "heavy", heavyImperative: "heavy",
     lightEmphatic: "light", lightImperative: "light",
@@ -64,6 +74,7 @@
   function endingRoles(field, rowIndex) {
     const family = FIELD_CLASS[field];
     if (family === "past") return PAST_ENDING_ROLES[rowIndex] || [];
+    if (family === "indicative-nonpast") return INDICATIVE_ENDING_ROLES[rowIndex] || [];
     if (family === "nonpast") return NONPAST_ENDING_ROLES[rowIndex] || [];
     if (family === "heavy") return HEAVY_ENDING_ROLES[rowIndex] || [];
     if (family === "light") return LIGHT_ENDING_ROLES[rowIndex] || [];
@@ -129,7 +140,7 @@
   }
 
   const api = deepFreeze({
-    PREFIX_ROLE_BY_ROW, PAST_ENDING_ROLES, NONPAST_ENDING_ROLES, HEAVY_ENDING_ROLES, LIGHT_ENDING_ROLES,
+    PREFIX_ROLE_BY_ROW, PAST_ENDING_ROLES, NONPAST_ENDING_ROLES, INDICATIVE_ENDING_ROLES, HEAVY_ENDING_ROLES, LIGHT_ENDING_ROLES,
     endingRoles, enrichPresentation, enrichGeneratedSnapshot,
   });
 

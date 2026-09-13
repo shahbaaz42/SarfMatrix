@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-const FORMS = ['past', 'passivePast'];
+const FORMS = ['past', 'passivePast', 'present', 'passivePresent'];
 const ROW_COUNT = 14;
 
 async function generateFixture(page, form) {
@@ -38,22 +38,33 @@ function safeName(value) {
   return String(value).replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'row';
 }
 
-async function assertLearnerLabels(page, rowIndex) {
-  const labels = await page.locator('#explanation-output .structure-run__label').allTextContents();
+async function labelsFor(page) {
+  return (await page.locator('#explanation-output .structure-run__label').allTextContents()).map((label) => label.trim());
+}
 
-  if (rowIndex >= 6) {
-    expect(labels.some((label) => /^Subject\s+ت\b/i.test(label.trim()))).toBeFalsy();
-  }
+async function assertPastLabels(page, rowIndex) {
+  const labels = await labelsFor(page);
+  if (rowIndex >= 6) expect(labels.some((label) => /^Subject\s+ت\b/i.test(label))).toBeFalsy();
   if (rowIndex === 11) {
     expect(labels.some((label) => label.includes('feminine plural addressee subject ending'))).toBeTruthy();
     expect(labels.some((label) => label.includes('feminine plural addressee ending'))).toBeTruthy();
   }
-  if (rowIndex === 12) {
-    expect(labels.some((label) => label.includes('first-person singular subject ending with ḍammah'))).toBeTruthy();
+  if (rowIndex === 12) expect(labels.some((label) => label.includes('first-person singular subject ending with ḍammah'))).toBeTruthy();
+  if (rowIndex === 13) expect(labels.some((label) => label.includes('first-person plural subject ending'))).toBeTruthy();
+}
+
+async function assertPresentLabels(page, rowIndex) {
+  const labels = await labelsFor(page);
+  expect(labels.some((label) => label.startsWith('This is the') && label.includes('present prefix'))).toBeTruthy();
+
+  const fiveVerbRows = new Set([1, 2, 4, 7, 8, 9, 10]);
+  if (fiveVerbRows.has(rowIndex)) {
+    expect(labels.some((label) => label.includes('indicative five-verbs ending'))).toBeTruthy();
   }
-  if (rowIndex === 13) {
-    expect(labels.some((label) => label.includes('first-person plural subject ending'))).toBeTruthy();
-  }
+  if (rowIndex === 5) expect(labels.some((label) => label.includes('feminine plural subject marker (نون النسوة)'))).toBeTruthy();
+  if (rowIndex === 11) expect(labels.some((label) => label.includes('feminine plural addressee subject marker (نون النسوة)'))).toBeTruthy();
+  if (rowIndex === 12) expect(labels.some((label) => label.includes('first-person singular present prefix أ'))).toBeTruthy();
+  if (rowIndex === 13) expect(labels.some((label) => label.includes('first-person plural present prefix ن'))).toBeTruthy();
 }
 
 for (const form of FORMS) {
@@ -61,9 +72,10 @@ for (const form of FORMS) {
     test(`${form} explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }, testInfo) => {
       await generateFixture(page, form);
       const rowValue = await chooseRow(page, rowIndex);
-      await assertLearnerLabels(page, rowIndex);
+      if (form === 'past' || form === 'passivePast') await assertPastLabels(page, rowIndex);
+      else await assertPresentLabels(page, rowIndex);
 
-      const outputDir = path.join(testInfo.outputDir, 'past-explanations');
+      const outputDir = path.join(testInfo.outputDir, 'section01-explanations');
       fs.mkdirSync(outputDir, { recursive: true });
       const filename = `${form}-${String(rowIndex + 1).padStart(2, '0')}-${safeName(rowValue)}.png`;
       await page.locator('#explanation-panel').screenshot({ path: path.join(outputDir, filename) });
