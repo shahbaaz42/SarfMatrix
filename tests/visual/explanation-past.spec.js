@@ -59,18 +59,33 @@ async function assertPastLabels(page, rowIndex) {
   if (rowIndex === 13) expect(labels.some((label) => label.includes('first-person plural subject ending'))).toBeTruthy();
 }
 
+function hasPrefixLabel(labels, person, detail) {
+  return labels.some((label) =>
+    label.includes(`Muḍāriʿ prefix for the ${person} person`) &&
+    label.includes(detail)
+  );
+}
+
 async function assertPresentLabels(page, rowIndex) {
   const labels = await labelsFor(page);
-  expect(labels.some((label) => label.startsWith('This is the') && label.includes('present prefix'))).toBeTruthy();
+  expect(labels.some((label) => label.includes('Muḍāriʿ prefix'))).toBeTruthy();
+
+  if ([0, 1, 2].includes(rowIndex)) expect(hasPrefixLabel(labels, 'third', 'masculine')).toBeTruthy();
+  if ([3, 4, 5].includes(rowIndex)) expect(hasPrefixLabel(labels, 'third', 'feminine')).toBeTruthy();
+  if ([6, 7, 8].includes(rowIndex)) expect(hasPrefixLabel(labels, 'second', 'masculine')).toBeTruthy();
+  if ([9, 10, 11].includes(rowIndex)) expect(hasPrefixLabel(labels, 'second', 'feminine')).toBeTruthy();
+  if (rowIndex === 12) expect(hasPrefixLabel(labels, 'first', 'singular')).toBeTruthy();
+  if (rowIndex === 13) expect(hasPrefixLabel(labels, 'first', 'plural')).toBeTruthy();
 
   const fiveVerbRows = new Set([1, 2, 4, 7, 8, 9, 10]);
   if (fiveVerbRows.has(rowIndex)) {
-    expect(labels.some((label) => label.includes('indicative five-verbs ending'))).toBeTruthy();
+    expect(labels.some((label) =>
+      label.includes('retained nūn of the Five Verbs in the indicative') &&
+      label.includes('ثبوت النون')
+    )).toBeTruthy();
   }
   if (rowIndex === 5) expect(labels.some((label) => label.includes('feminine plural subject marker (نون النسوة)'))).toBeTruthy();
   if (rowIndex === 11) expect(labels.some((label) => label.includes('feminine plural addressee subject marker (نون النسوة)'))).toBeTruthy();
-  if (rowIndex === 12) expect(labels.some((label) => label.includes('first-person singular present prefix أ'))).toBeTruthy();
-  if (rowIndex === 13) expect(labels.some((label) => label.includes('first-person plural present prefix ن'))).toBeTruthy();
 }
 
 for (const form of FORMS) {
