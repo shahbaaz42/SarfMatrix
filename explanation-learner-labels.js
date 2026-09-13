@@ -31,9 +31,9 @@
   const NOMINAL_COMPONENT_PREFIX = /^(?:ا|و|ي|ن|ت|ة|ات)\s+of\b/i;
   const ARABIC_MARK = /\p{M}/u;
 
-  // Active-past learner decomposition. The label states the grammatical
-  // information carried by the ending: person, number, gender and (for
-  // تُ / تَ / تِ) the distinguishing vowel. Generated Arabic is untouched.
+  // Past-tense learner decomposition shared by active and passive voice.
+  // The ending carries the same person, number and gender information in
+  // both voices; only the stem vocalization changes. Generated Arabic is untouched.
   const ACTIVE_PAST_ENDINGS = Object.freeze({
     1: Object.freeze([
       Object.freeze({ letters: 1, label: "This is the masculine dual subject marker (ألف الاثنين للمثنى المذكر الغائب)" }),
@@ -129,15 +129,16 @@
     return card;
   }
 
-  function currentActivePastLayout() {
+  function currentPastLayout() {
     if (document.querySelector("#explanation-section")?.value !== "section01") return null;
-    if (document.querySelector("#explanation-field")?.value !== "past") return null;
+    const field = document.querySelector("#explanation-field")?.value;
+    if (field !== "past" && field !== "passivePast") return null;
     const rowIndex = Number(document.querySelector("#explanation-row")?.value);
     return Number.isInteger(rowIndex) ? ACTIVE_PAST_ENDINGS[rowIndex] || null : null;
   }
 
   function splitReferenceAuditedPastEnding() {
-    const layout = currentActivePastLayout();
+    const layout = currentPastLayout();
     if (!layout) return false;
 
     const cards = Array.from(document.querySelectorAll("#explanation-output .structure-run"));
