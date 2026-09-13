@@ -192,14 +192,18 @@
       if (units.length !== layout[i].letters) return false;
     }
 
+    let changed = false;
     cards.forEach((card, index) => {
       const label = card.querySelector(".structure-run__label");
       if (!label) return;
-      label.textContent = layout[index].label;
-      label.dir = "ltr";
+      if (label.textContent !== layout[index].label) {
+        label.textContent = layout[index].label;
+        changed = true;
+      }
+      if (label.dir !== "ltr") label.dir = "ltr";
       card.dataset.semanticSplit = "true";
     });
-    return true;
+    return changed;
   }
 
   function relabelStructure() {
