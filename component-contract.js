@@ -17,7 +17,7 @@
 
   const MORPHOLOGICAL_ROLE_IDS = Object.freeze([
     "present-prefix-alif", "present-prefix-nun", "present-prefix-ya", "present-prefix-ta",
-    "dual-alif", "plural-waw", "feminine-address-ya", "nun-niswa", "feminine-ta", "subject-ta", "subject-na",
+    "dual-alif", "plural-waw", "feminine-address-ya", "indicative-nun", "nun-niswa", "feminine-ta", "subject-ta", "subject-na",
     "heavy-emphasis-nun", "light-emphasis-nun", "feminine-emphasis-separator-alif",
     "jussive-particle", "subjunctive-particle",
 
