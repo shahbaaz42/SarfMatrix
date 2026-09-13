@@ -3,6 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const FORMS = ['past', 'passivePast', 'present', 'passivePresent'];
+const FORM_DIRS = Object.freeze({
+  past: '01-Active-Past',
+  passivePast: '02-Passive-Past',
+  present: '03-Active-Present',
+  passivePresent: '04-Passive-Present',
+});
 const ROW_COUNT = 14;
 
 async function generateFixture(page, form) {
@@ -69,15 +75,15 @@ async function assertPresentLabels(page, rowIndex) {
 
 for (const form of FORMS) {
   for (let rowIndex = 0; rowIndex < ROW_COUNT; rowIndex += 1) {
-    test(`${form} explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }, testInfo) => {
+    test(`${form} explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
       await generateFixture(page, form);
       const rowValue = await chooseRow(page, rowIndex);
       if (form === 'past' || form === 'passivePast') await assertPastLabels(page, rowIndex);
       else await assertPresentLabels(page, rowIndex);
 
-      const outputDir = path.join(testInfo.outputDir, 'section01-explanations');
+      const outputDir = path.join(process.cwd(), 'test-results', 'section01-explanations', FORM_DIRS[form]);
       fs.mkdirSync(outputDir, { recursive: true });
-      const filename = `${form}-${String(rowIndex + 1).padStart(2, '0')}-${safeName(rowValue)}.png`;
+      const filename = `${String(rowIndex + 1).padStart(2, '0')}-${safeName(rowValue)}.png`;
       await page.locator('#explanation-panel').screenshot({ path: path.join(outputDir, filename) });
     });
   }
