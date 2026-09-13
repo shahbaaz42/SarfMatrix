@@ -52,28 +52,28 @@
       Object.freeze({ letters: 1, label: "This is the feminine plural subject marker (نون النسوة لجمع المؤنث الغائب)" }),
     ]),
     6: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is the masculine singular مخاطب subject ending with fatḥah (تاء الفاعل للمخاطب المفرد المذكر)" }),
+      Object.freeze({ letters: 1, label: "This is the masculine singular addressee subject ending with fatḥah (تاء الفاعل للمخاطب المفرد المذكر)" }),
     ]),
     7: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the dual مخاطب ending (تاء الفاعل للمثنى المخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is م in the dual مخاطب ending (أنتما)" }),
-      Object.freeze({ letters: 1, label: "This is ا of the dual مخاطب ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ت of the masculine dual addressee subject ending (تاء الفاعل للمثنى المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م of the masculine dual addressee ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the masculine dual addressee ending (أنتما)" }),
     ]),
     8: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the masculine plural مخاطب ending (تاء الفاعل لجمع المذكر المخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is م of the masculine plural مخاطب ending (أنتم)" }),
+      Object.freeze({ letters: 1, label: "This is ت of the masculine plural addressee subject ending (تاء الفاعل لجمع المذكر المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م of the masculine plural addressee ending (أنتم)" }),
     ]),
     9: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is the feminine singular مخاطبة subject ending with kasrah (تاء الفاعل للمخاطبة المفردة المؤنثة)" }),
+      Object.freeze({ letters: 1, label: "This is the feminine singular addressee subject ending with kasrah (تاء الفاعل للمخاطبة المفردة المؤنثة)" }),
     ]),
     10: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the dual مخاطبة ending (تاء الفاعل للمثنى المخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is م in the dual مخاطبة ending (أنتما)" }),
-      Object.freeze({ letters: 1, label: "This is ا of the dual مخاطبة ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ت of the feminine dual addressee subject ending (تاء الفاعل للمثنى المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is م of the feminine dual addressee ending (أنتما)" }),
+      Object.freeze({ letters: 1, label: "This is ا of the feminine dual addressee ending (أنتما)" }),
     ]),
     11: Object.freeze([
-      Object.freeze({ letters: 1, label: "This is تاء الفاعل of the feminine plural مخاطبة ending (تاء الفاعل لجمع المؤنث المخاطب)" }),
-      Object.freeze({ letters: 1, label: "This is ن of the feminine plural مخاطبة ending (أنتنّ)" }),
+      Object.freeze({ letters: 1, label: "This is ت of the feminine plural addressee subject ending (تاء الفاعل لجمع المؤنث المخاطب)" }),
+      Object.freeze({ letters: 1, label: "This is ن of the feminine plural addressee ending (أنتنّ)" }),
     ]),
     12: Object.freeze([
       Object.freeze({ letters: 1, label: "This is the first-person singular subject ending with ḍammah (تاء الفاعل للمتكلم المفرد)" }),
@@ -137,6 +137,16 @@
     return Number.isInteger(rowIndex) ? ACTIVE_PAST_ENDINGS[rowIndex] || null : null;
   }
 
+  function isPastEndingCard(card) {
+    const label = card.querySelector(".structure-run__label")?.textContent || "";
+    const arabic = card.querySelector(".structure-run__arabic")?.textContent || "";
+    if (!/\p{Script=Arabic}/u.test(arabic)) return false;
+    if (/root radical/i.test(label)) return false;
+    if (/Hamzat al-/i.test(label)) return false;
+    if (/باب|Form\s+\d+/i.test(label)) return false;
+    return true;
+  }
+
   function splitReferenceAuditedPastEnding() {
     const layout = currentPastLayout();
     if (!layout) return false;
@@ -146,11 +156,9 @@
 
     const expectedLetters = layout.reduce((sum, part) => sum + part.letters, 0);
     const candidate = cards.find((card) => {
-      const label = card.querySelector(".structure-run__label")?.textContent || "";
+      if (!isPastEndingCard(card)) return false;
       const arabic = card.querySelector(".structure-run__arabic")?.textContent || "";
       const units = arabicUnits(arabic).filter((unit) => /\p{Script=Arabic}/u.test(unit));
-      if (/root radical/i.test(label)) return false;
-      if (/Hamzat al-/i.test(label)) return false;
       return units.length === expectedLetters;
     });
     if (!candidate) return false;
@@ -170,8 +178,37 @@
     return true;
   }
 
+  function relabelAlreadySplitPastEnding() {
+    const layout = currentPastLayout();
+    if (!layout || layout.length < 2) return false;
+
+    const cards = Array.from(document.querySelectorAll("#explanation-output .structure-run"))
+      .filter(isPastEndingCard);
+    if (cards.length !== layout.length) return false;
+
+    for (let i = 0; i < layout.length; i += 1) {
+      const units = arabicUnits(cards[i].querySelector(".structure-run__arabic")?.textContent)
+        .filter((unit) => /\p{Script=Arabic}/u.test(unit));
+      if (units.length !== layout[i].letters) return false;
+    }
+
+    let changed = false;
+    cards.forEach((card, index) => {
+      const label = card.querySelector(".structure-run__label");
+      if (!label) return;
+      if (label.textContent !== layout[index].label) {
+        label.textContent = layout[index].label;
+        changed = true;
+      }
+      if (label.dir !== "ltr") label.dir = "ltr";
+      card.dataset.semanticSplit = "true";
+    });
+    return changed;
+  }
+
   function relabelStructure() {
     splitReferenceAuditedPastEnding();
+    relabelAlreadySplitPastEnding();
     const babName = currentBabName();
     if (!babName) return;
     for (const card of document.querySelectorAll("#explanation-output .structure-run")) {
@@ -224,6 +261,7 @@
     arabicUnits,
     bareArabic,
     splitReferenceAuditedPastEnding,
+    relabelAlreadySplitPastEnding,
     apply,
   });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
