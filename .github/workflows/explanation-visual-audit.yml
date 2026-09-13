@@ -13,10 +13,11 @@ on:
       - 'tests/visual/**'
       - 'playwright.config.js'
       - 'package.json'
+      - '.github/workflows/explanation-visual-audit.yml'
   workflow_dispatch:
 
 jobs:
-  section01-explanation-audit:
+  explanation-audit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,14 +34,23 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run Section 01 explanation audit
+      - name: Run explanation audit
         run: npm run test:visual
 
-      - name: Upload generated screenshots
+      - name: Upload Section 01 screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: section01-explanation-screenshots
           path: test-results/section01-explanations/**/*.png
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload Section 02 Majzum screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: section02-majzum-screenshots
+          path: test-results/section02-explanations/01-Majzum-Present/*.png
           if-no-files-found: warn
           retention-days: 7
