@@ -17,13 +17,14 @@
   function selected(){return document.querySelector("#explanation-section")?.value==="section02"&&document.querySelector("#explanation-field")?.value==="lightEmphatic";}
   function row(){const n=Number(document.querySelector("#explanation-row")?.value);return Number.isInteger(n)?n:null;}
   function block(title){return [...document.querySelectorAll("#explanation-output .explanation-block")].find(b=>(b.querySelector("h3")?.textContent||"").trim().toLowerCase()===title.toLowerCase());}
-  function setText(title,cls,text){const b=block(title);if(!b)return;b.querySelector(".explanation-empty")?.remove();let p=b.querySelector("."+cls);if(!p){p=document.createElement("p");p.className=cls;p.dir="ltr";b.append(p);}p.textContent=text;}
+  function setLabel(label,text){if(!label||!text)return;if(label.textContent!==text)label.textContent=text;if(label.dir!=="ltr")label.dir="ltr";}
+  function setText(title,cls,text){const b=block(title);if(!b)return;const empty=b.querySelector(".explanation-empty");if(empty)empty.remove();let p=b.querySelector("."+cls);if(!p){p=document.createElement("p");p.className=cls;p.dir="ltr";b.append(p);}if(p.textContent!==text)p.textContent=text;if(p.dir!=="ltr")p.dir="ltr";}
   function apply(){if(!selected())return;const r=row();if(!LIGHT_ROWS.has(r))return;
     for(const card of document.querySelectorAll("#explanation-output .structure-run")){
       const label=card.querySelector(".structure-run__label");if(!label)continue;const t=label.textContent||"";
-      if(/Present-tense prefix|present prefix|Muḍāriʿ prefix/i.test(t)){label.textContent=PREFIX[r];label.dir="ltr";}
-      else if(/^Particle$/i.test(t.trim())||/emphatic lām/i.test(t)){label.textContent=EMPHATIC_LAM;label.dir="ltr";}
-      else if(/Light-emphasis\s+ن|نون التوكيد الخفيفة/i.test(t)){label.textContent=LIGHT_NUN;label.dir="ltr";}
+      if(/Present-tense prefix|present prefix|Muḍāriʿ prefix/i.test(t))setLabel(label,PREFIX[r]);
+      else if(/^Particle$/i.test(t.trim())||/emphatic lām/i.test(t))setLabel(label,EMPHATIC_LAM);
+      else if(/Light-emphasis\s+ن|نون التوكيد الخفيفة/i.test(t))setLabel(label,LIGHT_NUN);
     }
     let rule="The light-emphasis nūn (نون التوكيد الخفيفة) is attached to the Muḍāriʿ form after the emphatic lām (لام التوكيد).";
     let derivation="The selected Muḍāriʿ form is prepared for emphasis, then the light-emphasis nūn (نون التوكيد الخفيفة) is attached.";
