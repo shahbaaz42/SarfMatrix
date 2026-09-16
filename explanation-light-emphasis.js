@@ -58,22 +58,40 @@
     1:[/Dual alif/i,"This is the masculine dual subject marker (ألف الاثنين)"],
     2:[/Plural wāw/i,"This is the masculine plural subject marker (واو الجماعة)"],
     4:[/Dual alif/i,"This is the feminine dual subject marker (ألف الاثنين)"],
-    5:[/Nūn al-niswah/i,"This is the feminine plural subject marker (نون النسوة)"],
+    5:[/Nūn al-niswah|نون النسوة|feminine plural subject marker/i,"This is the feminine plural subject marker (نون النسوة)"],
     7:[/Dual alif/i,"This is the masculine dual addressee subject marker (ألف الاثنين)"],
     8:[/Plural wāw/i,"This is the masculine plural addressee subject marker (واو الجماعة)"],
     9:[/Feminine-address yāʾ/i,"This is the feminine singular addressee subject marker (ياء المخاطبة)"],
     10:[/Dual alif/i,"This is the feminine dual addressee subject marker (ألف الاثنين)"],
-    11:[/Nūn al-niswah/i,"This is the feminine plural addressee subject marker (نون النسوة)"]
+    11:[/Nūn al-niswah|نون النسوة|feminine plural addressee subject marker/i,"This is the feminine plural addressee subject marker (نون النسوة)"]
   });
   const LAM_AL_AMR="This is lām al-amr, the jussive command particle (لام الأمر الجازمة)";
   const HAMZAT_WASL="This is hamzat al-waṣl used to begin the direct imperative (همزة الوصل في فعل الأمر)";
+  const THIRD_RADICAL="Third root radical (لام الكلمة)";
   function selected(){return document.querySelector("#explanation-section")?.value==="section03"&&document.querySelector("#explanation-field")?.value==="imperative";}
   function row(){const n=Number(document.querySelector("#explanation-row")?.value);return Number.isInteger(n)?n:null;}
   function block(title){return [...document.querySelectorAll("#explanation-output .explanation-block")].find(b=>(b.querySelector("h3")?.textContent||"").trim().toLowerCase()===title.toLowerCase());}
   function setLabel(label,text){if(!label||!text)return;if(label.textContent!==text)label.textContent=text;if(label.dir!=="ltr")label.dir="ltr";}
   function setText(title,cls,text){const b=block(title);if(!b)return;const empty=b.querySelector(".explanation-empty");if(empty)empty.remove();let p=b.querySelector("."+cls);if(!p){p=document.createElement("p");p.className=cls;p.dir="ltr";b.append(p);}if(p.textContent!==text)p.textContent=text;if(p.dir!=="ltr")p.dir="ltr";}
   function bare(text){return String(text||"").normalize("NFD").replace(/\p{M}/gu,"").trim();}
+  function arabicUnits(text){const units=[];for(const c of Array.from(String(text||""))){if(/\p{M}/u.test(c)&&units.length)units[units.length-1]+=c;else if(c.trim())units.push(c);}return units.filter(unit=>/\p{Script=Arabic}/u.test(unit));}
+  function cloneStructureCard(source,arabic,labelText){const card=source.cloneNode(true);card.dataset.imperativeSemanticSplit="true";const a=card.querySelector(".structure-run__arabic");const l=card.querySelector(".structure-run__label");if(a)a.textContent=arabic;if(l)setLabel(l,labelText);return card;}
+  function splitNiswaFinalRadical(r){
+    if(!NUN_NISWA_ROWS.has(r))return;
+    const cards=[...document.querySelectorAll("#explanation-output .structure-run")];
+    if(cards.some(card=>card.dataset.imperativeSemanticSplit==="true"))return;
+    const niswaIndex=cards.findLastIndex(card=>bare(card.querySelector(".structure-run__arabic")?.textContent||"")==="ن");
+    if(niswaIndex<=0)return;
+    const candidate=cards[niswaIndex-1];
+    const label=candidate.querySelector(".structure-run__label")?.textContent||"";
+    const units=arabicUnits(candidate.querySelector(".structure-run__arabic")?.textContent||"");
+    if(units.length!==2||!/Second root radical|عين الكلمة/i.test(label))return;
+    const second=cloneStructureCard(candidate,units[0],label);
+    const third=cloneStructureCard(candidate,units[1],THIRD_RADICAL);
+    candidate.replaceWith(second,third);
+  }
   function relabelStructure(r){
+    splitNiswaFinalRadical(r);
     const direct=SECOND_PERSON_ROWS.has(r);
     const cards=[...document.querySelectorAll("#explanation-output .structure-run")];
     for(const card of cards){
