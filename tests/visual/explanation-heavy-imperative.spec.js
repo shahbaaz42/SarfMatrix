@@ -3,6 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROW_COUNT = 14;
+const SECOND_PERSON_ROWS = new Set([6, 7, 8, 9, 10, 11]);
+const DUAL_ROWS = new Set([1, 4, 7, 10]);
+const NUN_NISWA_ROWS = new Set([5, 11]);
 
 async function generateFixture(page) {
   await page.goto('/');
@@ -28,7 +31,60 @@ async function chooseRow(page, rowIndex) {
   await expect(page.locator('#explanation-row')).toHaveValue(value);
   await expect(page.locator('#explanation-output .explanation-surface')).toBeVisible();
   await expect(page.locator('#explanation-output .structure-run').first()).toBeVisible();
+  await page.waitForFunction(() => Boolean(document.querySelector('#explanation-output .heavy-imperative-rule')));
   return value;
+}
+
+async function labelsFor(page) {
+  return (await page.locator('#explanation-output .structure-run__label').allTextContents()).map((value) => value.trim());
+}
+
+function hasPrefixLabel(labels, person, detail) {
+  return labels.some((label) => label.includes(`Muḍāriʿ prefix for the ${person} person`) && label.includes(detail));
+}
+
+function assertNonSecondPrefix(labels, rowIndex) {
+  if ([0, 1, 2].includes(rowIndex)) expect(hasPrefixLabel(labels, 'third', 'masculine')).toBeTruthy();
+  if ([3, 4, 5].includes(rowIndex)) expect(hasPrefixLabel(labels, 'third', 'feminine')).toBeTruthy();
+  if (rowIndex === 12) expect(hasPrefixLabel(labels, 'first', 'singular')).toBeTruthy();
+  if (rowIndex === 13) expect(hasPrefixLabel(labels, 'first', 'plural')).toBeTruthy();
+}
+
+async function assertHeavyImperative(page, rowIndex) {
+  const labels = await labelsFor(page);
+  const direct = SECOND_PERSON_ROWS.has(rowIndex);
+
+  expect(labels.some((label) => label.includes('heavy-emphasis nūn') && label.includes('نون التوكيد الثقيلة'))).toBeTruthy();
+
+  if (direct) {
+    expect(labels.some((label) => label.includes('lām al-amr'))).toBeFalsy();
+    expect(labels.some((label) => label.includes('Muḍāriʿ prefix'))).toBeFalsy();
+    expect(labels.some((label) => label.includes('hamzat al-waṣl') && label.includes('همزة الوصل'))).toBeTruthy();
+  } else {
+    expect(labels.some((label) => label.includes('lām al-amr') && label.includes('لام الأمر'))).toBeTruthy();
+    assertNonSecondPrefix(labels, rowIndex);
+  }
+
+  if (DUAL_ROWS.has(rowIndex)) {
+    expect(labels.some((label) => label.includes('dual') && label.includes('ألف الاثنين'))).toBeTruthy();
+    const heavyCards = page.locator('#explanation-output .structure-run').filter({ hasText: 'نون التوكيد الثقيلة' });
+    await expect(heavyCards).toHaveCount(1);
+    const heavyArabic = await heavyCards.locator('.structure-run__arabic').textContent();
+    expect(String(heavyArabic || '').normalize('NFD').replace(/\p{M}/gu, '')).toBe('ن');
+  }
+
+  if (NUN_NISWA_ROWS.has(rowIndex)) {
+    expect(labels.some((label) => label.includes('نون النسوة'))).toBeTruthy();
+    expect(labels.some((label) => label.includes('الألف الفاصلة'))).toBeTruthy();
+    if (rowIndex === 11) expect(labels.some((label) => label.includes('feminine plural addressee subject marker'))).toBeTruthy();
+  }
+
+  const rule = await page.locator('#explanation-output .heavy-imperative-rule').textContent();
+  const derivation = await page.locator('#explanation-output .heavy-imperative-derivation').textContent();
+  expect(rule).toContain('نون التوكيد الثقيلة');
+  expect(derivation).toContain('نون التوكيد الثقيلة');
+  if (direct) expect(rule).toContain('direct imperative');
+  else expect(rule).toContain('lām al-amr');
 }
 
 function safeName(value) {
@@ -47,6 +103,7 @@ for (let rowIndex = 0; rowIndex < ROW_COUNT; rowIndex += 1) {
   test(`heavy imperative explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
     await generateFixture(page);
     const rowValue = await chooseRow(page, rowIndex);
+    await assertHeavyImperative(page, rowIndex);
     await shot(page, rowIndex, rowValue);
   });
 }
