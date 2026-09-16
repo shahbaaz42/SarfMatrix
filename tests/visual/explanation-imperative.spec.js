@@ -84,14 +84,14 @@ async function assertImperative(page, rowIndex) {
     expect(rule).toContain('direct imperative');
     if (FIVE_VERB_ROWS.has(rowIndex)) expect(rule).toContain('مبني على حذف النون');
     else if (NUN_NISWA_ROWS.has(rowIndex)) {
-      expect(rule).toContain('نون النسوة');
+      expect(rule).toContain('al-niswah');
       expect(rule).toContain('مبني على السكون');
     } else expect(rule).toContain('مبني على ما يُجزم به مضارعه');
   } else {
     expect(rule).toContain('lām al-amr');
     if (FIVE_VERB_ROWS.has(rowIndex)) expect(rule).toContain('حذف النون');
     else if (NUN_NISWA_ROWS.has(rowIndex)) {
-      expect(rule).toContain('نون النسوة');
+      expect(rule).toContain('al-niswah');
       expect(rule).toContain('في محل جزم');
     } else expect(rule).toContain('علامة جزمه السكون');
   }
