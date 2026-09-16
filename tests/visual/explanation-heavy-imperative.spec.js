@@ -6,6 +6,7 @@ const ROW_COUNT = 14;
 const SECOND_PERSON_ROWS = new Set([6, 7, 8, 9, 10, 11]);
 const DUAL_ROWS = new Set([1, 4, 7, 10]);
 const NUN_NISWA_ROWS = new Set([5, 11]);
+const DIRECTLY_EMPHASIZED_NONSECOND_ROWS = new Set([0, 3, 12, 13]);
 
 async function generateFixture(page) {
   await page.goto('/');
@@ -31,7 +32,7 @@ async function chooseRow(page, rowIndex) {
   await expect(page.locator('#explanation-row')).toHaveValue(value);
   await expect(page.locator('#explanation-output .explanation-surface')).toBeVisible();
   await expect(page.locator('#explanation-output .structure-run').first()).toBeVisible();
-  await page.waitForFunction(() => Boolean(document.querySelector('#explanation-output .heavy-imperative-rule')));
+  await page.waitForFunction(() => Boolean(document.querySelector('#explanation-output .heavy-imperative-precise-rule')));
   return value;
 }
 
@@ -79,12 +80,66 @@ async function assertHeavyImperative(page, rowIndex) {
     if (rowIndex === 11) expect(labels.some((label) => label.includes('feminine plural addressee subject marker'))).toBeTruthy();
   }
 
-  const rule = await page.locator('#explanation-output .heavy-imperative-rule').textContent();
-  const derivation = await page.locator('#explanation-output .heavy-imperative-derivation').textContent();
+  const ruleLocator = page.locator('#explanation-output .heavy-imperative-precise-rule');
+  const derivationLocator = page.locator('#explanation-output .heavy-imperative-precise-derivation');
+  await expect(ruleLocator).toBeVisible();
+  await expect(derivationLocator).toBeVisible();
+  const rule = await ruleLocator.textContent();
+  const derivation = await derivationLocator.textContent();
   expect(rule).toContain('نون التوكيد الثقيلة');
   expect(derivation).toContain('نون التوكيد الثقيلة');
-  if (direct) expect(rule).toContain('direct imperative');
-  else expect(rule).toContain('lām al-amr');
+
+  if (rowIndex === 6) {
+    expect(rule).toContain('مبني على الفتح');
+    expect(rule).toContain('اتصالًا مباشرًا');
+  }
+
+  if (rowIndex === 7 || rowIndex === 10) {
+    expect(rule).toContain('مبني على حذف النون');
+    expect(rule).toContain('ألف الاثنين');
+    expect(rule).toContain('نِّ');
+  }
+
+  if (rowIndex === 8) {
+    expect(rule).toContain('مبني على حذف النون');
+    expect(rule).toContain('واو الجماعة');
+    expect(rule).toContain('لِالتقاء الساكنين'.replace('ِ',''));
+  }
+
+  if (rowIndex === 9) {
+    expect(rule).toContain('مبني على حذف النون');
+    expect(rule).toContain('ياء المخاطبة');
+    expect(rule).toContain('التقاء الساكنين');
+  }
+
+  if (rowIndex === 11) {
+    expect(rule).toContain('مبني على السكون');
+    expect(rule).toContain('نون النسوة');
+    expect(rule).toContain('الألف الفاصلة');
+  }
+
+  if (DIRECTLY_EMPHASIZED_NONSECOND_ROWS.has(rowIndex)) {
+    expect(rule).toContain('lām al-amr');
+    expect(rule).toContain('مبني على الفتح');
+    expect(rule).toContain('في محل جزم');
+  }
+
+  if (rowIndex === 1 || rowIndex === 4) {
+    expect(rule).toContain('علامة جزمه حذف النون');
+    expect(rule).toContain('ألف الاثنين');
+  }
+
+  if (rowIndex === 2) {
+    expect(rule).toContain('علامة جزمه حذف النون');
+    expect(rule).toContain('واو الجماعة');
+    expect(rule).toContain('التقاء الساكنين');
+  }
+
+  if (rowIndex === 5) {
+    expect(rule).toContain('مبني على السكون');
+    expect(rule).toContain('في محل جزم');
+    expect(rule).toContain('الألف الفاصلة');
+  }
 }
 
 function safeName(value) {
