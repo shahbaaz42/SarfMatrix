@@ -2,7 +2,7 @@
   "name": "sarfmatrix",
   "private": true,
   "scripts": {
-    "test:visual": "playwright test tests/visual/explanation-past.spec.js"
+    "test:visual": "playwright test tests/visual/explanation-past.spec.js tests/visual/explanation-imperative.spec.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0"
