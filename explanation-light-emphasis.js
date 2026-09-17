@@ -120,7 +120,7 @@
         derivation="Start from the second-person Muḍāriʿ, remove its Muḍāriʿ prefix, form the imperative stem, and retain nūn al-niswah (نون النسوة).";
       }else{
         rule="This is a direct imperative (فعل الأمر). It is formed on the jussive pattern of its corresponding Muḍāriʿ (فعل الأمر مبني على ما يُجزم به مضارعه).";
-        derivation="Start from the second-person Muḍāriʿ, remove its Muḍāriʿ prefix, supply the imperative onset required by the Bāb, and apply the jussive-based ending pattern.";
+        derivation="Start from the second-person Muḍāriʿ, remove its Muḍāriʿ prefix, supply the direct-imperative onset required by the Bāb, and apply the jussive-based ending pattern.";
       }
     }else{
       if(FIVE_VERB_ROWS.has(r)){
@@ -135,6 +135,99 @@
       }
     }
     setText("Rules","imperative-rule",rule);setText("Derivation","imperative-derivation",derivation);
+  }
+  function apply(){if(!selected())return;const r=row();if(r===null)return;relabelStructure(r);applyRule(r);}
+  function init(){const panel=document.querySelector("#explanation-panel");if(!panel)return;let busy=false;new MutationObserver(()=>{if(busy)return;busy=true;queueMicrotask(()=>{apply();busy=false;});}).observe(panel,{childList:true,subtree:true});for(const id of ["#explanation-section","#explanation-field","#explanation-row","#bab"])document.querySelector(id)?.addEventListener("change",()=>queueMicrotask(apply));apply();}
+  if(typeof document!=="undefined")init();
+})();
+
+// Learner-facing audit for the heavy-emphasis command family in Section 03.
+(function heavyImperativeLabels(){
+  "use strict";
+  const SECOND_PERSON_ROWS=new Set([6,7,8,9,10,11]);
+  const DUAL_ROWS=new Set([1,4,7,10]);
+  const NUN_NISWA_ROWS=new Set([5,11]);
+  const MASC_PLURAL_ROWS=new Set([2,8]);
+  const MUJARRAD_BABS=new Set(["فَتَحَ-يَفْتَحُ","ضَرَبَ-يَضْرِبُ","نَصَرَ-يَنْصُرُ","سَمِعَ-يَسْمَعُ","كَرُمَ-يَكْرُمُ","حَسِبَ-يَحْسِبُ"]);
+  const PREFIX=[
+    "This is the Muḍāriʿ prefix for the third person – masculine (حرف المضارعة للغائب المذكر)",
+    "This is the Muḍāriʿ prefix for the third person – masculine (حرف المضارعة للغائب المذكر)",
+    "This is the Muḍāriʿ prefix for the third person – masculine (حرف المضارعة للغائب المذكر)",
+    "This is the Muḍāriʿ prefix for the third person – feminine (حرف المضارعة للغائبة المؤنثة)",
+    "This is the Muḍāriʿ prefix for the third person – feminine (حرف المضارعة للغائبة المؤنثة)",
+    "This is the Muḍāriʿ prefix for the third person – feminine (حرف المضارعة للغائبة المؤنثة)",
+    null,null,null,null,null,null,
+    "This is the Muḍāriʿ prefix for the first person – singular (حرف المضارعة للمتكلم المفرد)",
+    "This is the Muḍāriʿ prefix for the first person – plural (حرف المضارعة للمتكلمين)"
+  ];
+  const DUAL_LABELS=Object.freeze({
+    1:"This is the masculine dual subject marker (ألف الاثنين)",
+    4:"This is the feminine dual subject marker (ألف الاثنين)",
+    7:"This is the masculine dual addressee subject marker (ألف الاثنين)",
+    10:"This is the feminine dual addressee subject marker (ألف الاثنين)"
+  });
+  const HEAVY_NUN="This is the heavy-emphasis nūn (نون التوكيد الثقيلة)";
+  const LAM_AL_AMR="This is lām al-amr, the jussive command particle (لام الأمر الجازمة)";
+  const HAMZAT_WASL="This is hamzat al-waṣl used to begin the direct imperative (همزة الوصل في فعل الأمر)";
+  const SEPARATING_ALIF="This is the separating alif (الألف الفاصلة)";
+  function selected(){return document.querySelector("#explanation-section")?.value==="section03"&&document.querySelector("#explanation-field")?.value==="heavyImperative";}
+  function row(){const n=Number(document.querySelector("#explanation-row")?.value);return Number.isInteger(n)?n:null;}
+  function block(title){return [...document.querySelectorAll("#explanation-output .explanation-block")].find(b=>(b.querySelector("h3")?.textContent||"").trim().toLowerCase()===title.toLowerCase());}
+  function setLabel(label,text){if(!label||!text)return;if(label.textContent!==text)label.textContent=text;if(label.dir!=="ltr")label.dir="ltr";}
+  function setText(title,cls,text){const b=block(title);if(!b)return;const empty=b.querySelector(".explanation-empty");if(empty)empty.remove();let p=b.querySelector("."+cls);if(!p){p=document.createElement("p");p.className=cls;p.dir="ltr";b.append(p);}if(p.textContent!==text)p.textContent=text;if(p.dir!=="ltr")p.dir="ltr";}
+  function bare(text){return String(text||"").normalize("NFD").replace(/\p{M}/gu,"").trim();}
+  function arabicUnits(text){const units=[];for(const c of Array.from(String(text||""))){if(/\p{M}/u.test(c)&&units.length)units[units.length-1]+=c;else if(c.trim())units.push(c);}return units.filter(unit=>/\p{Script=Arabic}/u.test(unit));}
+  function cloneStructureCard(source,arabic,labelText){const card=source.cloneNode(true);card.dataset.heavyImperativeSemanticSplit="true";const a=card.querySelector(".structure-run__arabic");const l=card.querySelector(".structure-run__label");if(a)a.textContent=arabic;if(l)setLabel(l,labelText);return card;}
+  function splitDualHeavyEnding(r){
+    if(!DUAL_ROWS.has(r))return;
+    const cards=[...document.querySelectorAll("#explanation-output .structure-run")];
+    const candidate=cards.find(card=>{
+      const label=card.querySelector(".structure-run__label")?.textContent||"";
+      const units=arabicUnits(card.querySelector(".structure-run__arabic")?.textContent||"");
+      return /Heavy-emphasis\s+ن|نون التوكيد الثقيلة/i.test(label)&&units.length===2&&bare(units[0])==="ا"&&bare(units[1])==="ن";
+    });
+    if(!candidate)return;
+    const units=arabicUnits(candidate.querySelector(".structure-run__arabic")?.textContent||"");
+    candidate.replaceWith(cloneStructureCard(candidate,units[0],DUAL_LABELS[r]),cloneStructureCard(candidate,units[1],HEAVY_NUN));
+  }
+  function relabelStructure(r){
+    splitDualHeavyEnding(r);
+    const direct=SECOND_PERSON_ROWS.has(r);
+    const cards=[...document.querySelectorAll("#explanation-output .structure-run")];
+    for(const card of cards){
+      const label=card.querySelector(".structure-run__label");if(!label)continue;
+      const text=label.textContent||"";
+      const arabic=card.querySelector(".structure-run__arabic")?.textContent||"";
+      if(/Heavy-emphasis\s+ن|نون التوكيد الثقيلة/i.test(text))setLabel(label,HEAVY_NUN);
+      else if(NUN_NISWA_ROWS.has(r)&&/Feminine plural\s+ن|نون النسوة/i.test(text))setLabel(label,r===11?"This is the feminine plural addressee subject marker (نون النسوة)":"This is the feminine plural subject marker (نون النسوة)");
+      else if(NUN_NISWA_ROWS.has(r)&&/Separating\s+ا|الألف الفاصلة/i.test(text))setLabel(label,SEPARATING_ALIF);
+      else if(!direct&&/Present-tense prefix|present prefix|Muḍāriʿ prefix/i.test(text))setLabel(label,PREFIX[r]);
+      else if(!direct&&(/^Particle$/i.test(text.trim())||/lām al-amr|لام الأمر/i.test(text))&&bare(arabic).startsWith("ل"))setLabel(label,LAM_AL_AMR);
+    }
+    if(direct&&MUJARRAD_BABS.has(document.querySelector("#bab")?.value||"")){
+      const card=cards.find(c=>{const l=c.querySelector(".structure-run__label")?.textContent||"";const a=bare(c.querySelector(".structure-run__arabic")?.textContent||"");return a.startsWith("ا")&&!/Root radical/i.test(l)&&!/subject marker|addressee subject marker|heavy-emphasis/i.test(l);});
+      if(card)setLabel(card.querySelector(".structure-run__label"),HAMZAT_WASL);
+    }
+  }
+  function applyRule(r){
+    const direct=SECOND_PERSON_ROWS.has(r);
+    const mode=direct?"This is a direct imperative (فعل الأمر) strengthened by the heavy-emphasis nūn (نون التوكيد الثقيلة).":"This command is expressed with lām al-amr (لام الأمر) and strengthened by the heavy-emphasis nūn (نون التوكيد الثقيلة).";
+    let rule=mode;
+    let derivation=direct?"Form the second-person direct imperative, then attach the heavy-emphasis nūn (نون التوكيد الثقيلة).":"Prefix lām al-amr (لام الأمر) to the corresponding Muḍāriʿ command form, then attach the heavy-emphasis nūn (نون التوكيد الثقيلة).";
+    if(DUAL_ROWS.has(r)){
+      rule=`${mode} The dual alif (ألف الاثنين) is retained as its own grammatical component before the heavy-emphasis nūn.`;
+      derivation=direct?"Form the direct imperative, retain the dual alif (ألف الاثنين), then attach نون التوكيد الثقيلة.":"Prefix lām al-amr (لام الأمر), retain the dual alif (ألف الاثنين), then attach نون التوكيد الثقيلة.";
+    }else if(MASC_PLURAL_ROWS.has(r)){
+      rule=`${mode} In the masculine plural form, the ending is reshaped for emphasis; the final nūn is نون التوكيد الثقيلة, not the indicative nūn of the Five Verbs.`;
+      derivation=direct?"Form the masculine-plural direct imperative, reshape its ending for emphasis, then attach نون التوكيد الثقيلة.":"Prefix lām al-amr (لام الأمر), reshape the masculine-plural ending for emphasis, then attach نون التوكيد الثقيلة.";
+    }else if(r===9){
+      rule=`${mode} In the feminine singular addressee form, the ending is reshaped for emphasis and the final nūn is نون التوكيد الثقيلة.`;
+      derivation="Form the feminine singular direct imperative, reshape its ending for emphasis, then attach نون التوكيد الثقيلة.";
+    }else if(NUN_NISWA_ROWS.has(r)){
+      rule=`${mode} Nūn al-niswah (نون النسوة) remains the feminine-plural subject marker, and a separating alif (الألف الفاصلة) stands between it and نون التوكيد الثقيلة.`;
+      derivation=direct?"Form the feminine-plural direct imperative, retain نون النسوة, insert الألف الفاصلة, then attach نون التوكيد الثقيلة.":"Prefix lām al-amr (لام الأمر), retain نون النسوة, insert الألف الفاصلة, then attach نون التوكيد الثقيلة.";
+    }
+    setText("Rules","heavy-imperative-rule",rule);setText("Derivation","heavy-imperative-derivation",derivation);
   }
   function apply(){if(!selected())return;const r=row();if(r===null)return;relabelStructure(r);applyRule(r);}
   function init(){const panel=document.querySelector("#explanation-panel");if(!panel)return;let busy=false;new MutationObserver(()=>{if(busy)return;busy=true;queueMicrotask(()=>{apply();busy=false;});}).observe(panel,{childList:true,subtree:true});for(const id of ["#explanation-section","#explanation-field","#explanation-row","#bab"])document.querySelector(id)?.addEventListener("change",()=>queueMicrotask(apply));apply();}
