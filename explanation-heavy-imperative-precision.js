@@ -98,6 +98,7 @@
     const text=explanationFor(r);
     setPreciseText("Rules","heavy-imperative-rule","heavy-imperative-precise-rule",text.rule);
     setPreciseText("Derivation","heavy-imperative-derivation","heavy-imperative-precise-derivation",text.derivation);
+    document.querySelector("#explanation-output")?.setAttribute("data-heavy-imperative-row",String(r));
   }
 
   function init(){

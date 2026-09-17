@@ -8,23 +8,6 @@ const DUAL_ROWS = new Set([1, 4, 7, 10]);
 const NUN_NISWA_ROWS = new Set([5, 11]);
 const DIRECTLY_EMPHASIZED_NONSECOND_ROWS = new Set([0, 3, 12, 13]);
 
-const PRECISE_RULE_MARKERS = [
-  'في محل جزم بلام الأمر',
-  'علامة جزمه حذف النون',
-  'واو الجماعة',
-  'في محل جزم بلام الأمر',
-  'علامة جزمه حذف النون',
-  'الألف الفاصلة',
-  'اتصالًا مباشرًا',
-  'نِّ',
-  'واو الجماعة',
-  'ياء المخاطبة',
-  'نِّ',
-  'الألف الفاصلة',
-  'في محل جزم بلام الأمر',
-  'في محل جزم بلام الأمر',
-];
-
 async function generateFixture(page) {
   await page.goto('/');
   await page.fill('#root-one', 'خ');
@@ -50,17 +33,9 @@ async function chooseRow(page, rowIndex) {
   await expect(page.locator('#explanation-output .explanation-surface')).toBeVisible();
   await expect(page.locator('#explanation-output .structure-run').first()).toBeVisible();
 
-  // The explanation panel already contains row 0 when the form is selected.
-  // Wait for the precision layer to finish the requested row before asserting it.
-  await page.waitForFunction(({ marker, direct }) => {
-    const rule = document.querySelector('#explanation-output .heavy-imperative-precise-rule');
-    if (!rule || !(rule.textContent || '').includes(marker)) return false;
-    const labels = [...document.querySelectorAll('#explanation-output .structure-run__label')]
-      .map((node) => node.textContent || '');
-    return direct
-      ? labels.some((label) => label.includes('hamzat al-waṣl')) && !labels.some((label) => label.includes('lām al-amr'))
-      : labels.some((label) => label.includes('lām al-amr'));
-  }, { marker: PRECISE_RULE_MARKERS[rowIndex], direct: SECOND_PERSON_ROWS.has(rowIndex) });
+  // Wait until the precision layer identifies the exact requested row. Textual
+  // grammar markers are intentionally shared by multiple rows.
+  await expect(page.locator('#explanation-output')).toHaveAttribute('data-heavy-imperative-row', String(rowIndex));
 
   return value;
 }
@@ -96,9 +71,11 @@ async function assertHeavyImperative(page, rowIndex) {
   }
 
   if (DUAL_ROWS.has(rowIndex)) {
-    expect(labels.some((label) => label.includes('dual') && label.includes('ألف الاثنين'))).toBeTruthy();
+    const dualCards = page.locator('#explanation-output .structure-run').filter({ hasText: 'ألف الاثنين' });
     const heavyCards = page.locator('#explanation-output .structure-run').filter({ hasText: 'نون التوكيد الثقيلة' });
+    await expect(dualCards).toHaveCount(1);
     await expect(heavyCards).toHaveCount(1);
+    expect(await dualCards.evaluate((dual, heavy) => dual !== heavy, await heavyCards.elementHandle())).toBeTruthy();
     const heavyArabic = await heavyCards.locator('.structure-run__arabic').textContent();
     expect(String(heavyArabic || '').normalize('NFD').replace(/\p{M}/gu, '')).toBe('ن');
   }
