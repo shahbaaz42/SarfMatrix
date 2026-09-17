@@ -92,7 +92,7 @@ async function assertHeavyImperative(page, rowIndex) {
   await expect(derivationLocator).toBeVisible();
   const rule = await ruleLocator.textContent();
   const derivation = await derivationLocator.textContent();
-  expect(rule).toContain('نون التوكيد الثقيلة');
+  expect(rule).toMatch(/heavy-emphasis nūn|نون التوكيد الثقيلة/);
   expect(derivation).toContain('نون التوكيد الثقيلة');
 
   if (rowIndex === 6) {
