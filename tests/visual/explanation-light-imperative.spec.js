@@ -23,8 +23,8 @@ async function chooseRow(page, rowIndex) {
   await page.selectOption('#explanation-row', value);
   await expect(page.locator('#explanation-row')).toHaveValue(value);
   await expect(page.locator('#explanation-output .explanation-surface')).toBeVisible();
-  await expect(page.locator('#explanation-output .explanation-block').filter({ hasText: 'Rules' })).toBeVisible();
-  await expect(page.locator('#explanation-output .explanation-block').filter({ hasText: 'Derivation' })).toBeVisible();
+  await expect(page.locator('#explanation-output .explanation-block').filter({ has: page.locator('h3', { hasText: 'Rules' }) })).toBeVisible();
+  await expect(page.locator('#explanation-output .explanation-block').filter({ has: page.locator('h3', { hasText: 'Derivation' }) })).toBeVisible();
   return value;
 }
 
