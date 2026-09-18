@@ -233,3 +233,67 @@
   function init(){const panel=document.querySelector("#explanation-panel");if(!panel)return;let busy=false;new MutationObserver(()=>{if(busy)return;busy=true;queueMicrotask(()=>{apply();busy=false;});}).observe(panel,{childList:true,subtree:true});for(const id of ["#explanation-section","#explanation-field","#explanation-row","#bab"])document.querySelector(id)?.addEventListener("change",()=>queueMicrotask(apply));apply();}
   if(typeof document!=="undefined")init();
 })();
+
+
+// Learner-facing audit for the eight generated Light-emphasis command forms in Section 03.
+(function lightImperativeLabels(){
+  "use strict";
+  const LIGHT_ROWS=new Set([0,2,3,6,8,9,12,13]);
+  const DIRECT_ROWS=new Set([6,8,9]);
+  const PREFIX=[
+    "This is the Muḍāriʿ prefix for the third person – masculine (حرف المضارعة للغائب المذكر)",null,
+    "This is the Muḍāriʿ prefix for the third person – masculine (حرف المضارعة للغائب المذكر)",
+    "This is the Muḍāriʿ prefix for the third person – feminine (حرف المضارعة للغائبة المؤنثة)",null,null,null,
+    "This is the Muḍāriʿ prefix for the second person – masculine (حرف المضارعة للمخاطب المذكر)",null,
+    "This is the Muḍāriʿ prefix for the second person – feminine (حرف المضارعة للمخاطبة المؤنثة)",null,null,
+    "This is the Muḍāriʿ prefix for the first person – singular (حرف المضارعة للمتكلم المفرد)",
+    "This is the Muḍāriʿ prefix for the first person – plural (حرف المضارعة للمتكلمين)"
+  ];
+  const LIGHT_NUN="This is the light-emphasis nūn (نون التوكيد الخفيفة)";
+  const LAM_AL_AMR="This is lām al-amr, the jussive command particle (لام الأمر الجازمة)";
+  const HAMZAT_WASL="This is hamzat al-waṣl used to begin the direct imperative (همزة الوصل في فعل الأمر)";
+  const WAW_JAMA="This is the masculine plural subject marker, wāw al-jamāʿah (واو الجماعة)";
+  const YA_MUKHATABAH="This is the feminine singular addressee marker, yāʾ al-mukhāṭabah (ياء المخاطبة)";
+  function selected(){return document.querySelector("#explanation-section")?.value==="section03"&&document.querySelector("#explanation-field")?.value==="lightImperative";}
+  function row(){const n=Number(document.querySelector("#explanation-row")?.value);return Number.isInteger(n)?n:null;}
+  function block(title){return [...document.querySelectorAll("#explanation-output .explanation-block")].find(b=>(b.querySelector("h3")?.textContent||"").trim().toLowerCase()===title.toLowerCase());}
+  function setLabel(label,text){if(!label||!text)return;if(label.textContent!==text)label.textContent=text;if(label.dir!=="ltr")label.dir="ltr";}
+  function setText(title,cls,text){const b=block(title);if(!b)return;const empty=b.querySelector(".explanation-empty");if(empty)empty.remove();let p=b.querySelector("."+cls);if(!p){p=document.createElement("p");p.className=cls;p.dir="ltr";b.append(p);}if(p.textContent!==text)p.textContent=text;if(p.dir!=="ltr")p.dir="ltr";}
+  function relabelStructure(r){
+    const direct=DIRECT_ROWS.has(r);
+    for(const card of document.querySelectorAll("#explanation-output .structure-run")){
+      const label=card.querySelector(".structure-run__label");if(!label)continue;
+      const text=label.textContent||"";
+      const arabic=card.querySelector(".structure-run__arabic")?.textContent||"";
+      if(/Light-emphasis\s+ن|نون التوكيد الخفيفة/i.test(text))setLabel(label,LIGHT_NUN);
+      else if(!direct&&/Present-tense prefix|present prefix|Muḍāriʿ prefix/i.test(text))setLabel(label,PREFIX[r]);
+      else if(!direct&&(/^Particle$/i.test(text.trim())||/lām al-amr|لام الأمر/i.test(text))&&/ل/.test(arabic))setLabel(label,LAM_AL_AMR);
+      else if(direct&&r===6&&/Hamzat|Derivational element|همزة الوصل/i.test(text))setLabel(label,HAMZAT_WASL);
+      else if(direct&&r===8&&/Plural wāw|واو الجماعة/i.test(text))setLabel(label,WAW_JAMA);
+      else if(direct&&r===9&&/Feminine-address yāʾ|ياء المخاطبة/i.test(text))setLabel(label,YA_MUKHATABAH);
+    }
+  }
+  function applyRule(r){
+    let rule,derivation;
+    if(r===6){
+      rule="This is a direct imperative (فعل الأمر) strengthened by the light-emphasis nūn (نون التوكيد الخفيفة). A command attached to a nūn of emphasis is built on fatḥ.";
+      derivation="Form the direct imperative with hamzat al-waṣl (همزة الوصل), then attach نون التوكيد الخفيفة.";
+    }else if(r===8){
+      rule="This is a direct masculine-plural imperative strengthened by نون التوكيد الخفيفة. The wāw of wāw al-jamāʿah is omitted before the nūn to avoid two sukūns, while the preceding ḍammah indicates the plural marker.";
+      derivation="Form the masculine-plural imperative, omit wāw al-jamāʿah before the light nūn, retain the ḍammah as its indication, then attach نون التوكيد الخفيفة.";
+    }else if(r===9){
+      rule="This is a direct feminine-singular imperative strengthened by نون التوكيد الخفيفة. The yāʾ of yāʾ al-mukhāṭabah is omitted before the nūn to avoid two sukūns, while the preceding kasrah indicates the feminine addressee marker.";
+      derivation="Form the feminine-singular imperative, omit yāʾ al-mukhāṭabah before the light nūn, retain the kasrah as its indication, then attach نون التوكيد الخفيفة.";
+    }else if(r===2){
+      rule="This command is expressed with lām al-amr (لام الأمر). The masculine-plural Muḍāriʿ command form omits wāw al-jamāʿah before نون التوكيد الخفيفة to avoid two sukūns; the preceding ḍammah indicates the plural marker.";
+      derivation="Prefix lām al-amr to the masculine-plural Muḍāriʿ, form the command construction, omit wāw al-jamāʿah before the light nūn, then attach نون التوكيد الخفيفة.";
+    }else{
+      rule="This command is expressed with lām al-amr (لام الأمر) and strengthened by the light-emphasis nūn (نون التوكيد الخفيفة), which is attached directly to the Muḍāriʿ form.";
+      derivation="Prefix lām al-amr to the corresponding Muḍāriʿ command form, then attach نون التوكيد الخفيفة.";
+    }
+    setText("Rules","light-imperative-rule",rule);setText("Derivation","light-imperative-derivation",derivation);
+  }
+  function apply(){if(!selected())return;const r=row();if(r===null||!LIGHT_ROWS.has(r))return;relabelStructure(r);applyRule(r);}
+  function init(){const panel=document.querySelector("#explanation-panel");if(!panel)return;let busy=false;new MutationObserver(()=>{if(busy)return;busy=true;queueMicrotask(()=>{apply();busy=false;});}).observe(panel,{childList:true,subtree:true});for(const id of ["#explanation-section","#explanation-field","#explanation-row"])document.querySelector(id)?.addEventListener("change",()=>queueMicrotask(apply));apply();}
+  if(typeof document!=="undefined")init();
+})();
