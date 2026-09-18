@@ -42,8 +42,7 @@ async function shot(page, rowIndex, rowValue) {
 for (const rowIndex of AVAILABLE_ROW_INDEXES) {
   test(`light imperative explanation source row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
     await generateFixture(page);
-    const optionIndex = AVAILABLE_ROW_INDEXES.indexOf(rowIndex);
-    const rowValue = await chooseRow(page, optionIndex);
+    const rowValue = await chooseRow(page, AVAILABLE_ROW_INDEXES.indexOf(rowIndex));
     await shot(page, rowIndex, rowValue);
   });
 }
