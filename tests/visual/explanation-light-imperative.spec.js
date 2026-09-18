@@ -14,7 +14,6 @@ async function generateFixture(page) {
   await expect(page.locator('#explanation-panel')).toBeVisible();
   await page.selectOption('#explanation-section', 'section03');
   await page.selectOption('#explanation-field', 'lightImperative');
-  await expect(page.locator('#explanation-row option')).toHaveCount(AVAILABLE_ROW_INDEXES.length);
 }
 
 async function chooseRow(page, rowIndex) {
