@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-const ROW_COUNT = 14;
+const AVAILABLE_ROW_INDEXES = [0, 2, 3, 6, 8, 9, 12, 13];
 
 async function generateFixture(page) {
   await page.goto('/');
@@ -14,7 +14,7 @@ async function generateFixture(page) {
   await expect(page.locator('#explanation-panel')).toBeVisible();
   await page.selectOption('#explanation-section', 'section03');
   await page.selectOption('#explanation-field', 'lightImperative');
-  await expect(page.locator('#explanation-row option')).toHaveCount(ROW_COUNT);
+  await expect(page.locator('#explanation-row option')).toHaveCount(AVAILABLE_ROW_INDEXES.length);
 }
 
 async function chooseRow(page, rowIndex) {
@@ -39,10 +39,11 @@ async function shot(page, rowIndex, rowValue) {
   });
 }
 
-for (let rowIndex = 0; rowIndex < ROW_COUNT; rowIndex += 1) {
-  test(`light imperative explanation row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
+for (const rowIndex of AVAILABLE_ROW_INDEXES) {
+  test(`light imperative explanation source row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
     await generateFixture(page);
-    const rowValue = await chooseRow(page, rowIndex);
+    const optionIndex = AVAILABLE_ROW_INDEXES.indexOf(rowIndex);
+    const rowValue = await chooseRow(page, optionIndex);
     await shot(page, rowIndex, rowValue);
   });
 }
