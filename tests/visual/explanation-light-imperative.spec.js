@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-const AVAILABLE_ROW_INDEXES = [0, 3, 6, 12];
+const AVAILABLE_ROW_INDEXES = [0, 2, 3, 6, 8, 9, 12, 13];
 
 async function generateFixture(page) {
   await page.goto('/');
@@ -23,6 +23,8 @@ async function chooseRow(page, rowIndex) {
   await page.selectOption('#explanation-row', value);
   await expect(page.locator('#explanation-row')).toHaveValue(value);
   await expect(page.locator('#explanation-output .explanation-surface')).toBeVisible();
+  await expect(page.locator('#explanation-output .explanation-block').filter({ hasText: 'Rules' })).toBeVisible();
+  await expect(page.locator('#explanation-output .explanation-block').filter({ hasText: 'Derivation' })).toBeVisible();
   return value;
 }
 
@@ -41,7 +43,7 @@ async function shot(page, rowIndex, rowValue) {
 for (const rowIndex of AVAILABLE_ROW_INDEXES) {
   test(`light imperative explanation source row ${String(rowIndex + 1).padStart(2, '0')}`, async ({ page }) => {
     await generateFixture(page);
-    const rowValue = await chooseRow(page, AVAILABLE_ROW_INDEXES.indexOf(rowIndex));
+    const rowValue = await chooseRow(page, rowIndex);
     await shot(page, rowIndex, rowValue);
   });
 }
