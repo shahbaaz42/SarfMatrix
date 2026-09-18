@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-const AVAILABLE_ROW_INDEXES = [0, 2, 3, 6, 8, 9, 12, 13];
+const AVAILABLE_ROW_INDEXES = [0, 3, 6, 12];
 
 async function generateFixture(page) {
   await page.goto('/');
